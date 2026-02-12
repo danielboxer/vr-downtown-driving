@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on 2026-02-11 12:32:28 by Eclipse SUMO netedit Version 1.22.0
+<!-- generated on 2026-02-11 21:22:11 by Eclipse SUMO netedit Version 1.22.0
 <neteditConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/neteditConfiguration.xsd">
 
     <input>
-        <sumocfg-file value="C:\Users\dleeb\Desktop\thesis\vr-downtown-driving\simulation\Scenario1\Sumo2Unity.sumocfg"/>
         <sumo-net-file value="C:\Users\dleeb\Desktop\thesis\vr-downtown-driving\simulation\Scenario1\Sumo2Unity.net.xml"/>
     </input>
 
@@ -385,16 +384,19 @@
         <lane id=":32_0_1" index="1" disallow="tram rail_urban rail rail_electric rail_fast ship container cable_car subway aircraft wheelchair scooter drone" speed="11.11" length="21.00" shape="259.10,193.94 239.00,187.72"/>
     </edge>
     <edge id=":32_2" function="internal">
-        <lane id=":32_2_0" index="0" disallow="tram rail_urban rail rail_electric rail_fast ship container cable_car subway aircraft wheelchair scooter drone" speed="11.11" length="22.08" shape="257.71,180.28 250.65,201.42"/>
-        <lane id=":32_2_1" index="1" disallow="tram rail_urban rail rail_electric rail_fast ship container cable_car subway aircraft wheelchair scooter drone" speed="11.11" length="22.08" shape="254.60,179.49 247.67,200.23"/>
+        <lane id=":32_2_0" index="0" disallow="tram rail_urban rail rail_electric rail_fast ship container cable_car subway aircraft wheelchair scooter drone" speed="6.63" length="9.46" shape="257.71,180.28 257.19,182.95 257.58,185.10 258.88,186.73 261.08,187.85"/>
     </edge>
-    <edge id=":32_4" function="internal">
-        <lane id=":32_4_0" index="0" disallow="tram rail_urban rail rail_electric rail_fast ship container cable_car subway aircraft wheelchair scooter drone" speed="11.11" length="21.18" shape="240.80,181.58 261.08,187.85"/>
-        <lane id=":32_4_1" index="1" disallow="tram rail_urban rail rail_electric rail_fast ship container cable_car subway aircraft wheelchair scooter drone" speed="11.11" length="21.18" shape="239.90,184.65 260.09,190.90"/>
+    <edge id=":32_3" function="internal">
+        <lane id=":32_3_0" index="0" disallow="tram rail_urban rail rail_electric rail_fast ship container cable_car subway aircraft wheelchair scooter drone" speed="11.11" length="22.08" shape="257.71,180.28 250.65,201.42"/>
+        <lane id=":32_3_1" index="1" disallow="tram rail_urban rail rail_electric rail_fast ship container cable_car subway aircraft wheelchair scooter drone" speed="11.11" length="22.08" shape="254.60,179.49 247.67,200.23"/>
     </edge>
-    <edge id=":32_6" function="internal">
-        <lane id=":32_6_0" index="0" disallow="tram rail_urban rail rail_electric rail_fast ship container cable_car subway aircraft wheelchair scooter drone" speed="11.11" length="21.23" shape="241.72,197.85 248.38,177.91"/>
-        <lane id=":32_6_1" index="1" disallow="tram rail_urban rail rail_electric rail_fast ship container cable_car subway aircraft wheelchair scooter drone" speed="11.11" length="21.23" shape="244.70,199.04 251.49,178.70"/>
+    <edge id=":32_5" function="internal">
+        <lane id=":32_5_0" index="0" disallow="tram rail_urban rail rail_electric rail_fast ship container cable_car subway aircraft wheelchair scooter drone" speed="11.11" length="21.18" shape="240.80,181.58 261.08,187.85"/>
+        <lane id=":32_5_1" index="1" disallow="tram rail_urban rail rail_electric rail_fast ship container cable_car subway aircraft wheelchair scooter drone" speed="11.11" length="21.18" shape="239.90,184.65 260.09,190.90"/>
+    </edge>
+    <edge id=":32_7" function="internal">
+        <lane id=":32_7_0" index="0" disallow="tram rail_urban rail rail_electric rail_fast ship container cable_car subway aircraft wheelchair scooter drone" speed="11.11" length="21.23" shape="241.72,197.85 248.38,177.91"/>
+        <lane id=":32_7_1" index="1" disallow="tram rail_urban rail rail_electric rail_fast ship container cable_car subway aircraft wheelchair scooter drone" speed="11.11" length="21.23" shape="244.70,199.04 251.49,178.70"/>
     </edge>
     <edge id=":33_0" function="internal">
         <lane id=":33_0_0" index="0" allow="bicycle" speed="5.30" length="6.12" width="1.25" shape="155.68,500.52 154.15,500.29 152.87,500.68 151.83,501.67 151.03,503.28"/>
@@ -1291,10 +1293,10 @@
         <phase duration="5"  state="r"/>
     </tlLogic>
     <tlLogic id="32" type="actuated" programID="0" offset="0">
-        <phase duration="42" state="rrGGrrGG" minDur="5" maxDur="50"/>
-        <phase duration="3"  state="rryyrryy"/>
-        <phase duration="42" state="GGrrGGrr" minDur="5" maxDur="50"/>
-        <phase duration="3"  state="yyrryyrr"/>
+        <phase duration="42" state="rrGGGrrGG" minDur="5" maxDur="50"/>
+        <phase duration="3"  state="rryyyrryy"/>
+        <phase duration="42" state="GGrrrGGrr" minDur="5" maxDur="50"/>
+        <phase duration="3"  state="yyrrryyrr"/>
     </tlLogic>
     <tlLogic id="33" type="actuated" programID="0" offset="0">
         <phase duration="42" state="rrrrrGGGGgggrrrrrrrGGGGggg" minDur="5" maxDur="50"/>
@@ -1459,15 +1461,16 @@
     <junction id="31" type="traffic_light" x="23.55" y="117.93" incLanes="12_0 12_1" intLanes=":31_0_0" shape="23.55,117.93 21.67,124.05 23.55,117.93">
         <request index="0" response="0" foes="0" cont="0"/>
     </junction>
-    <junction id="32" type="traffic_light" x="249.73" y="189.21" incLanes="29_0 29_1 78_0 78_1 90_0 90_1 18_0 18_1" intLanes=":32_0_0 :32_0_1 :32_2_0 :32_2_1 :32_4_0 :32_4_1 :32_6_0 :32_6_1" shape="257.62,198.50 261.57,186.33 259.64,185.16 259.11,184.30 258.87,183.27 258.92,182.06 259.26,180.68 246.82,177.52 245.62,179.52 244.78,180.09 243.78,180.37 242.61,180.36 241.25,180.05 237.64,192.33 239.59,193.40 240.17,194.16 240.48,195.05 240.50,196.08 240.23,197.26 252.14,202.02 253.45,199.50 254.30,198.75 255.27,198.33 256.38,198.25">
-        <request index="0" response="11001100" foes="11001100" cont="0"/>
-        <request index="1" response="11001100" foes="11001100" cont="0"/>
-        <request index="2" response="00000000" foes="00110011" cont="0"/>
-        <request index="3" response="00000000" foes="00110011" cont="0"/>
-        <request index="4" response="11001100" foes="11001100" cont="0"/>
-        <request index="5" response="11001100" foes="11001100" cont="0"/>
-        <request index="6" response="00000000" foes="00110011" cont="0"/>
-        <request index="7" response="00000000" foes="00110011" cont="0"/>
+    <junction id="32" type="traffic_light" x="249.73" y="189.21" incLanes="29_0 29_1 78_0 78_1 90_0 90_1 18_0 18_1" intLanes=":32_0_0 :32_0_1 :32_2_0 :32_3_0 :32_3_1 :32_5_0 :32_5_1 :32_7_0 :32_7_1" shape="257.62,198.50 261.57,186.33 259.64,185.16 259.11,184.30 258.87,183.27 258.92,182.06 259.26,180.68 246.82,177.52 245.62,179.52 244.78,180.09 243.78,180.37 242.61,180.36 241.25,180.05 237.64,192.33 239.59,193.40 240.17,194.16 240.48,195.05 240.50,196.08 240.23,197.26 252.14,202.02 253.45,199.50 254.30,198.75 255.27,198.33 256.38,198.25">
+        <request index="0" response="110011000" foes="110011000" cont="0"/>
+        <request index="1" response="110011000" foes="110011000" cont="0"/>
+        <request index="2" response="000000000" foes="001100000" cont="0"/>
+        <request index="3" response="000000000" foes="001100011" cont="0"/>
+        <request index="4" response="000000000" foes="001100011" cont="0"/>
+        <request index="5" response="110011100" foes="110011100" cont="0"/>
+        <request index="6" response="110011100" foes="110011100" cont="0"/>
+        <request index="7" response="000000000" foes="001100011" cont="0"/>
+        <request index="8" response="000000000" foes="001100011" cont="0"/>
     </junction>
     <junction id="33" type="traffic_light" x="148.17" y="494.09" incLanes="5_0 5_1 56_0 56_1 48_0 48_1 33_0 33_1" intLanes=":33_0_0 :33_1_0 :33_26_0 :33_3_0 :33_27_0 :33_5_0 :33_5_1 :33_7_0 :33_7_1 :33_28_0 :33_28_1 :33_29_0 :33_12_0 :33_13_0 :33_30_0 :33_31_0 :33_16_0 :33_32_0 :33_33_0 :33_19_0 :33_19_1 :33_21_0 :33_21_1 :33_34_0 :33_34_1 :33_35_0" shape="155.49,501.11 158.21,492.64 156.98,491.95 156.64,491.48 156.48,490.92 156.50,490.27 156.70,489.53 144.71,485.06 143.75,486.58 143.11,487.03 142.34,487.26 141.46,487.29 140.47,487.11 137.99,496.17 139.23,496.80 139.59,497.26 139.76,497.81 139.75,498.45 139.56,499.19 151.62,503.49 152.56,501.78 153.16,501.27 153.85,500.99 154.63,500.94">
         <request index="0"  response="00000000000000000110000000" foes="00000000100100000110000100" cont="0"/>
@@ -1686,8 +1689,8 @@
     <connection from="16" to="35" fromLane="1" toLane="1" via=":24_1_1" tl="24" linkIndex="2" dir="s" state="O"/>
     <connection from="16" to="67" fromLane="1" toLane="1" via=":24_3_0" tl="24" linkIndex="3" dir="l" state="o"/>
     <connection from="16" to="68" fromLane="1" toLane="1" via=":24_4_0" tl="24" linkIndex="4" dir="t" state="o"/>
-    <connection from="18" to="22" fromLane="0" toLane="0" via=":32_6_0" tl="32" linkIndex="6" dir="s" state="O"/>
-    <connection from="18" to="22" fromLane="1" toLane="1" via=":32_6_1" tl="32" linkIndex="7" dir="s" state="O"/>
+    <connection from="18" to="22" fromLane="0" toLane="0" via=":32_7_0" tl="32" linkIndex="7" dir="s" state="O"/>
+    <connection from="18" to="22" fromLane="1" toLane="1" via=":32_7_1" tl="32" linkIndex="8" dir="s" state="O"/>
     <connection from="19" to="42" fromLane="0" toLane="0" via=":36_7_0" dir="r" state="M"/>
     <connection from="19" to="18" fromLane="0" toLane="0" via=":36_8_0" dir="s" state="M"/>
     <connection from="19" to="18" fromLane="1" toLane="1" via=":36_8_1" dir="s" state="M"/>
@@ -1824,8 +1827,9 @@
     <connection from="77" to="47" fromLane="0" toLane="0" via=":41_7_0" tl="41" linkIndex="7" dir="r" state="o"/>
     <connection from="77" to="75" fromLane="0" toLane="0" via=":41_8_0" tl="41" linkIndex="8" dir="s" state="o"/>
     <connection from="77" to="0" fromLane="0" toLane="1" via=":41_9_0" tl="41" linkIndex="9" dir="l" state="o"/>
-    <connection from="78" to="71" fromLane="0" toLane="0" via=":32_2_0" tl="32" linkIndex="2" dir="s" state="O"/>
-    <connection from="78" to="71" fromLane="1" toLane="1" via=":32_2_1" tl="32" linkIndex="3" dir="s" state="O"/>
+    <connection from="78" to="87" fromLane="0" toLane="0" via=":32_2_0" tl="32" linkIndex="2" dir="r" state="O"/>
+    <connection from="78" to="71" fromLane="0" toLane="0" via=":32_3_0" tl="32" linkIndex="3" dir="s" state="O"/>
+    <connection from="78" to="71" fromLane="1" toLane="1" via=":32_3_1" tl="32" linkIndex="4" dir="s" state="O"/>
     <connection from="79" to="62" fromLane="0" toLane="0" via=":21_0_0" dir="r" state="M"/>
     <connection from="79" to="78" fromLane="0" toLane="0" via=":21_1_0" dir="s" state="M"/>
     <connection from="79" to="78" fromLane="1" toLane="1" via=":21_1_1" dir="s" state="M"/>
@@ -1863,8 +1867,8 @@
     <connection from="9" to="8" fromLane="0" toLane="0" via=":19_8_0" dir="s" state="M"/>
     <connection from="9" to="8" fromLane="1" toLane="1" via=":19_8_1" dir="s" state="M"/>
     <connection from="9" to="56" fromLane="1" toLane="1" via=":19_10_0" dir="t" state="m"/>
-    <connection from="90" to="87" fromLane="0" toLane="0" via=":32_4_0" tl="32" linkIndex="4" dir="s" state="o"/>
-    <connection from="90" to="87" fromLane="1" toLane="1" via=":32_4_1" tl="32" linkIndex="5" dir="s" state="o"/>
+    <connection from="90" to="87" fromLane="0" toLane="0" via=":32_5_0" tl="32" linkIndex="5" dir="s" state="o"/>
+    <connection from="90" to="87" fromLane="1" toLane="1" via=":32_5_1" tl="32" linkIndex="6" dir="s" state="o"/>
     <connection from="94" to="52" fromLane="0" toLane="0" via=":4_2_0" dir="s" state="M"/>
     <connection from="94" to="52" fromLane="1" toLane="1" via=":4_2_1" dir="s" state="M"/>
     <connection from="94" to="52" fromLane="1" toLane="2" via=":4_2_2" dir="s" state="M"/>
@@ -1999,12 +2003,13 @@
     <connection from=":31_0" to="90" fromLane="0" toLane="1" dir="t" state="M"/>
     <connection from=":32_0" to="12" fromLane="0" toLane="0" dir="s" state="M"/>
     <connection from=":32_0" to="12" fromLane="1" toLane="1" dir="s" state="M"/>
-    <connection from=":32_2" to="71" fromLane="0" toLane="0" dir="s" state="M"/>
-    <connection from=":32_2" to="71" fromLane="1" toLane="1" dir="s" state="M"/>
-    <connection from=":32_4" to="87" fromLane="0" toLane="0" dir="s" state="M"/>
-    <connection from=":32_4" to="87" fromLane="1" toLane="1" dir="s" state="M"/>
-    <connection from=":32_6" to="22" fromLane="0" toLane="0" dir="s" state="M"/>
-    <connection from=":32_6" to="22" fromLane="1" toLane="1" dir="s" state="M"/>
+    <connection from=":32_2" to="87" fromLane="0" toLane="0" dir="r" state="M"/>
+    <connection from=":32_3" to="71" fromLane="0" toLane="0" dir="s" state="M"/>
+    <connection from=":32_3" to="71" fromLane="1" toLane="1" dir="s" state="M"/>
+    <connection from=":32_5" to="87" fromLane="0" toLane="0" dir="s" state="M"/>
+    <connection from=":32_5" to="87" fromLane="1" toLane="1" dir="s" state="M"/>
+    <connection from=":32_7" to="22" fromLane="0" toLane="0" dir="s" state="M"/>
+    <connection from=":32_7" to="22" fromLane="1" toLane="1" dir="s" state="M"/>
     <connection from=":33_0" to="74" fromLane="0" toLane="0" dir="r" state="M"/>
     <connection from=":33_1" to="32" fromLane="0" toLane="0" dir="s" state="M"/>
     <connection from=":33_2" to="74" fromLane="0" toLane="0" via=":33_26_0" dir="r" state="m"/>
