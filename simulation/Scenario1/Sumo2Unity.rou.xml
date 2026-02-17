@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on 2026-02-13 12:02:49 by Eclipse SUMO netedit Version 1.22.0
+<!-- generated on 2026-02-15 21:41:20 by Eclipse SUMO netedit Version 1.22.0
 -->
 
 <routes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/routes_file.xsd">
@@ -15,5 +15,5 @@
     <vType id="EgoCar" length="4.81" width="2.16" color="69,56,56"/>
     <vType id="EgoScooter" length="1.09" vClass="scooter"/>
     <!-- Vehicles, persons and containers (sorted by depart) -->
-    <trip id="f_0.0" type="EgoCar" depart="0.00" from="78" to="87"/>
+    <trip id="f_0.0" type="EgoCar" depart="540.00" from="78" to="87"/>
 </routes>
