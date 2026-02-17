@@ -18,6 +18,14 @@ The simulation uses the Sumo2Unity project. See their documentation [here](https
 Make sure to delete any trips or flows in .rou file before making your own trips.
 
 
+## Modifying a route
+
+1. In netedit, go to `Inspect` mode
+2. Click `Demand` in the top bar
+3. Click the car of the route you want to edit
+4. Now you can modify the route parameters
+
+
 ## OpenStreetMap to Sumo
 
 https://www.youtube.com/watch?v=HQFZKigh4Sk
