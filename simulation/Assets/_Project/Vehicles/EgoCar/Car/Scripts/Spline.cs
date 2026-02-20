@@ -1,41 +1,47 @@
 using UnityEngine;
-using System.Linq; // For LINQ to get child transforms
+using System.Linq;
 
 public class Spline : MonoBehaviour
 {
-    public int resolution = 20; // Number of points to interpolate
+    public int resolution = 20;
 
     private Transform[] controlPoints;
 
     private void Awake()
     {
-        // Automatically populate control points from child transforms
+        RefreshControlPoints();
+    }
+
+    private void RefreshControlPoints()
+    {
         controlPoints = GetComponentsInChildren<Transform>()
-            .Where(t => t != transform) // Exclude the parent object itself
+            .Where(t => t != transform)
             .ToArray();
     }
 
     public Vector3 GetPoint(float t)
     {
-        // Ensure t is clamped between 0 and 1
         t = Mathf.Clamp01(t);
 
-        // Calculate indices of control points
         int numPoints = controlPoints.Length;
-        int p0 = Mathf.Clamp(Mathf.FloorToInt(t * (numPoints - 1)) - 1, 0, numPoints - 1);
-        int p1 = Mathf.Clamp(p0 + 1, 0, numPoints - 1);
-        int p2 = Mathf.Clamp(p1 + 1, 0, numPoints - 1);
-        int p3 = Mathf.Clamp(p2 + 1, 0, numPoints - 1);
+        if (numPoints < 2) return Vector3.zero;
 
-        // Calculate local t (between p1 and p2)
-        float localT = (t * (numPoints - 1)) - Mathf.Floor(t * (numPoints - 1));
+        int segmentCount = numPoints - 1;
+        float scaledT = t * segmentCount;
+        int i = Mathf.Clamp(Mathf.FloorToInt(scaledT), 0, segmentCount - 1);
+        float localT = scaledT - i;
 
-        // Use Catmull-Rom interpolation
+        // Clamp at edges so the curve never loops back
+        int iPrev = Mathf.Max(0, i - 1);
+        int i0 = i;
+        int i1 = i + 1;
+        int iNext = Mathf.Min(numPoints - 1, i + 2);
+
         return CatmullRom(
-            controlPoints[p0].position,
-            controlPoints[p1].position,
-            controlPoints[p2].position,
-            controlPoints[p3].position,
+            controlPoints[iPrev].position,
+            controlPoints[i0].position,
+            controlPoints[i1].position,
+            controlPoints[iNext].position,
             localT
         );
     }
@@ -46,7 +52,7 @@ public class Spline : MonoBehaviour
         float t3 = t2 * t;
 
         return 0.5f * (
-            (2f * p1) +
+            2f * p1 +
             (-p0 + p2) * t +
             (2f * p0 - 5f * p1 + 4f * p2 - p3) * t2 +
             (-p0 + 3f * p1 - 3f * p2 + p3) * t3
@@ -55,16 +61,12 @@ public class Spline : MonoBehaviour
 
     private void OnDrawGizmos()
     {
-        // Automatically update control points in the editor
-        controlPoints = GetComponentsInChildren<Transform>()
-            .Where(t => t != transform)
-            .ToArray();
+        RefreshControlPoints();
 
         if (controlPoints == null || controlPoints.Length < 2) return;
 
-        // Draw the curve
         Gizmos.color = Color.green;
-        Vector3 previousPoint = controlPoints[0].position;
+        Vector3 previousPoint = GetPoint(0f);
 
         for (int i = 1; i <= resolution; i++)
         {
