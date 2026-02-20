@@ -28,7 +28,12 @@ namespace UnityStandardAssets.Vehicles.Car
         public float dopplerLevel = 1;
         public bool useDoppler = true;
 
+        [Header("Turn Signal Sounds")]
+        public AudioClip turnSignalOnSound;
+        public AudioClip turnSignalLoopSound;
+
         private AudioSource m_LowAccel, m_LowDecel, m_HighAccel, m_HighDecel;
+        private AudioSource m_TurnSignalSource;
         private bool m_StartedSound;
         private CarController m_CarController;
 
@@ -124,5 +129,41 @@ namespace UnityStandardAssets.Vehicles.Car
 
         private static float ULerp(float from, float to, float value) =>
             (1f - value) * from + value * to;
+
+        private void Start()
+        {
+            // Initialize the turn signal audio source
+            if (turnSignalLoopSound != null)
+            {
+                m_TurnSignalSource = gameObject.AddComponent<AudioSource>();
+                m_TurnSignalSource.clip = turnSignalLoopSound;
+                m_TurnSignalSource.loop = true;
+                m_TurnSignalSource.volume = masterVolume; // Use master volume
+            }
+        }
+
+        public void PlayTurnSignalOnSound()
+        {
+            if (turnSignalOnSound != null)
+            {
+                AudioSource.PlayClipAtPoint(turnSignalOnSound, transform.position, masterVolume);
+            }
+        }
+
+        public void PlayTurnSignalLoop()
+        {
+            if (m_TurnSignalSource != null && !m_TurnSignalSource.isPlaying)
+            {
+                m_TurnSignalSource.Play();
+            }
+        }
+
+        public void StopTurnSignalLoop()
+        {
+            if (m_TurnSignalSource != null && m_TurnSignalSource.isPlaying)
+            {
+                m_TurnSignalSource.Stop();
+            }
+        }
     }
 }
