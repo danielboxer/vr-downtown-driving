@@ -6,6 +6,8 @@ namespace UnityStandardAssets.Vehicles.Car
     public class CarUserControl : MonoBehaviour
     {
         private CarController m_Car; // The car controller we want to use
+        private CarAudio m_CarAudio; // The car audio controller
+
         public GameObject m_Wheel; // The steering wheel GameObject
 
         [Header("Steering Settings")]
@@ -18,10 +20,20 @@ namespace UnityStandardAssets.Vehicles.Car
 
         private float currentAngle = 0f; // Current angle of the wheel
 
+        [Header("Turn Signal Settings")]
+        public Light leftTurnSignal;
+        public Light rightTurnSignal;
+        public float blinkInterval = 0.5f;
+
+        private bool isLeftSignalOn = false;
+        private bool isRightSignalOn = false;
+        private float signalTimer = 0f;
+
         private void Awake()
         {
-            // Get the CarController component
+            // Get the CarController and CarAudio components
             m_Car = GetComponent<CarController>();
+            m_CarAudio = GetComponent<CarAudio>();
         }
 
         private void FixedUpdate()
@@ -52,6 +64,66 @@ namespace UnityStandardAssets.Vehicles.Car
 
             // Pass the input to the car controller
             m_Car.Move(h, v, v, handbrake);
+
+            // Handle turn signal blinking
+            signalTimer += Time.deltaTime;
+            if (isLeftSignalOn && signalTimer >= blinkInterval)
+            {
+                leftTurnSignal.enabled = !leftTurnSignal.enabled;
+                signalTimer = 0f;
+            }
+
+            if (isRightSignalOn && signalTimer >= blinkInterval)
+            {
+                rightTurnSignal.enabled = !rightTurnSignal.enabled;
+                signalTimer = 0f;
+            }
+        }
+
+        private void Update()
+        {
+            // Turn signal input
+            if (Input.GetKeyDown(KeyCode.Q)) // Left turn signal
+            {
+                ActivateTurnSignal(true, false);
+            }
+            else if (Input.GetKeyDown(KeyCode.E)) // Right turn signal
+            {
+                ActivateTurnSignal(false, true);
+            }
+            else if (Input.GetKeyDown(KeyCode.C)) // Cancel turn signals
+            {
+                DeactivateTurnSignals();
+            }
+        }
+
+        private void ActivateTurnSignal(bool left, bool right)
+        {
+            isLeftSignalOn = left;
+            isRightSignalOn = right;
+
+            leftTurnSignal.enabled = left;
+            rightTurnSignal.enabled = right;
+
+            if (m_CarAudio != null)
+            {
+                m_CarAudio.PlayTurnSignalOnSound();
+                m_CarAudio.PlayTurnSignalLoop();
+            }
+        }
+
+        private void DeactivateTurnSignals()
+        {
+            isLeftSignalOn = false;
+            isRightSignalOn = false;
+
+            leftTurnSignal.enabled = false;
+            rightTurnSignal.enabled = false;
+
+            if (m_CarAudio != null)
+            {
+                m_CarAudio.StopTurnSignalLoop();
+            }
         }
     }
 }
