@@ -746,6 +746,7 @@ GameObject:
   - component: {fileID: 5757802278771181401}
   - component: {fileID: 4782113893452823864}
   - component: {fileID: 5419899898733022588}
+  - component: {fileID: 1408971360092700767}
   m_Layer: 0
   m_Name: EgoCar
   m_TagString: Untagged
@@ -920,6 +921,21 @@ MonoBehaviour:
   leftTurnSignal: {fileID: 323895062250636487}
   rightTurnSignal: {fileID: 8999855572831916533}
   blinkInterval: 0.5
+--- !u!114 &1408971360092700767
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2471852994914885337}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4f1e88af42ca15b40ae612627ce36aa2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  springStrength: 5000
+  damping: 50
+  activationDistance: 10
 --- !u!1 &2861148910917411302
 GameObject:
   m_ObjectHideFlags: 0
