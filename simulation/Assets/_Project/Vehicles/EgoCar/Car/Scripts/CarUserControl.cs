@@ -7,6 +7,7 @@ namespace UnityStandardAssets.Vehicles.Car
     {
         private CarController m_Car; // The car controller we want to use
         private CarAudio m_CarAudio; // The car audio controller
+        private FollowCurve m_FollowCurve; // Steering influence blending (spline guide)
 
         public GameObject m_Wheel; // The steering wheel GameObject
 
@@ -34,6 +35,7 @@ namespace UnityStandardAssets.Vehicles.Car
             // Get the CarController and CarAudio components
             m_Car = GetComponent<CarController>();
             m_CarAudio = GetComponent<CarAudio>();
+            m_FollowCurve = GetComponent<FollowCurve>();
         }
 
         private void FixedUpdate()
@@ -42,10 +44,19 @@ namespace UnityStandardAssets.Vehicles.Car
             float h = Input.GetAxis("Horizontal"); // Horizontal input for steering
             float v = Input.GetAxis("Vertical");   // Vertical input for acceleration/braking
 
-            // Determine the target steering angle based on input
-            float targetAngle = h * m_Car.m_MaximumSteerAngle;
+            // ── Steering Influence Blending ──
+            // If FollowCurve is attached and enabled, blend the player's raw
+            // steering with the spline-following autopilot.
+            float steeringInput = h;
+            if (m_FollowCurve != null && m_FollowCurve.enabled)
+            {
+                steeringInput = m_FollowCurve.GetBlendedSteering(h, m_Car.m_MaximumSteerAngle);
+            }
 
-            if (Mathf.Abs(h) > 0.01f)
+            // Determine the target steering angle based on blended input
+            float targetAngle = steeringInput * m_Car.m_MaximumSteerAngle;
+
+            if (Mathf.Abs(steeringInput) > 0.01f)
             {
                 // Smoothly rotate the wheel towards the target angle
                 currentAngle = Mathf.LerpAngle(currentAngle, targetAngle, rotationSpeed * Time.deltaTime);
@@ -62,8 +73,8 @@ namespace UnityStandardAssets.Vehicles.Car
             // Get the handbrake input
             float handbrake = Input.GetAxis("Jump"); // Typically mapped to the spacebar
 
-            // Pass the input to the car controller
-            m_Car.Move(h, v, v, handbrake);
+            // Pass the blended steering to the car controller
+            m_Car.Move(steeringInput, v, v, handbrake);
 
             // Handle turn signal blinking
             signalTimer += Time.deltaTime;
