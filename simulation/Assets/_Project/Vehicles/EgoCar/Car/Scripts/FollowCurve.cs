@@ -48,6 +48,14 @@ public class FollowCurve : MonoBehaviour
     [Range(0f, 1f)]
     public float maxLateralCorrection = 0.3f;
 
+    [Header("Proximity")]
+    [Tooltip("Distance beyond which blending is completely disabled (pure player control).")]
+    public float activationDistance = 10f;
+
+    [Tooltip("Distance within which full blending is applied.\n" +
+             "Between this and activationDistance the weight fades out smoothly.")]
+    public float fullBlendDistance = 5f;
+
     [Header("Turn-Tightening Zone")]
     [Tooltip("Enable dynamic blend tightening during the turn section of the spline.")]
     public bool enableTurnTightening = true;
@@ -81,6 +89,8 @@ public class FollowCurve : MonoBehaviour
     [SerializeField] private float _dbgSplineSteer;
     [SerializeField] private float _dbgLateralOffset;
     [SerializeField] private float _dbgClosestT;
+    [SerializeField] private float _dbgDistanceToSpline;
+    [SerializeField] private bool  _dbgIsActive;
 
     // ──────────────────────────────────────────────────────────────
     //  Unity lifecycle
@@ -120,10 +130,31 @@ public class FollowCurve : MonoBehaviour
         Vector3 closestPoint = spline.GetPoint(currentClosestT);
         _dbgClosestT = currentClosestT;
 
+        // 1b. Distance check — fade out when the car is far from the spline
+        float distToSpline = Vector3.Distance(transform.position, closestPoint);
+        _dbgDistanceToSpline = distToSpline;
+
+        if (distToSpline > activationDistance)
+        {
+            _dbgIsActive = false;
+            _dbgEffectiveWeight = 0f;
+            return playerSteering;  // too far — pure player control
+        }
+        _dbgIsActive = true;
+
+        // Proximity fade: full weight inside fullBlendDistance,
+        // linearly fading to 0 at activationDistance.
+        float proximityFactor = 1f;
+        if (distToSpline > fullBlendDistance)
+            proximityFactor = 1f - Mathf.InverseLerp(fullBlendDistance, activationDistance, distToSpline);
+
         // 2. Compute effective weight (base + optional turn tightening)
         float effectiveWeight = splineWeight;
         if (enableTurnTightening)
             effectiveWeight = GetTurnTightenedWeight(currentClosestT);
+
+        // Apply proximity fade
+        effectiveWeight *= proximityFactor;
         _dbgEffectiveWeight = effectiveWeight;
 
         // 3. Pure-pursuit: aim at a look-ahead point on the spline
@@ -244,6 +275,8 @@ public class FollowCurve : MonoBehaviour
             $"Weight: {_dbgEffectiveWeight:F2}  |  " +
             $"SplineSteer: {_dbgSplineSteer:F2}  |  " +
             $"Lateral: {_dbgLateralOffset:F2}m  |  " +
-            $"T: {_dbgClosestT:F3}");
+            $"T: {_dbgClosestT:F3}  |  " +
+            $"Dist: {_dbgDistanceToSpline:F1}m  |  " +
+            $"Active: {_dbgIsActive}");
     }
 }
