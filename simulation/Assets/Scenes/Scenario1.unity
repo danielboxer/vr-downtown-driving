@@ -16820,7 +16820,7 @@ Transform:
   m_GameObject: {fileID: 78231525}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -10.42, y: 0, z: 30.39}
+  m_LocalPosition: {x: -14, y: 0, z: 30.6}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -54411,7 +54411,7 @@ Transform:
   m_GameObject: {fileID: 271235121}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -13.2, y: 0, z: 65.62}
+  m_LocalPosition: {x: -14.98, y: 0, z: 68.11}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -65116,7 +65116,7 @@ Transform:
   m_GameObject: {fileID: 326599411}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -19.7, y: 0, z: 58.67}
+  m_LocalPosition: {x: -23.02, y: 0, z: 59.17}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -242482,7 +242482,7 @@ Transform:
   m_GameObject: {fileID: 1205096541}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.42, y: 0, z: 1.28}
+  m_LocalPosition: {x: -4.38, y: 0, z: 0.29}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -283368,7 +283368,7 @@ Transform:
   m_GameObject: {fileID: 1416738693}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 3.41, y: 0, z: 70.52}
+  m_LocalPosition: {x: 7.3, y: 0, z: 75.5}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -315562,6 +315562,8 @@ MonoBehaviour:
     unityVehiclePrefab: {fileID: 4680729391819779113, guid: bffd682305a773840ba7be4ecb72ff67, type: 3}
   - sumoVehicleType: 306
     unityVehiclePrefab: {fileID: 5548627528071542946, guid: 0222797132bed0544b325a1a3bebdd1b, type: 3}
+  - sumoVehicleType: bike1
+    unityVehiclePrefab: {fileID: 1316973427445556549, guid: 5fb576aff4ca6cc45858605d8beb5ccc, type: 3}
 --- !u!114 &1580975091
 MonoBehaviour:
   m_ObjectHideFlags: 0
