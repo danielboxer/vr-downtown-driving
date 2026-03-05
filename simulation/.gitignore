@@ -6,6 +6,9 @@ rtf_report.txt
 # rider
 .idea/
 
+# vscode
+.vscode/
+
 
 # --------------------------- Unity gitignore below ----------------------------------------
 
@@ -52,6 +55,7 @@ ExportedObj/
 *.csproj
 *.unityproj
 *.sln
+*.slnx
 *.suo
 *.tmp
 *.user
