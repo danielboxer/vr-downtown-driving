@@ -68,6 +68,9 @@ public class RoadNetworkBuilder : MonoBehaviour
     // NEW: cache junction polygons (Unity XZ plane)
     private readonly List<Vector2[]> _junctionPolys2D = new();
 
+    // Parsed net file, kept for traffic light generation
+    private NetType _netFile;
+
     public void LoadSumoXmlFiles(string sumoFilesFolder)
     {
         if (roadNetworkRoot != null)
@@ -100,26 +103,25 @@ public class RoadNetworkBuilder : MonoBehaviour
         junctionRecords = new();
         polygonShapes = new();
 
-        NetType netFile;
         {
             var serializer = new XmlSerializer(typeof(NetType));
             using var fs = new FileStream(netFilePath, FileMode.Open, FileAccess.Read);
             using var rd = new StreamReader(fs);
-            netFile = (NetType)serializer.Deserialize(rd);
+            _netFile = (NetType)serializer.Deserialize(rd);
         }
 
-        if (!string.IsNullOrEmpty(netFile.Location?.ConvBoundary))
+        if (!string.IsNullOrEmpty(_netFile.Location?.ConvBoundary))
         {
-            var bounds = netFile.Location.ConvBoundary.Split(',');
+            var bounds = _netFile.Location.ConvBoundary.Split(',');
             minX = float.Parse(bounds[0]);
             minY = float.Parse(bounds[1]);
             maxX = float.Parse(bounds[2]);
             maxY = float.Parse(bounds[3]);
         }
 
-        if (!string.IsNullOrEmpty(netFile.Location?.NetOffset))
+        if (!string.IsNullOrEmpty(_netFile.Location?.NetOffset))
         {
-            var p = netFile.Location.NetOffset.Split(',');
+            var p = _netFile.Location.NetOffset.Split(',');
             originX = float.Parse(p[0]);
             originY = float.Parse(p[1]);
         }
@@ -128,7 +130,7 @@ public class RoadNetworkBuilder : MonoBehaviour
             originX = minX; originY = minY;
         }
 
-        foreach (JunctionType jt in netFile.Junction)
+        foreach (JunctionType jt in _netFile.Junction)
         {
             if (jt.Type.ToString().Equals("Internal", StringComparison.OrdinalIgnoreCase))
                 continue;
@@ -159,7 +161,7 @@ public class RoadNetworkBuilder : MonoBehaviour
             }
         }
 
-        foreach (EdgeType et in netFile.Edge)
+        foreach (EdgeType et in _netFile.Edge)
         {
             if (string.IsNullOrEmpty(et.From))
             {
@@ -320,6 +322,161 @@ public class RoadNetworkBuilder : MonoBehaviour
             SetLayerRecursively(child.gameObject, layer);
     }
     // ------------------------------------------------------------------------
+
+    // ======================================================================
+    //  Traffic Light Generation
+    // ======================================================================
+
+    /// <summary>
+    /// Generates traffic light GameObjects for every junction whose type is
+    /// traffic_light (or variant). Creates the hierarchy expected by
+    /// SimulationController: Junctions → {id} → Head0..HeadN → green/yellow/red.
+    /// One visible ThreeLight prefab per incoming edge; invisible stubs for
+    /// remaining link indices so the state string maps 1-to-1.
+    /// </summary>
+    public void GenerateTrafficLights()
+    {
+        if (_netFile == null) { Debug.LogError("Net file not loaded."); return; }
+
+        // Load ThreeLight prefab from Resources
+        GameObject tlPrefab = Resources.Load<GameObject>("TrafficLight/ThreeLight");
+        if (tlPrefab == null)
+        {
+            Debug.LogError("TrafficLight/ThreeLight prefab not found in Resources.");
+            return;
+        }
+
+        // Build a lookup: tlId → Dictionary<linkIndex, fromEdgeId>
+        var tlConnections = new Dictionary<string, Dictionary<int, string>>();
+        foreach (ConnectionType conn in _netFile.Connection)
+        {
+            if (string.IsNullOrEmpty(conn.Tl) || string.IsNullOrEmpty(conn.LinkIndex)) continue;
+            if (!int.TryParse(conn.LinkIndex, out int linkIdx)) continue;
+
+            if (!tlConnections.TryGetValue(conn.Tl, out var map))
+            {
+                map = new Dictionary<int, string>();
+                tlConnections[conn.Tl] = map;
+            }
+            map[linkIdx] = conn.From;
+        }
+
+        // Build a set of traffic-light junction IDs from tlLogic
+        var tlJunctionIds = new HashSet<string>();
+        foreach (TlLogicType tl in _netFile.TlLogic)
+            tlJunctionIds.Add(tl.Id);
+
+        // Create "Junctions" root (separate from road network, for SimulationController)
+        GameObject junctionsRoot = new GameObject("Junctions");
+
+        foreach (string jId in tlJunctionIds)
+        {
+            if (!junctionRecords.TryGetValue(jId, out RoadJunctionData jData)) continue;
+            if (!tlConnections.TryGetValue(jId, out var linkToEdge)) continue;
+
+            // Junction center in Unity coords
+            Vector3 junctionCenter = ToUnity(jData.xPos, jData.yPos);
+
+            GameObject junctionGO = new GameObject(jId);
+            junctionGO.transform.SetParent(junctionsRoot.transform);
+            junctionGO.transform.position = Vector3.zero;
+
+            // Group linkIndices by fromEdge
+            var edgeToLinks = new Dictionary<string, List<int>>();
+            foreach (var kvp in linkToEdge)
+            {
+                if (!edgeToLinks.TryGetValue(kvp.Value, out var list))
+                {
+                    list = new List<int>();
+                    edgeToLinks[kvp.Value] = list;
+                }
+                list.Add(kvp.Key);
+            }
+
+            // For each incoming edge, place one visible ThreeLight prefab
+            foreach (var edgeEntry in edgeToLinks)
+            {
+                string edgeId = edgeEntry.Key;
+                List<int> linkIndices = edgeEntry.Value;
+                linkIndices.Sort();
+
+                // Find lane endpoint to position the traffic light
+                Vector3 laneEndPos = junctionCenter;
+                Vector3 approachDir = Vector3.forward;
+
+                if (edgeRecords.TryGetValue(edgeId, out RoadEdgeData edgeData))
+                {
+                    var lanes = edgeData.GetLaneDataList();
+                    if (lanes.Count > 0)
+                    {
+                        // Use the rightmost lane (index 0 in SUMO) which is closest to the curb
+                        var lane = lanes[0];
+                        if (lane.shapePoints.Count >= 2)
+                        {
+                            int last = lane.shapePoints.Count - 1;
+                            laneEndPos = ToUnity(lane.shapePoints[last][0], lane.shapePoints[last][1]);
+
+                            Vector3 prevPt = ToUnity(lane.shapePoints[last - 1][0], lane.shapePoints[last - 1][1]);
+                            approachDir = (laneEndPos - prevPt).normalized;
+
+                            // Offset the traffic light to the right side of the lane (curb/sidewalk)
+                            float laneW = (float)lane.laneWidth;
+                            if (laneW <= 0f) laneW = 3.2f;
+                            Vector3 rightDir = new Vector3(approachDir.z, 0f, -approachDir.x);
+                            laneEndPos += rightDir * (laneW * 0.5f + 2.0f);
+                        }
+                    }
+                }
+
+                // Primary Head: first linkIndex for this edge gets the visible ThreeLight
+                int primaryLink = linkIndices[0];
+                GameObject head = (GameObject)PrefabUtility.InstantiatePrefab(tlPrefab);
+                head.name = $"Head{primaryLink}";
+                head.transform.SetParent(junctionGO.transform);
+                head.transform.position = laneEndPos;
+                // Face toward oncoming traffic (the light faces the driver)
+                head.transform.rotation = Quaternion.LookRotation(-approachDir, Vector3.up);
+
+                // Set initial state to red (deactivate green and yellow)
+                SetInitialLightState(head.transform);
+
+                // Secondary Heads: invisible stubs with green_light/yellow_light/red_light children
+                for (int i = 1; i < linkIndices.Count; i++)
+                {
+                    int linkIdx = linkIndices[i];
+                    GameObject stub = new GameObject($"Head{linkIdx}");
+                    stub.transform.SetParent(junctionGO.transform);
+                    stub.transform.position = laneEndPos;
+
+                    // Create minimal children so SimulationController's SetSignalState works
+                    new GameObject("green_light").transform.SetParent(stub.transform);
+                    new GameObject("yellow_light").transform.SetParent(stub.transform);
+                    new GameObject("red_light").transform.SetParent(stub.transform);
+                }
+            }
+        }
+        Debug.Log($"[Sumo2Unity] Generated traffic lights for {tlJunctionIds.Count} junctions under 'Junctions' root.");
+    }
+
+    /// <summary>
+    /// Sets a traffic light head to show red only (green and yellow off).
+    /// </summary>
+    private static void SetInitialLightState(Transform head)
+    {
+        SetChildActive(head, "green_light", false);
+        SetChildActive(head, "yellow_light", false);
+        SetChildActive(head, "red_light", true);
+    }
+
+    private static void SetChildActive(Transform parent, string childName, bool active)
+    {
+        foreach (Transform child in parent)
+        {
+            if (child.name == childName) { child.gameObject.SetActive(active); return; }
+            // search recursively (the FBX hierarchy may be nested)
+            SetChildActive(child, childName, active);
+        }
+    }
 
     private Vector3 ToUnity(double x, double y) => new((float)(x - originX), 0f, (float)(y - originY));
 

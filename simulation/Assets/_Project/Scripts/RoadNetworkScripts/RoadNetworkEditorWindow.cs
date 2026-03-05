@@ -166,6 +166,9 @@ public class RoadNetworkEditorWindow : EditorWindow
             EditorUtility.DisplayProgressBar("Generation Progress", "Generating Road Network", 0.2f);
             builder.GenerateRoadsAndJunctions();
 
+            EditorUtility.DisplayProgressBar("Generation Progress", "Generating Traffic Lights", 0.6f);
+            builder.GenerateTrafficLights();
+
             EditorUtility.ClearProgressBar();
             Close();
         }
