@@ -3,6 +3,7 @@
 // (full version incl. 2-slide banners for windows 1-3)
 // ==============================
 using System;
+using System.Diagnostics;
 using System.IO;
 using Unity.VisualScripting.Antlr3.Runtime.Misc;
 using UnityEditor;
@@ -150,7 +151,7 @@ public class RoadNetworkEditorWindow : EditorWindow
                 GameObject cam = GameObject.Find("Main Camera");
                 if (cam) cam.SetActive(false);
             }
-            catch (Exception ex) { Debug.LogError(ex); }
+            catch (Exception ex) { UnityEngine.Debug.LogError(ex); }
 
             // Ensure we have a fresh builder instance
             RoadNetworkBuilder builder = FindFirstObjectByType<RoadNetworkBuilder>();
@@ -185,12 +186,38 @@ public class Sumo2UnityIntegrationWindow : EditorWindow
     private GUIStyle headerStyle;
     private GUIStyle helpStyle;
 
+    // subprocess tracking
+    private static Process sumoToolProcess;
+    private static string scenarioFolderPath;
+
     [MenuItem("Sumo2Unity/2. Run Sumo2Unity Integration")]
     public static void OpenWindow()
     {
         Sumo2UnityIntegrationWindow w = GetWindow<Sumo2UnityIntegrationWindow>("Sumo2Unity - Integration");
         w.minSize = new Vector2(Sumo2UnityGuiConsts.WindowWidth, Sumo2UnityGuiConsts.WindowHeight);
         w.maxSize = w.minSize;
+    }
+
+    private static string LocateScenarioFolder()
+    {
+        string projectRoot = Directory.GetParent(Application.dataPath).FullName;
+        DirectoryInfo dir = new DirectoryInfo(projectRoot);
+
+        while (dir != null)
+        {
+            string candidate = Path.Combine(dir.FullName, "Scenario1");
+            if (Directory.Exists(candidate) &&
+                File.Exists(Path.Combine(candidate, "Sumo2UnityTool.exe")))
+                return candidate;
+            dir = dir.Parent;
+        }
+        return Path.Combine(projectRoot, "Scenario1");
+    }
+
+    private static bool IsToolRunning()
+    {
+        try { return sumoToolProcess != null && !sumoToolProcess.HasExited; }
+        catch { return false; }
     }
 
     private void OnEnable()
@@ -202,6 +229,9 @@ public class Sumo2UnityIntegrationWindow : EditorWindow
         };
         slideIndex = 0;
         lastSlideSwap = EditorApplication.timeSinceStartup;
+
+        if (string.IsNullOrEmpty(scenarioFolderPath))
+            scenarioFolderPath = LocateScenarioFolder();
 
         // build styles once
         headerStyle = new GUIStyle(EditorStyles.boldLabel)
@@ -228,13 +258,65 @@ public class Sumo2UnityIntegrationWindow : EditorWindow
 
         EditorGUILayout.LabelField(
             "<b>Instructions:</b>\n\n" +
-            "1. Go To Scenarios Folder\n" +
-            "2. Run <i>Sumo2UnityTools.exe</i>.\n" +
-            "3. Select Parameters and Start Simulation.\n" +
-            "4. Wait until <b>IntegrationStartTime</b> (e.g., 540 sec)\n" +
-            "5. Click <b>Play</b> in Unity to start streaming vehicles / signals.\n" +
-            "6. Press <b>Stop</b> to end the session.",
+            "1. Click <b>Launch Sumo2UnityTool</b> below to open the tool.\n" +
+            "2. Select Parameters and Start Simulation.\n" +
+            "3. Wait until <b>IntegrationStartTime</b> (e.g., 540 sec)\n" +
+            "4. Click <b>Play</b> in Unity to start streaming vehicles / signals.\n" +
+            "5. Press <b>Stop</b> to end the session.",
             helpStyle);
+
+        GUILayout.Space(10);
+
+        // Scenario folder selector
+        scenarioFolderPath = EditorGUILayout.TextField(
+            new GUIContent("Scenario Folder",
+            "Directory containing Sumo2UnityTool.exe and scenario files."),
+            scenarioFolderPath);
+
+        if (GUILayout.Button("Select Scenario Folder"))
+        {
+            string chosen = EditorUtility.OpenFolderPanel("Choose Scenario Folder", scenarioFolderPath, "");
+            if (!string.IsNullOrEmpty(chosen)) scenarioFolderPath = chosen;
+        }
+
+        GUILayout.Space(10);
+
+        bool running = IsToolRunning();
+
+        if (running)
+        {
+            EditorGUILayout.HelpBox("Sumo2UnityTool is running (PID: " + sumoToolProcess.Id + ").", MessageType.Info);
+        }
+
+        using (new EditorGUI.DisabledGroupScope(running))
+        {
+            if (GUILayout.Button(running ? "Sumo2UnityTool Already Running" : "Launch Sumo2UnityTool", GUILayout.Height(32)))
+            {
+                string exePath = Path.Combine(scenarioFolderPath, "Sumo2UnityTool.exe");
+                if (!File.Exists(exePath))
+                {
+                    EditorUtility.DisplayDialog("Not Found",
+                        "Sumo2UnityTool.exe was not found in:\n" + scenarioFolderPath,
+                        "OK");
+                    return;
+                }
+
+                try
+                {
+                    sumoToolProcess = new Process();
+                    sumoToolProcess.StartInfo.FileName = exePath;
+                    sumoToolProcess.StartInfo.WorkingDirectory = scenarioFolderPath;
+                    sumoToolProcess.StartInfo.UseShellExecute = true;
+                    sumoToolProcess.Start();
+                    UnityEngine.Debug.Log("[Sumo2Unity] Launched Sumo2UnityTool.exe (PID: " + sumoToolProcess.Id + ")");
+                }
+                catch (Exception ex)
+                {
+                    UnityEngine.Debug.LogError("[Sumo2Unity] Failed to launch Sumo2UnityTool.exe: " + ex.Message);
+                    sumoToolProcess = null;
+                }
+            }
+        }
     }
 
     private void OnInspectorUpdate() => Repaint();
