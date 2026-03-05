@@ -1,6 +1,6 @@
 ﻿// ============================== 
 // RoadNetworkEditorWindow.cs
-// (full version incl. 2‑slide banners for windows 1–3)
+// (full version incl. 2-slide banners for windows 1-3)
 // ==============================
 using System;
 using System.IO;
@@ -30,7 +30,7 @@ internal static class Sumo2UnityGuiConsts
 }
 
 /// <summary>
-/// Simple helper to draw & auto‑advance a banner slideshow in EditorWindows.
+/// Simple helper to draw & auto-advance a banner slideshow in EditorWindows.
 /// </summary>
 internal static class BannerSlideHelper
 {
@@ -41,7 +41,7 @@ internal static class BannerSlideHelper
     {
         if (slides == null || slides.Length == 0 || slides[current] == null) return;
 
-        // Auto‑advance every intervalSeconds
+        // Auto-advance every intervalSeconds
         double now = EditorApplication.timeSinceStartup;
         if (slides.Length > 1 && now - lastSwap > intervalSeconds)
         {
@@ -77,7 +77,7 @@ internal static class BannerSlideHelper
     }
 }
 
-// ───────────────────────────────────────────────────────────────  Window 1
+// ───────────────────────────────────────────────────────────────  Window 1
 public class RoadNetworkEditorWindow : EditorWindow
 {
     private static string sumoXmlFolderPath;
@@ -105,7 +105,7 @@ public class RoadNetworkEditorWindow : EditorWindow
     [MenuItem("Sumo2Unity/1. Create Road Network")]
     public static void OpenWindow()
     {
-        RoadNetworkEditorWindow w = GetWindow<RoadNetworkEditorWindow>("Sumo2Unity – Road Network");
+        RoadNetworkEditorWindow w = GetWindow<RoadNetworkEditorWindow>("Sumo2Unity - Road Network");
         w.minSize = new Vector2(Sumo2UnityGuiConsts.WindowWidth, Sumo2UnityGuiConsts.WindowHeight);
         w.maxSize = w.minSize;
         sumoXmlFolderPath = LocateSumoDataFolder();
@@ -173,7 +173,7 @@ public class RoadNetworkEditorWindow : EditorWindow
     private void OnInspectorUpdate() => Repaint();
 }
 
-// ───────────────────────────────────────────────────────────────  Window 2
+// ───────────────────────────────────────────────────────────────  Window 2
 public class Sumo2UnityIntegrationWindow : EditorWindow
 {
     private Texture2D[] demoSlides;
@@ -188,7 +188,7 @@ public class Sumo2UnityIntegrationWindow : EditorWindow
     [MenuItem("Sumo2Unity/2. Run Sumo2Unity Integration")]
     public static void OpenWindow()
     {
-        Sumo2UnityIntegrationWindow w = GetWindow<Sumo2UnityIntegrationWindow>("Sumo2Unity – Integration");
+        Sumo2UnityIntegrationWindow w = GetWindow<Sumo2UnityIntegrationWindow>("Sumo2Unity - Integration");
         w.minSize = new Vector2(Sumo2UnityGuiConsts.WindowWidth, Sumo2UnityGuiConsts.WindowHeight);
         w.maxSize = w.minSize;
     }
@@ -223,7 +223,7 @@ public class Sumo2UnityIntegrationWindow : EditorWindow
         BannerSlideHelper.DrawSlide(demoSlides, ref slideIndex, ref lastSlideSwap, slideInterval);
         GUILayout.Space(10);
 
-        GUILayout.Label("Run Sumo‑to‑Unity Integration", headerStyle);
+        GUILayout.Label("Run Sumo-to-Unity Integration", headerStyle);
         GUILayout.Space(5);
 
         EditorGUILayout.LabelField(
@@ -231,7 +231,7 @@ public class Sumo2UnityIntegrationWindow : EditorWindow
             "1. Go To Scenarios Folder\n" +
             "2. Run <i>Sumo2UnityTools.exe</i>.\n" +
             "3. Select Parameters and Start Simulation.\n" +
-            "4. Wait until <b>IntegrationStartTime</b> (e.g., 540 sec)\n" +
+            "4. Wait until <b>IntegrationStartTime</b> (e.g., 540 sec)\n" +
             "5. Click <b>Play</b> in Unity to start streaming vehicles / signals.\n" +
             "6. Press <b>Stop</b> to end the session.",
             helpStyle);
@@ -240,7 +240,7 @@ public class Sumo2UnityIntegrationWindow : EditorWindow
     private void OnInspectorUpdate() => Repaint();
 }
 
-// ───────────────────────────────────────────────────────────────  Window 3
+// ───────────────────────────────────────────────────────────────  Window 3
 public class PerformanceFunctionsWindow : EditorWindow
 {
     private Texture2D[] demoSlides;
@@ -255,7 +255,7 @@ public class PerformanceFunctionsWindow : EditorWindow
     [MenuItem("Sumo2Unity/3. Performance Functions")]
     public static void OpenWindow()
     {
-        PerformanceFunctionsWindow w = GetWindow<PerformanceFunctionsWindow>("Sumo2Unity – Performance");
+        PerformanceFunctionsWindow w = GetWindow<PerformanceFunctionsWindow>("Sumo2Unity - Performance");
         w.minSize = new Vector2(Sumo2UnityGuiConsts.WindowWidth, Sumo2UnityGuiConsts.WindowHeight);
         w.maxSize = w.minSize;
     }
