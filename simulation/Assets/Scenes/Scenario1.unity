@@ -325323,7 +325323,7 @@ MonoBehaviour:
     unityVehiclePrefab: {fileID: 4680729391819779113, guid: bffd682305a773840ba7be4ecb72ff67, type: 3}
   - sumoVehicleType: 306
     unityVehiclePrefab: {fileID: 5548627528071542946, guid: 0222797132bed0544b325a1a3bebdd1b, type: 3}
-  - sumoVehicleType: bike1
+  - sumoVehicleType: bike
     unityVehiclePrefab: {fileID: 1316973427445556549, guid: 5fb576aff4ca6cc45858605d8beb5ccc, type: 3}
 --- !u!114 &1580975091
 MonoBehaviour:
