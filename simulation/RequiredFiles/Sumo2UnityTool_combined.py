@@ -115,9 +115,15 @@ def show_pubs():
     txt.insert("1.0", pubs); txt.config(state="disabled")
     txt.pack(expand=True, fill="both", padx=8, pady=8); center(pop)
 # ═════════════════ SIMULATION (run_sim) ═════════════════════════
-def run_sim(cfg: dict):
+# ---------- threading state for restart support ----------
+_sim_thread = None
+_stop_event = threading.Event()
+
+def run_sim(cfg: dict, stop_event=None):
     import traci
     from traci.constants import VAR_POSITION3D, VAR_ANGLE, VAR_TYPE
+    if stop_event is None:
+        stop_event = threading.Event()
 
     # ---------- apply GUI parameters ----------
     IntegrationStartTime = cfg["IntegrationStartTime"]
@@ -221,7 +227,7 @@ def run_sim(cfg: dict):
     rtf_started  = False; last_sim, last_wall = 0, 0
 
     # ---------- warm-up ----------
-    while traci.simulation.getTime() < IntegrationStartTime:
+    while traci.simulation.getTime() < IntegrationStartTime and not stop_event.is_set():
         traci.simulationStep(); cam_follow("View #0", ego) if use_gui else None
 
     # ---------- main loop ----------
@@ -231,7 +237,8 @@ def run_sim(cfg: dict):
 
     try:
         while traci.simulation.getMinExpectedNumber() > 0 \
-              and traci.simulation.getTime() < ExperimentEndTime:
+              and traci.simulation.getTime() < ExperimentEndTime \
+              and not stop_event.is_set():
 
             loop_t0 = time.perf_counter()
             sim_t   = traci.simulation.getTime()
@@ -338,23 +345,53 @@ def run_sim(cfg: dict):
             total_sim = traci.simulation.getTime() - start_sim_t
             if total_w>0: logger.info("RTF overall %.2f", total_sim/total_w)
         if start_rec_sent:
-            pub.send_string(json.dumps({"type":"command","command":"STOP_RECORDING"}))
+            try: pub.send_string(json.dumps({"type":"command","command":"STOP_RECORDING"}))
+            except Exception: pass
         if rtf_f: rtf_f.close()
-        traci.close(); pub.close(); rout.close(); ctx.term()
+        try: traci.close()
+        except Exception: pass
+        try: pub.close(); rout.close(); ctx.term()
+        except Exception: pass
         logger.info("Finished, connections closed.")
+        # notify GUI we're done (thread-safe)
+        try: root.after(0, _on_sim_finished)
+        except Exception: pass
 
 # ═════════════════════ GUI → START BTN ═════════════════════════
+
+# --- status label ---
+status_var = tk.StringVar(value="Ready")
+status_lbl = ttk.Label(root, textvariable=status_var, foreground="#333")
+status_lbl.grid(row=row, column=0, columnspan=3, sticky="w", padx=6); row += 1
+
+def _on_sim_finished():
+    """Called on the main thread when run_sim exits."""
+    status_var.set("Simulation finished — click Start to run again")
+    start_btn.config(state="normal", text="Start simulation")
+    stop_btn.config(state="disabled")
+
 def start_clicked():
+    global _sim_thread, _stop_event
     try:
         cfg = {k: (int(v.get()) if "Time" in k else float(v.get()))
                for k,v in entries.items()}
         cfg["use_gui"]  = bool(use_gui_var.get())
         cfg["calc_rtf"] = bool(rtf_var.get())
-        cfg["free_cam"] = bool(free_cam_var.get())          # ★ NEW
+        cfg["free_cam"] = bool(free_cam_var.get())
     except ValueError:
         messagebox.showerror("Invalid input","Please enter numeric values.")
         return
-    root.destroy(); run_sim(cfg)
+    _stop_event = threading.Event()
+    status_var.set("Running...")
+    start_btn.config(state="disabled")
+    stop_btn.config(state="normal")
+    _sim_thread = threading.Thread(target=run_sim, args=(cfg, _stop_event), daemon=True)
+    _sim_thread.start()
+
+def stop_clicked():
+    _stop_event.set()
+    status_var.set("Stopping...")
+    stop_btn.config(state="disabled")
 
 # buttons
 ttk.Button(root,text="Help",command=show_help)        .grid(row=row,column=0,pady=12,padx=6,sticky="w")
@@ -362,8 +399,10 @@ ttk.Button(root,text="Contact / License",command=show_contact)\
                                                      .grid(row=row,column=1,pady=12,padx=6,sticky="w")
 ttk.Button(root,text="Publications",command=show_pubs)\
                                                      .grid(row=row,column=2,pady=12,padx=6,sticky="w")
-ttk.Button(root,text="Start simulation",command=start_clicked)\
-                                                     .grid(row=row,column=3,pady=12,padx=6,sticky="e")
+start_btn = ttk.Button(root,text="Start simulation",command=start_clicked)
+start_btn.grid(row=row,column=3,pady=12,padx=6,sticky="e")
+stop_btn = ttk.Button(root,text="Stop",command=stop_clicked,state="disabled")
+stop_btn.grid(row=row+1,column=3,pady=(0,12),padx=6,sticky="e")
 
 root.update_idletasks()
 root.geometry("+{}+{}".format((root.winfo_screenwidth()-root.winfo_width())//2,
