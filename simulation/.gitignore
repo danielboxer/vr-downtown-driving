@@ -9,6 +9,8 @@ rtf_report.txt
 # vscode
 .vscode/
 
+# python
+.venv/
 
 # --------------------------- Unity gitignore below ----------------------------------------
 
