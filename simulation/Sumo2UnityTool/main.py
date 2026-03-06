@@ -7,15 +7,12 @@
 # ────────────────────────────────────────────────────────────────
 import json
 import logging
-import math
 import os
 import queue
-import statistics
 import sys
 import threading
 import time
 import tkinter as tk
-import webbrowser
 from tkinter import messagebox, ttk
 
 import zmq  # pip install pyzmq
@@ -276,8 +273,7 @@ def run_sim(cfg: dict, stop_event=None):
     threading.Thread(target=rx_unity, daemon=True).start()
 
     # ---------- helpers ----------
-    WINDOW = 10
-    last_pos, last_pos_z, rw_hist = {}, {}, {}
+    last_pos_z = {}
     prof = {k: [] for k in ("Unity", "Step", "Collect", "Send", "DataProc", "Total")}
 
     def sleep_precise(d):
@@ -298,9 +294,6 @@ def run_sim(cfg: dict, stop_event=None):
         rtf_f = None
 
     # ---------- containers ----------
-    last_send = None
-    current_sec = 0
-    send_int, sim_speeds = [], []
     start_rec_sent = False
     start_sim_t = start_wall_t = None
     rtf_started = False
