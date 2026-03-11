@@ -81,6 +81,13 @@ public class SimulationController : MonoBehaviour
         public GameObject unityVehiclePrefab;
     }
 
+    [Serializable]
+    private class ConfigMessage
+    {
+        public string type;
+        public string scenario;
+    }
+
     [Header("Add Unity Vehicle Prefab (3DModel) according to Sumo Vehicle Type")]
     public List<CarModel> carModelsList = new List<CarModel>();
 
@@ -131,8 +138,6 @@ public class SimulationController : MonoBehaviour
         {
             _ExchangeData = gameObject.AddComponent<ExchangeData>();
         }
-
-        SumoRequesterStart();
         //StartCoroutine(FindGameObjectAfterDelay(1.0f));
 
         // 3) open log file in SUMOData folder
@@ -155,6 +160,11 @@ public class SimulationController : MonoBehaviour
         egoVehicle = GameObject.Instantiate(egoVehicle, initialPosition, initialRotation);
         egoVehicle.name = egoVehicleId;
         vehicleObjects.Add(egoVehicleId, egoVehicle);
+
+        // let the spline system pick up the newly active spline
+        var scenarioManager = GetComponent<ScenarioManager>();
+        if (scenarioManager != null)
+            scenarioManager.RefreshEgoSpline(egoVehicle);
     }
 
     void Update()
@@ -285,7 +295,19 @@ public class SimulationController : MonoBehaviour
             return;
         }
 
-        if (common.type == "command")
+        if (common.type == "config")
+        {
+            ConfigMessage cfg = JsonUtility.FromJson<ConfigMessage>(message);
+            Debug.Log($"Received config: scenario={cfg.scenario}");
+            var scenarioManager = GetComponent<ScenarioManager>();
+            if (scenarioManager != null)
+            {
+                scenarioManager.ApplyScenario(cfg.scenario);
+                SumoRequesterStart();
+            }
+            return;
+        }
+        else if (common.type == "command")
         {
             if (common.command == "START_RECORDING")
             {

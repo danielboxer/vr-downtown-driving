@@ -90,7 +90,7 @@ public class FollowCurve : MonoBehaviour
     [SerializeField] private float _dbgLateralOffset;
     [SerializeField] private float _dbgClosestT;
     [SerializeField] private float _dbgDistanceToSpline;
-    [SerializeField] private bool  _dbgIsActive;
+    [SerializeField] private bool _dbgIsActive;
 
     // ──────────────────────────────────────────────────────────────
     //  Unity lifecycle
@@ -98,15 +98,21 @@ public class FollowCurve : MonoBehaviour
 
     private void Start()
     {
+        RefreshSpline();
+    }
+
+    /// <summary>
+    /// Re-scan for an active Spline in the scene.
+    /// Called automatically at Start and can be called after scenario changes.
+    /// </summary>
+    public void RefreshSpline()
+    {
         spline = FindObjectOfType<Spline>();
-        if (spline == null)
+        if (spline != null)
         {
-            Debug.LogError("FollowCurve: No Spline found in the scene!");
-            enabled = false;
-            return;
+            Debug.Log($"FollowCurve: Spline found ({spline.gameObject.name}), " +
+                      $"base weight = {splineWeight:F2}");
         }
-        Debug.Log($"FollowCurve: Spline found ({spline.gameObject.name}), " +
-                  $"base weight = {splineWeight:F2}");
     }
 
     // ──────────────────────────────────────────────────────────────
