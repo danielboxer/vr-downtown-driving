@@ -44,7 +44,9 @@ ttk.Label(root, text=VERSION, font=("TkDefaultFont", 12, "bold")).grid(
 root.columnconfigure(1, weight=1)
 
 # ── Scenario folder picker ─────────────────────────────────────
-_SCENARIOS_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+_SCENARIOS_ROOT = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "Scenarios")
+)
 
 
 def _discover_scenarios():
@@ -233,6 +235,15 @@ def run_sim(cfg: dict, stop_event=None):
     pub.bind("tcp://*:5556")
     rout = ctx.socket(zmq.ROUTER)
     rout.bind("tcp://*:5557")
+
+    # give the SUB socket time to connect before sending config
+    time.sleep(0.5)
+
+    # send scenario config to Unity
+    scenario_name = os.path.basename(scenario_dir)
+    pub.send_string(
+        json.dumps({"type": "config", "scenario": scenario_name}, separators=(",", ":"))
+    )
 
     # ---------- background Unity RX ----------
     u_q = queue.Queue()
