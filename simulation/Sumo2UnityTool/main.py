@@ -16,7 +16,6 @@ import tkinter as tk
 from tkinter import messagebox, ttk
 
 import zmq  # pip install pyzmq
-from PIL import Image, ImageTk  # pip install pillow
 
 # ════════════════════════════════════════════════════════════════
 #  DEFAULTS (shared by GUI & simulation)
@@ -34,41 +33,14 @@ VERSION = "Sumo2Unity v2.0.0"
 LINKEDIN_URL = "https://www.linkedin.com/in/ahmadmohammadi1441/"
 
 
-# ═════════ helper to reach packaged resources ═══════════════════
-def resource_path(fname: str) -> str:
-    if getattr(sys, "frozen", False):
-        return os.path.join(sys._MEIPASS, fname)
-    return os.path.join(os.path.abspath(os.path.dirname(__file__)), fname)
-
-
 # ═════════════════ GUI  SET-UP ══════════════════════════════════
 root = tk.Tk()
 root.title("Sumo2Unity Tool")
 root.resizable(True, True)
 
-
-def load_resized(path: str, target_w: int) -> ImageTk.PhotoImage:
-    img = Image.open(resource_path(path))
-    r = img.height / img.width
-    return ImageTk.PhotoImage(img.resize((target_w, int(target_w * r))))
-
-
-IMG_W = 600
-banner_imgs = [
-    load_resized("2.Integration.JPG", IMG_W),
-    load_resized("2.Integration_B.JPG", IMG_W),
-]
-banner_lbl = tk.Label(root, image=banner_imgs[0])
-banner_lbl.grid(row=0, column=0, columnspan=4, pady=(6, 12))
-
-
-def swap(idx=[0]):
-    idx[0] = (idx[0] + 1) % len(banner_imgs)
-    banner_lbl.configure(image=banner_imgs[idx[0]])
-    root.after(2000, swap)
-
-
-root.after(2000, swap)
+ttk.Label(root, text=VERSION, font=("TkDefaultFont", 12, "bold")).grid(
+    row=0, column=0, columnspan=4, pady=(6, 12)
+)
 
 root.columnconfigure(1, weight=1)
 entries, row = {}, 1
@@ -115,19 +87,10 @@ def center(win):
     win.geometry(f"{w}x{h}+{x}+{y}")
 
 
-def pop_img(title, img_path, w):
-    pop = tk.Toplevel(root)
-    pop.title(title)
-    pop.resizable(False, False)
-    im = load_resized(img_path, w)
-    tk.Label(pop, image=im).pack()
-    pop.im = im
-    ttk.Button(pop, text="Close", command=pop.destroy).pack(pady=6)
-    center(pop)
-
-
 def show_help():
-    pop_img("Help", "Help.JPG", 874)
+    messagebox.showinfo(
+        "Help", f"{VERSION}\n\nConfigure parameters and click 'Start simulation'."
+    )
 
 
 def show_contact():
