@@ -16,16 +16,9 @@ public class SimulationController : MonoBehaviour
     private string vehicleDataJson = "{}";
     private object vehicleDataLock = new object();
     private string egoVehicleId = "f_0.0";
-    public GameObject egoVehicle;
-    private GameObject f_1_0;
-    private Vector3 previousPosition;
-    private Vector3 currentPosition;
+    [HideInInspector] public GameObject egoVehicle;
     private float long_speed;
-    private float distanceAccumulator = 0f;
-    private float timeAccumulator = 0f;
     private readonly ConcurrentQueue<Action> mainThreadActions = new ConcurrentQueue<Action>();
-    public Vector3 egoVehicleInitialPosition = new Vector3(0f, 0f, 0f);
-    public Quaternion egoVehicleInitialRotation = Quaternion.Euler(0f, 90f, 0f);
 
     private StreamWriter writer;
 
@@ -147,24 +140,17 @@ public class SimulationController : MonoBehaviour
         writer.WriteLine("timestep_time;vehicle_id;vehicle_x;vehicle_y;vehicle_z");
     }
 
-    public void SumoRequesterStart()
+    /// <summary>
+    /// Called by ScenarioManager to register a pre-placed ego vehicle from the scene.
+    /// </summary>
+    public void RegisterEgoVehicle(GameObject ego)
     {
-        if (egoVehicle == null)
-        {
-            Debug.LogError("Ego vehicle GameObject is not assigned.");
-            return;
-        }
-
-        Vector3 initialPosition = egoVehicleInitialPosition;
-        Quaternion initialRotation = egoVehicleInitialRotation;
-        egoVehicle = GameObject.Instantiate(egoVehicle, initialPosition, initialRotation);
+        egoVehicle = ego;
         egoVehicle.name = egoVehicleId;
-        vehicleObjects.Add(egoVehicleId, egoVehicle);
-
-        // let the spline system pick up the newly active spline
-        var scenarioManager = GetComponent<ScenarioManager>();
-        if (scenarioManager != null)
-            scenarioManager.RefreshEgoSpline(egoVehicle);
+        if (!vehicleObjects.ContainsKey(egoVehicleId))
+            vehicleObjects.Add(egoVehicleId, egoVehicle);
+        else
+            vehicleObjects[egoVehicleId] = egoVehicle;
     }
 
     void Update()
@@ -301,10 +287,7 @@ public class SimulationController : MonoBehaviour
             Debug.Log($"Received config: scenario={cfg.scenario}");
             var scenarioManager = GetComponent<ScenarioManager>();
             if (scenarioManager != null)
-            {
                 scenarioManager.ApplyScenario(cfg.scenario);
-                SumoRequesterStart();
-            }
             return;
         }
         else if (common.type == "command")
