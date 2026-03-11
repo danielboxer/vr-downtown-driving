@@ -30,7 +30,6 @@ DEFAULTS = {
     "subscribe_radius": 250.0,  # ★ NEW (TraCI context radius)
 }
 VERSION = "Sumo2Unity v2.0.0"
-LINKEDIN_URL = "https://www.linkedin.com/in/ahmadmohammadi1441/"
 
 
 # ═════════════════ GUI  SET-UP ══════════════════════════════════
@@ -132,57 +131,6 @@ row += 1  # ★ NEW
 # ────────────────────────────────────────────────────────────────
 
 
-def center(win):
-    win.update_idletasks()
-    w, h = win.winfo_width(), win.winfo_height()
-    x = (win.winfo_screenwidth() - w) // 2
-    y = (win.winfo_screenheight() - h) // 2
-    win.geometry(f"{w}x{h}+{x}+{y}")
-
-
-def show_help():
-    messagebox.showinfo(
-        "Help", f"{VERSION}\n\nConfigure parameters and click 'Start simulation'."
-    )
-
-
-def show_contact():
-    pop = tk.Toplevel(root)
-    pop.title("Contact / License")
-    t = tk.Text(pop, wrap="word", width=80, height=24)
-    t.insert(
-        "1.0",
-        f"{VERSION}\n\nContact: Ahmad Mohammadi\nLinkedIn: {LINKEDIN_URL}\n\nMIT License — see repository",
-    )
-    t.config(state="disabled")
-    t.pack(expand=True, fill="both")
-    center(pop)
-
-
-def show_pubs():
-    pop = tk.Toplevel(root)
-    pop.title("Publications")
-    txt = tk.Text(pop, wrap="word", width=100, height=18)
-    pubs = """\
-1. Mohammadi, A., Park, P. Y., Nourinejad, M., Cherakkatil, M. S. B., & Park, H. S. (2024, June).
-   SUMO2Unity: An Open-Source Traffic Co-Simulation Tool to Improve Road Safety.
-   In 2024 IEEE Intelligent Vehicles Symposium (IV) (pp. 2523-2528). IEEE.
-
-2. Mohammadi, A., Park, P. Y., Nourinejad, M., & Cherakkatil, M. S. B. (2025, May).
-   Development of a Virtual Reality Traffic Simulation to Analyze Road User Behavior.
-   In 2025 7th International Congress on Human-Computer Interaction, Optimization
-   and Robotic Applications (ICHORA) (pp. 1-5). IEEE.
-   
-3. Mohammadi, A., Cherakkatil, M. S. B., Park, P. Y., Nourinejad, M., & Asgary, A. (2025). 
-   A novel virtual reality traffic simulation for enhanced traffic safety assessment [Preprint].
-   Preprints. https://doi.org/10.20944/preprints202508.0112.v1
-"""
-    txt.insert("1.0", pubs)
-    txt.config(state="disabled")
-    txt.pack(expand=True, fill="both", padx=8, pady=8)
-    center(pop)
-
-
 # ═════════════════ SIMULATION (run_sim) ═════════════════════════
 # ---------- threading state for restart support ----------
 _sim_thread = None
@@ -235,7 +183,22 @@ def run_sim(cfg: dict, stop_event=None):
         sumo_cmd += ["--delay", "0"]  # keep 0-delay only when GUI present
 
     # ---------- connect TraCI ----------
-    traci.start(sumo_cmd)
+    try:
+        traci.start(sumo_cmd)
+    except traci.exceptions.TraCIException:
+        # stale connection from a previous run that didn't close cleanly
+        try:
+            traci.close()
+        except Exception:
+            pass
+        traci.start(sumo_cmd)
+    except traci.exceptions.FatalTraCIError:
+        logger.info("SUMO connection closed.")
+        try:
+            root.after(0, _on_sim_finished)
+        except Exception:
+            pass
+        return
 
     # ---------- gui camera helper ----------
     ego = "f_0.0"
@@ -279,6 +242,8 @@ def run_sim(cfg: dict, stop_event=None):
             try:
                 _ident, msg = rout.recv_multipart()
                 u_q.put(json.loads(msg.decode()))
+            except zmq.ZMQError:
+                break
             except Exception:
                 logger.exception("Unity RX")
 
@@ -311,11 +276,6 @@ def run_sim(cfg: dict, stop_event=None):
     rtf_started = False
     last_sim, last_wall = 0, 0
 
-    # ---------- warm-up ----------
-    while traci.simulation.getTime() < IntegrationStartTime and not stop_event.is_set():
-        traci.simulationStep()
-        cam_follow("View #0", ego) if use_gui else None
-
     # ---------- main loop ----------
     STEP = steplength
     next_step = time.perf_counter() + STEP
@@ -323,6 +283,14 @@ def run_sim(cfg: dict, stop_event=None):
     last_tl_t = 0.0
 
     try:
+        # ---------- warm-up ----------
+        while (
+            traci.simulation.getTime() < IntegrationStartTime
+            and not stop_event.is_set()
+        ):
+            traci.simulationStep()
+            cam_follow("View #0", ego) if use_gui else None
+
         while (
             traci.simulation.getMinExpectedNumber() > 0
             and traci.simulation.getTime() < ExperimentEndTime
@@ -459,13 +427,18 @@ def run_sim(cfg: dict, stop_event=None):
 
     except KeyboardInterrupt:
         logger.info("Interrupted by user.")
+    except traci.exceptions.FatalTraCIError:
+        logger.info("SUMO connection closed.")
     finally:
         # overall RTF
         if calc_rtf and rtf_started:
-            total_w = time.perf_counter() - start_wall_t
-            total_sim = traci.simulation.getTime() - start_sim_t
-            if total_w > 0:
-                logger.info("RTF overall %.2f", total_sim / total_w)
+            try:
+                total_w = time.perf_counter() - start_wall_t
+                total_sim = traci.simulation.getTime() - start_sim_t
+                if total_w > 0:
+                    logger.info("RTF overall %.2f", total_sim / total_w)
+            except Exception:
+                pass
         if start_rec_sent:
             try:
                 pub.send_string(
@@ -562,23 +535,14 @@ def restart_clicked():
 
 
 # buttons
-ttk.Button(root, text="Help", command=show_help).grid(
-    row=row, column=0, pady=12, padx=6, sticky="w"
-)
-ttk.Button(root, text="Contact / License", command=show_contact).grid(
-    row=row, column=1, pady=12, padx=6, sticky="w"
-)
-ttk.Button(root, text="Publications", command=show_pubs).grid(
-    row=row, column=2, pady=12, padx=6, sticky="w"
-)
 start_btn = ttk.Button(root, text="Start simulation", command=start_clicked)
-start_btn.grid(row=row, column=3, pady=12, padx=6, sticky="e")
+start_btn.grid(row=row, column=0, columnspan=2, pady=12, padx=6, sticky="ew")
 stop_btn = ttk.Button(root, text="Stop", command=stop_clicked, state="disabled")
-stop_btn.grid(row=row + 1, column=3, pady=(0, 4), padx=6, sticky="e")
+stop_btn.grid(row=row, column=2, pady=12, padx=6, sticky="ew")
 restart_btn = ttk.Button(
     root, text="Restart", command=restart_clicked, state="disabled"
 )
-restart_btn.grid(row=row + 2, column=3, pady=(0, 12), padx=6, sticky="e")
+restart_btn.grid(row=row, column=3, pady=12, padx=6, sticky="ew")
 
 root.update_idletasks()
 root.geometry(
