@@ -132,7 +132,7 @@ row += 1  # ★ NEW
 
 
 # ═════════════════ SIMULATION (run_sim) ═════════════════════════
-# ---------- threading state for restart support ----------
+# ---------- threading state ----------
 _sim_thread = None
 _stop_event = threading.Event()
 
@@ -477,10 +477,8 @@ row += 1
 
 def _on_sim_finished():
     """Called on the main thread when run_sim exits."""
-    status_var.set("Simulation finished — click Start to run again")
+    status_var.set("Simulation finished \u2014 click Start to run again")
     start_btn.config(state="normal", text="Start simulation")
-    stop_btn.config(state="disabled")
-    restart_btn.config(state="disabled")
 
 
 def start_clicked():
@@ -505,44 +503,13 @@ def start_clicked():
     _stop_event = threading.Event()
     status_var.set("Running...")
     start_btn.config(state="disabled")
-    stop_btn.config(state="normal")
-    restart_btn.config(state="normal")
     _sim_thread = threading.Thread(target=run_sim, args=(cfg, _stop_event), daemon=True)
     _sim_thread.start()
 
 
-def stop_clicked():
-    _stop_event.set()
-    status_var.set("Stopping...")
-    stop_btn.config(state="disabled")
-    restart_btn.config(state="disabled")
-
-
-def restart_clicked():
-    """Stop the current simulation and automatically start a new one."""
-    _stop_event.set()
-    status_var.set("Restarting...")
-    stop_btn.config(state="disabled")
-    restart_btn.config(state="disabled")
-
-    def _wait_and_restart():
-        if _sim_thread and _sim_thread.is_alive():
-            root.after(100, _wait_and_restart)
-        else:
-            start_clicked()
-
-    root.after(100, _wait_and_restart)
-
-
 # buttons
 start_btn = ttk.Button(root, text="Start simulation", command=start_clicked)
-start_btn.grid(row=row, column=0, columnspan=2, pady=12, padx=6, sticky="ew")
-stop_btn = ttk.Button(root, text="Stop", command=stop_clicked, state="disabled")
-stop_btn.grid(row=row, column=2, pady=12, padx=6, sticky="ew")
-restart_btn = ttk.Button(
-    root, text="Restart", command=restart_clicked, state="disabled"
-)
-restart_btn.grid(row=row, column=3, pady=12, padx=6, sticky="ew")
+start_btn.grid(row=row, column=0, columnspan=4, pady=12, padx=6, sticky="ew", ipady=12)
 
 root.update_idletasks()
 root.geometry(
