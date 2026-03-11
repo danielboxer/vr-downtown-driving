@@ -13,7 +13,7 @@ import sys
 import threading
 import time
 import tkinter as tk
-from tkinter import messagebox, ttk
+from tkinter import filedialog, messagebox, ttk
 
 import zmq  # pip install pyzmq
 
@@ -43,7 +43,60 @@ ttk.Label(root, text=VERSION, font=("TkDefaultFont", 12, "bold")).grid(
 )
 
 root.columnconfigure(1, weight=1)
-entries, row = {}, 1
+
+# ── Scenario folder picker ─────────────────────────────────────
+_SCENARIOS_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+
+
+def _discover_scenarios():
+    """Return {display_name: full_path} for subfolders containing Sumo2Unity.sumocfg."""
+    found = {}
+    if os.path.isdir(_SCENARIOS_ROOT):
+        for name in sorted(os.listdir(_SCENARIOS_ROOT)):
+            candidate = os.path.join(_SCENARIOS_ROOT, name)
+            if os.path.isdir(candidate) and os.path.isfile(
+                os.path.join(candidate, "Sumo2Unity.sumocfg")
+            ):
+                found[name] = candidate
+    return found
+
+
+_scenario_map = _discover_scenarios()  # {name: path}
+_scenario_names = list(_scenario_map.keys())
+
+scenario_display_var = tk.StringVar(value=_scenario_names[0] if _scenario_names else "")
+
+ttk.Label(root, text="Scenario").grid(row=1, column=0, sticky="e", padx=6, pady=3)
+scenario_combo = ttk.Combobox(
+    root, textvariable=scenario_display_var, values=_scenario_names, state="readonly"
+)
+scenario_combo.grid(row=1, column=1, sticky="we", padx=6, pady=3)
+
+
+def _get_scenario_dir() -> str:
+    """Resolve display name to full path, or return raw value if browsed."""
+    val = scenario_display_var.get().strip()
+    return _scenario_map.get(val, val)
+
+
+def browse_scenario():
+    d = filedialog.askdirectory(
+        initialdir=_SCENARIOS_ROOT, title="Select scenario folder"
+    )
+    if d:
+        name = os.path.basename(d)
+        if name not in _scenario_map:
+            _scenario_map[name] = d
+            _scenario_names.append(name)
+            scenario_combo["values"] = _scenario_names
+        scenario_display_var.set(name)
+
+
+ttk.Button(root, text="Browse…", command=browse_scenario).grid(
+    row=1, column=2, padx=6, pady=3
+)
+
+entries, row = {}, 2
 for k, v in DEFAULTS.items():
     label_text = (
         "zoom (bigger value → closer)"
@@ -166,12 +219,8 @@ def run_sim(cfg: dict, stop_event=None):
         sys.exit("Set SUMO_HOME env variable.")
     sys.path.append(os.path.join(os.environ["SUMO_HOME"], "tools"))
 
-    base_dir = (
-        os.path.dirname(sys.executable)
-        if getattr(sys, "frozen", False)
-        else os.path.dirname(__file__)
-    )
-    sumo_cfg = os.path.join(base_dir, "Sumo2Unity.sumocfg")
+    scenario_dir = cfg["scenario_dir"]
+    sumo_cfg = os.path.join(scenario_dir, "Sumo2Unity.sumocfg")
     sumo_bin = "sumo-gui" if use_gui else "sumo"
     sumo_cmd = [
         sumo_bin,
@@ -248,7 +297,7 @@ def run_sim(cfg: dict, stop_event=None):
     # ---------- results dir / RTF file ----------
     if calc_rtf:
         res_dir = os.path.join(
-            os.path.abspath(os.path.join(base_dir, os.pardir)), "Results"
+            os.path.abspath(os.path.join(scenario_dir, os.pardir)), "Results"
         )
         os.makedirs(res_dir, exist_ok=True)
         rtf_f = open(os.path.join(res_dir, "rtf_report.txt"), "w", encoding="utf-8")
@@ -470,8 +519,14 @@ def start_clicked():
         cfg["use_gui"] = bool(use_gui_var.get())
         cfg["calc_rtf"] = bool(rtf_var.get())
         cfg["free_cam"] = bool(free_cam_var.get())
+        cfg["scenario_dir"] = _get_scenario_dir()
     except ValueError:
         messagebox.showerror("Invalid input", "Please enter numeric values.")
+        return
+    if not cfg["scenario_dir"] or not os.path.isdir(cfg["scenario_dir"]):
+        messagebox.showerror(
+            "Missing scenario", "Please select a valid scenario folder."
+        )
         return
     _stop_event = threading.Event()
     status_var.set("Running...")
