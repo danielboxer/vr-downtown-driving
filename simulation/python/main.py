@@ -236,13 +236,10 @@ def run_sim(cfg: dict, stop_event=None):
     rout = ctx.socket(zmq.ROUTER)
     rout.bind("tcp://*:5557")
 
-    # give the SUB socket time to connect before sending config
-    time.sleep(0.5)
-
-    # send scenario config to Unity
+    # scenario config message (sent repeatedly during warm-up)
     scenario_name = os.path.basename(scenario_dir)
-    pub.send_string(
-        json.dumps({"type": "config", "scenario": scenario_name}, separators=(",", ":"))
+    config_msg = json.dumps(
+        {"type": "config", "scenario": scenario_name}, separators=(",", ":")
     )
 
     # ---------- background Unity RX ----------
@@ -301,6 +298,8 @@ def run_sim(cfg: dict, stop_event=None):
         ):
             traci.simulationStep()
             cam_follow("View #0", ego) if use_gui else None
+            # keep sending config so Unity receives it despite slow-joiner
+            pub.send_string(config_msg)
 
         while (
             traci.simulation.getMinExpectedNumber() > 0

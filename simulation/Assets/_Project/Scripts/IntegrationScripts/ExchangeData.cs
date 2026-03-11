@@ -75,13 +75,9 @@ public class ExchangeData : MonoBehaviour
                         // --- Send Data to SUMO ---
                         string vehicleDataJson = _SimulationController.GetVehicleDataJson();
 
-                        bool sendSuccess = dealerSocket.TrySendFrame(vehicleDataJson);
-                        if (!sendSuccess)
-                        {
-                            Debug.LogError("Failed to send data to SUMO.");
-                            _isRunning = false; // Gracefully stop the thread
-                            break;
-                        }
+                        // TrySendFrame may fail if SUMO is not running yet (HWM full);
+                        // keep the thread alive so we can still receive messages.
+                        dealerSocket.TrySendFrame(vehicleDataJson);
 
                         // --- Receive Data from SUMO ---
                         string sumoDataJson;
