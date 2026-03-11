@@ -48,6 +48,10 @@ public class ScenarioManager : MonoBehaviour
     /// </summary>
     public void ApplyScenario(string scenarioName)
     {
+        // skip if this scenario is already active (avoids work on repeated config messages)
+        if (scenarioName == _activeScenario)
+            return;
+
         _activeScenario = scenarioName;
         Debug.Log($"ScenarioManager: Applying scenario '{scenarioName}'");
 
