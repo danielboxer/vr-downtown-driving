@@ -1,5 +1,6 @@
 using UnityEngine;
 using System;
+using System.Collections;
 
 /// <summary>
 /// Receives the scenario name from the Python/SUMO config message and
@@ -9,6 +10,8 @@ using System;
 ///   1. Attach to the same GameObject as SimulationController.
 ///   2. Place ego vehicles and splines in the scene, all DISABLED by default.
 ///   3. Drag the scene objects into the Inspector slots below.
+///   4. Create a full-screen UI Canvas with a black Image, add a CanvasGroup,
+///      set alpha to 0, and assign it to fadeOverlay.
 /// </summary>
 public class ScenarioManager : MonoBehaviour
 {
@@ -26,10 +29,17 @@ public class ScenarioManager : MonoBehaviour
     [Tooltip("Scenario to activate at Start if no config message arrives")]
     public string defaultScenario = "EgoCar_Free_Drive";
 
+    [Header("Transition")]
+    [Tooltip("CanvasGroup on a full-screen black panel (alpha starts at 0)")]
+    public CanvasGroup fadeOverlay;
+    [Tooltip("Duration of each fade direction (seconds)")]
+    public float fadeDuration = 0.4f;
+
     [Header("Runtime State (read-only)")]
     [SerializeField] private string _activeScenario = "";
 
     private SimulationController _simController;
+    private Coroutine _fadeCoroutine;
 
     private void Awake()
     {
@@ -38,13 +48,14 @@ public class ScenarioManager : MonoBehaviour
 
     private void Start()
     {
+        // apply default immediately (no fade on initial load)
         if (!string.IsNullOrEmpty(defaultScenario))
-            ApplyScenario(defaultScenario);
+            ApplyScenarioImmediate(defaultScenario);
     }
 
     /// <summary>
     /// Called by SimulationController when a "config" message arrives from Python.
-    /// Activates the correct ego vehicle + spline and registers the ego with SimulationController.
+    /// If a fadeOverlay is assigned, fades to black before switching, then fades back in.
     /// </summary>
     public void ApplyScenario(string scenarioName)
     {
@@ -52,6 +63,44 @@ public class ScenarioManager : MonoBehaviour
         if (scenarioName == _activeScenario)
             return;
 
+        if (fadeOverlay != null)
+        {
+            if (_fadeCoroutine != null) StopCoroutine(_fadeCoroutine);
+            _fadeCoroutine = StartCoroutine(FadeTransition(scenarioName));
+        }
+        else
+        {
+            ApplyScenarioImmediate(scenarioName);
+        }
+    }
+
+    private IEnumerator FadeTransition(string scenarioName)
+    {
+        // fade to black
+        yield return FadeOverlay(0f, 1f);
+
+        ApplyScenarioImmediate(scenarioName);
+
+        // fade back in
+        yield return FadeOverlay(1f, 0f);
+        _fadeCoroutine = null;
+    }
+
+    private IEnumerator FadeOverlay(float from, float to)
+    {
+        float elapsed = 0f;
+        fadeOverlay.alpha = from;
+        while (elapsed < fadeDuration)
+        {
+            elapsed += Time.deltaTime;
+            fadeOverlay.alpha = Mathf.Lerp(from, to, elapsed / fadeDuration);
+            yield return null;
+        }
+        fadeOverlay.alpha = to;
+    }
+
+    private void ApplyScenarioImmediate(string scenarioName)
+    {
         _activeScenario = scenarioName;
         Debug.Log($"ScenarioManager: Applying scenario '{scenarioName}'");
 
