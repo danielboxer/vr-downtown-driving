@@ -403,9 +403,17 @@ public class RoadNetworkBuilder : MonoBehaviour
                 // Find lane endpoint to position the traffic light
                 Vector3 laneEndPos = junctionCenter;
                 Vector3 approachDir = Vector3.forward;
+                float totalRoadWidth = 0f;
 
                 if (edgeRecords.TryGetValue(edgeId, out RoadEdgeData edgeData))
                 {
+                    // Sum total road width across all lanes
+                    foreach (var ln in edgeData.GetLaneDataList())
+                    {
+                        float w = (float)ln.laneWidth;
+                        totalRoadWidth += (w > 0f ? w : 3.2f);
+                    }
+
                     var lanes = edgeData.GetLaneDataList();
                     if (lanes.Count > 0)
                     {
@@ -414,19 +422,32 @@ public class RoadNetworkBuilder : MonoBehaviour
                         if (lane.shapePoints.Count >= 2)
                         {
                             int last = lane.shapePoints.Count - 1;
-                            laneEndPos = ToUnity(lane.shapePoints[last][0], lane.shapePoints[last][1]);
+                            Vector3 laneEnd = ToUnity(lane.shapePoints[last][0], lane.shapePoints[last][1]);
 
                             Vector3 prevPt = ToUnity(lane.shapePoints[last - 1][0], lane.shapePoints[last - 1][1]);
-                            approachDir = (laneEndPos - prevPt).normalized;
+                            approachDir = (laneEnd - prevPt).normalized;
 
-                            // Offset the traffic light to the right side of the lane (curb/sidewalk)
+                            // Move the light to the far side of the junction (opposite the stop line)
+                            float forwardDist = Vector3.Dot(junctionCenter - laneEnd, approachDir);
+                            Vector3 farSideBase = laneEnd + approachDir * (2f * forwardDist);
+
                             float laneW = (float)lane.laneWidth;
                             if (laneW <= 0f) laneW = 3.2f;
                             Vector3 rightDir = new Vector3(approachDir.z, 0f, -approachDir.x);
-                            laneEndPos += rightDir * (laneW * 0.5f + 2.0f);
+                            float curbOffset = 0.5f;
+
+                            // Primary: right of rightmost lane edge
+                            laneEndPos = farSideBase + rightDir * (laneW * 0.5f + curbOffset);
                         }
                     }
                 }
+                if (totalRoadWidth <= 0f) totalRoadWidth = 6.4f;
+
+                // Left-side mirror position: cross both incoming and opposing lanes
+                Vector3 mirrorRightDir = new Vector3(approachDir.z, 0f, -approachDir.x);
+                float mirrorCurbOffset = 0.5f;
+                // Approximate full road width as 2× incoming lanes (incoming + opposing direction)
+                Vector3 leftSidePos = laneEndPos - mirrorRightDir * (2f * totalRoadWidth + 2f * mirrorCurbOffset);
 
                 // Primary Head: first linkIndex for this edge gets the visible ThreeLight
                 int primaryLink = linkIndices[0];
@@ -436,6 +457,15 @@ public class RoadNetworkBuilder : MonoBehaviour
                 head.transform.position = laneEndPos;
                 // Face toward oncoming traffic (the light faces the driver)
                 head.transform.rotation = Quaternion.LookRotation(-approachDir, Vector3.up);
+
+                // Mirrored light on the left side (child of primary so state syncs)
+                GameObject mirror = (GameObject)PrefabUtility.InstantiatePrefab(tlPrefab);
+                mirror.name = "Mirror";
+                mirror.transform.SetParent(head.transform);
+                mirror.transform.position = leftSidePos;
+                mirror.transform.rotation = Quaternion.LookRotation(-approachDir, Vector3.up);
+                // Flip the mirror along the local X axis
+                mirror.transform.localScale = new Vector3(-1f, 1f, 1f);
 
                 // Set initial state to red (deactivate green and yellow)
                 SetInitialLightState(head.transform);
