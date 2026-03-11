@@ -439,24 +439,30 @@ public class SimulationController : MonoBehaviour
 
     private void SetSignalState(char c, GameObject head)
     {
-        // look for your three meshes under each head
-        var green = FindChildRecursive(head.transform, "green_light");
-        var yellow = FindChildRecursive(head.transform, "yellow_light");
-        var red = FindChildRecursive(head.transform, "red_light");
-        if (green) green.SetActive(c == 'G' || c == 'g');
-        if (yellow) yellow.SetActive(c == 'y' || c == 'Y');
-        if (red) red.SetActive(!(c == 'G' || c == 'g' || c == 'y' || c == 'Y'));
+        bool isGreen = (c == 'G' || c == 'g');
+        bool isYellow = (c == 'y' || c == 'Y');
+
+        // Toggle all matching lights recursively (covers mirrored duplicates)
+        var buf = new System.Collections.Generic.List<GameObject>();
+        FindChildrenRecursive(head.transform, "green_light", buf);
+        foreach (var g in buf) g.SetActive(isGreen);
+
+        buf.Clear();
+        FindChildrenRecursive(head.transform, "yellow_light", buf);
+        foreach (var y in buf) y.SetActive(isYellow);
+
+        buf.Clear();
+        FindChildrenRecursive(head.transform, "red_light", buf);
+        foreach (var r in buf) r.SetActive(!(isGreen || isYellow));
     }
 
-    private GameObject FindChildRecursive(Transform parent, string name)
+    private void FindChildrenRecursive(Transform parent, string name, System.Collections.Generic.List<GameObject> results)
     {
         foreach (Transform child in parent)
         {
-            if (child.name == name) return child.gameObject;
-            var found = FindChildRecursive(child, name);
-            if (found) return found;
+            if (child.name == name) results.Add(child.gameObject);
+            FindChildrenRecursive(child, name, results);
         }
-        return null;
     }
 
 
