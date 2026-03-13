@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace UnityStandardAssets.Vehicles.Car
 {
@@ -30,19 +31,126 @@ namespace UnityStandardAssets.Vehicles.Car
         private bool isRightSignalOn = false;
         private float signalTimer = 0f;
 
+        [Header("Input Actions")]
+        [Tooltip("Assign InputSystem_Actions asset. Leave empty to use legacy keyboard input.")]
+        public InputActionAsset inputActions;
+
+        [Tooltip("Name of the action map containing driving actions.")]
+        public string actionMapName = "Driving";
+
+        // Resolved actions (looked up by name from the asset)
+        private InputAction _steerAction;
+        private InputAction _accelAction;
+        private InputAction _brakeAction;
+        private InputAction _handbrakeAction;
+        private InputAction _leftSignalAction;
+        private InputAction _rightSignalAction;
+        private InputAction _cancelSignalAction;
+
+        // Cached input values (read in Update, used in FixedUpdate)
+        private float _steerInput;
+        private float _accelInput;
+        private float _brakeInput;
+        private float _handbrakeInput;
+
+        // True when the input actions asset is assigned and the Driving map exists
+        private bool _useNewInput;
+
+        /// <summary>Whether the left turn signal is currently active.</summary>
+        public bool IsLeftSignalOn => isLeftSignalOn;
+        /// <summary>Whether the right turn signal is currently active.</summary>
+        public bool IsRightSignalOn => isRightSignalOn;
+
         private void Awake()
         {
             // Get the CarController and CarAudio components
             m_Car = GetComponent<CarController>();
             m_CarAudio = GetComponent<CarAudio>();
             m_FollowCurve = GetComponent<FollowCurve>();
+
+            // Resolve actions from the asset by name
+            if (inputActions != null)
+            {
+                var map = inputActions.FindActionMap(actionMapName, false);
+                if (map != null)
+                {
+                    _steerAction = map.FindAction("Steer", false);
+                    _accelAction = map.FindAction("Accelerate", false);
+                    _brakeAction = map.FindAction("Brake", false);
+                    _handbrakeAction = map.FindAction("HandBrake", false);
+                    _leftSignalAction = map.FindAction("LeftSignal", false);
+                    _rightSignalAction = map.FindAction("RightSignal", false);
+                    _cancelSignalAction = map.FindAction("CancelSignal", false);
+                    _useNewInput = _steerAction != null;
+                }
+            }
+        }
+
+        private void OnEnable()
+        {
+            if (!_useNewInput) return;
+            _steerAction?.Enable();
+            _accelAction?.Enable();
+            _brakeAction?.Enable();
+            _handbrakeAction?.Enable();
+            _leftSignalAction?.Enable();
+            _rightSignalAction?.Enable();
+            _cancelSignalAction?.Enable();
+        }
+
+        private void OnDisable()
+        {
+            if (!_useNewInput) return;
+            _steerAction?.Disable();
+            _accelAction?.Disable();
+            _brakeAction?.Disable();
+            _handbrakeAction?.Disable();
+            _leftSignalAction?.Disable();
+            _rightSignalAction?.Disable();
+            _cancelSignalAction?.Disable();
+        }
+
+        private void Update()
+        {
+            if (_useNewInput)
+            {
+                // Read continuous axes every frame (consumed in FixedUpdate)
+                _steerInput = _steerAction.ReadValue<float>();
+                _accelInput = _accelAction != null ? _accelAction.ReadValue<float>() : 0f;
+                _brakeInput = _brakeAction != null ? _brakeAction.ReadValue<float>() : 0f;
+                _handbrakeInput = _handbrakeAction != null ? _handbrakeAction.ReadValue<float>() : 0f;
+
+                // Turn signal button presses
+                if (_leftSignalAction != null && _leftSignalAction.WasPressedThisFrame())
+                    ActivateTurnSignal(true, false);
+                else if (_rightSignalAction != null && _rightSignalAction.WasPressedThisFrame())
+                    ActivateTurnSignal(false, true);
+                else if (_cancelSignalAction != null && _cancelSignalAction.WasPressedThisFrame())
+                    DeactivateTurnSignals();
+            }
+            else
+            {
+                // Legacy keyboard input fallback (when InputActionReferences are not assigned)
+                _steerInput = Input.GetAxis("Horizontal");
+                _accelInput = Mathf.Max(0f, Input.GetAxis("Vertical"));
+                _brakeInput = Mathf.Max(0f, -Input.GetAxis("Vertical"));
+                _handbrakeInput = Input.GetAxis("Jump");
+
+                if (Input.GetKeyDown(KeyCode.Q)) // Left turn signal
+                    ActivateTurnSignal(true, false);
+                else if (Input.GetKeyDown(KeyCode.E)) // Right turn signal
+                    ActivateTurnSignal(false, true);
+                else if (Input.GetKeyDown(KeyCode.C)) // Cancel turn signals
+                    DeactivateTurnSignals();
+            }
         }
 
         private void FixedUpdate()
         {
-            // Get input
-            float h = Input.GetAxis("Horizontal"); // Horizontal input for steering
-            float v = Input.GetAxis("Vertical");   // Vertical input for acceleration/braking
+            float h = _steerInput;
+            float accel = _accelInput;
+            float brake = _brakeInput;
+            float handbrake = _handbrakeInput;
 
             // ── Steering Influence Blending ──
             // If FollowCurve is attached and enabled, blend the player's raw
@@ -70,11 +178,9 @@ namespace UnityStandardAssets.Vehicles.Car
             // Apply the rotation to the wheel around the Z-axis
             m_Wheel.transform.localRotation = Quaternion.Euler(0f, 0f, -currentAngle);
 
-            // Get the handbrake input
-            float handbrake = Input.GetAxis("Jump"); // Typically mapped to the spacebar
-
-            // Pass the blended steering to the car controller
-            m_Car.Move(steeringInput, v, v, handbrake);
+            // Pass accel and brake separately to CarController
+            // CarController.Move clamps accel to [0,1] and footbrake to [-1,0]
+            m_Car.Move(steeringInput, accel, -brake, handbrake);
 
             // Handle turn signal blinking
             signalTimer += Time.deltaTime;
@@ -88,23 +194,6 @@ namespace UnityStandardAssets.Vehicles.Car
             {
                 rightTurnSignal.enabled = !rightTurnSignal.enabled;
                 signalTimer = 0f;
-            }
-        }
-
-        private void Update()
-        {
-            // Turn signal input
-            if (Input.GetKeyDown(KeyCode.Q)) // Left turn signal
-            {
-                ActivateTurnSignal(true, false);
-            }
-            else if (Input.GetKeyDown(KeyCode.E)) // Right turn signal
-            {
-                ActivateTurnSignal(false, true);
-            }
-            else if (Input.GetKeyDown(KeyCode.C)) // Cancel turn signals
-            {
-                DeactivateTurnSignals();
             }
         }
 
@@ -123,7 +212,7 @@ namespace UnityStandardAssets.Vehicles.Car
             }
         }
 
-        private void DeactivateTurnSignals()
+        public void DeactivateTurnSignals()
         {
             isLeftSignalOn = false;
             isRightSignalOn = false;

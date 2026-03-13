@@ -865,6 +865,8 @@ MonoBehaviour:
   leftTurnSignal: {fileID: 323895062250636487}
   rightTurnSignal: {fileID: 8999855572831916533}
   blinkInterval: 0.5
+  inputActions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
+  actionMapName: Driving
 --- !u!114 &5757802278771181401
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -937,6 +939,8 @@ MonoBehaviour:
   lookAheadMeters: 10
   lateralCorrectionGain: 0.3
   maxLateralCorrection: 0.3
+  activationDistance: 10
+  fullBlendDistance: 5
   enableTurnTightening: 1
   turnStartT: 0.4
   turnPeakT: 0.6
@@ -946,6 +950,8 @@ MonoBehaviour:
   _dbgSplineSteer: 0
   _dbgLateralOffset: 0
   _dbgClosestT: 0
+  _dbgDistanceToSpline: 0
+  _dbgIsActive: 0
 --- !u!1 &2861148910917411302
 GameObject:
   m_ObjectHideFlags: 0
