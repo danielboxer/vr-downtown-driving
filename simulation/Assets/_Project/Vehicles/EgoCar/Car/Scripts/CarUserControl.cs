@@ -32,7 +32,7 @@ namespace UnityStandardAssets.Vehicles.Car
         private float signalTimer = 0f;
 
         [Header("Input Actions")]
-        [Tooltip("Assign InputSystem_Actions asset. Leave empty to use legacy keyboard input.")]
+        [Tooltip("Assign InputSystem_Actions asset with a Driving action map.")]
         public InputActionAsset inputActions;
 
         [Tooltip("Name of the action map containing driving actions.")]
@@ -52,9 +52,6 @@ namespace UnityStandardAssets.Vehicles.Car
         private float _accelInput;
         private float _brakeInput;
         private float _handbrakeInput;
-
-        // True when the input actions asset is assigned and the Driving map exists
-        private bool _useNewInput;
 
         /// <summary>Whether the left turn signal is currently active.</summary>
         public bool IsLeftSignalOn => isLeftSignalOn;
@@ -81,14 +78,12 @@ namespace UnityStandardAssets.Vehicles.Car
                     _leftSignalAction = map.FindAction("LeftSignal", false);
                     _rightSignalAction = map.FindAction("RightSignal", false);
                     _cancelSignalAction = map.FindAction("CancelSignal", false);
-                    _useNewInput = _steerAction != null;
                 }
             }
         }
 
         private void OnEnable()
         {
-            if (!_useNewInput) return;
             _steerAction?.Enable();
             _accelAction?.Enable();
             _brakeAction?.Enable();
@@ -100,7 +95,6 @@ namespace UnityStandardAssets.Vehicles.Car
 
         private void OnDisable()
         {
-            if (!_useNewInput) return;
             _steerAction?.Disable();
             _accelAction?.Disable();
             _brakeAction?.Disable();
@@ -112,37 +106,19 @@ namespace UnityStandardAssets.Vehicles.Car
 
         private void Update()
         {
-            if (_useNewInput)
-            {
-                // Read continuous axes every frame (consumed in FixedUpdate)
-                _steerInput = _steerAction.ReadValue<float>();
-                _accelInput = _accelAction != null ? _accelAction.ReadValue<float>() : 0f;
-                _brakeInput = _brakeAction != null ? _brakeAction.ReadValue<float>() : 0f;
-                _handbrakeInput = _handbrakeAction != null ? _handbrakeAction.ReadValue<float>() : 0f;
+            // Read continuous axes every frame (consumed in FixedUpdate)
+            _steerInput = _steerAction?.ReadValue<float>() ?? 0f;
+            _accelInput = _accelAction?.ReadValue<float>() ?? 0f;
+            _brakeInput = _brakeAction?.ReadValue<float>() ?? 0f;
+            _handbrakeInput = _handbrakeAction?.ReadValue<float>() ?? 0f;
 
-                // Turn signal button presses
-                if (_leftSignalAction != null && _leftSignalAction.WasPressedThisFrame())
-                    ActivateTurnSignal(true, false);
-                else if (_rightSignalAction != null && _rightSignalAction.WasPressedThisFrame())
-                    ActivateTurnSignal(false, true);
-                else if (_cancelSignalAction != null && _cancelSignalAction.WasPressedThisFrame())
-                    DeactivateTurnSignals();
-            }
-            else
-            {
-                // Legacy keyboard input fallback (when InputActionReferences are not assigned)
-                _steerInput = Input.GetAxis("Horizontal");
-                _accelInput = Mathf.Max(0f, Input.GetAxis("Vertical"));
-                _brakeInput = Mathf.Max(0f, -Input.GetAxis("Vertical"));
-                _handbrakeInput = Input.GetAxis("Jump");
-
-                if (Input.GetKeyDown(KeyCode.Q)) // Left turn signal
-                    ActivateTurnSignal(true, false);
-                else if (Input.GetKeyDown(KeyCode.E)) // Right turn signal
-                    ActivateTurnSignal(false, true);
-                else if (Input.GetKeyDown(KeyCode.C)) // Cancel turn signals
-                    DeactivateTurnSignals();
-            }
+            // Turn signal button presses
+            if (_leftSignalAction != null && _leftSignalAction.WasPressedThisFrame())
+                ActivateTurnSignal(true, false);
+            else if (_rightSignalAction != null && _rightSignalAction.WasPressedThisFrame())
+                ActivateTurnSignal(false, true);
+            else if (_cancelSignalAction != null && _cancelSignalAction.WasPressedThisFrame())
+                DeactivateTurnSignals();
         }
 
         private void FixedUpdate()
