@@ -85,11 +85,6 @@ public class SimulationController : MonoBehaviour
     public List<CarModel> carModelsList = new List<CarModel>();
 
     // ── new fields ─────────────────────────────────────────────
-    /// last time we processed a TL message
-    private float _lastTlTime = 0f;
-    /// minimum seconds between TL updates
-    private float tlUpdateInterval = 1f;
-
     /// cache last seen state per junction
     private Dictionary<string, string> _lastTlState = new();
 

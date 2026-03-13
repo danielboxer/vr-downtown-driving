@@ -83,9 +83,6 @@ public class ExchangeData : MonoBehaviour
                         string sumoDataJson;
                         bool gotMessage = subSocket.TryReceiveFrameString(out sumoDataJson);
 
-                        int messageCount = 0;
-                        float lastLogTime = 0f;
-
                         if (gotMessage)
                         {
 

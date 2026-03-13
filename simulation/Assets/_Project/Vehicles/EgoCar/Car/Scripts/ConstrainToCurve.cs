@@ -29,7 +29,7 @@ public class ConstrainToCurve : MonoBehaviour
         else
             Debug.Log("ConstrainToCurve: Rigidbody found on " + rb.gameObject.name);
 
-        spline = FindObjectOfType<Spline>();
+        spline = FindFirstObjectByType<Spline>();
         if (spline == null)
         {
             Debug.LogError("ConstrainToCurve: No Spline found in the scene!");
