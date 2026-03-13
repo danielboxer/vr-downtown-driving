@@ -570,9 +570,23 @@ public class RoadNetworkBuilder : MonoBehaviour
         if (!string.IsNullOrEmpty(polygonType) && (polygonType.Equals("terrain", StringComparison.OrdinalIgnoreCase)
             || polygonType.ToLowerInvariant().Contains("terrain")))
         {
-            var meshCol = polyGO.AddComponent<MeshCollider>();
-            meshCol.sharedMesh = polyMesh;
-            meshCol.convex = false;
+            // Use a BoxCollider for large flat polygons to avoid PhysX large-triangle warnings
+            Bounds b = polyMesh.bounds;
+            bool isFlat = b.size.y < 0.1f;
+            bool isLarge = b.size.x > 500f || b.size.z > 500f;
+
+            if (isFlat && isLarge)
+            {
+                var box = polyGO.AddComponent<BoxCollider>();
+                box.center = b.center;
+                box.size = new Vector3(b.size.x, Mathf.Max(b.size.y, 0.01f), b.size.z);
+            }
+            else
+            {
+                var meshCol = polyGO.AddComponent<MeshCollider>();
+                meshCol.sharedMesh = polyMesh;
+                meshCol.convex = false;
+            }
         }
     }
 
