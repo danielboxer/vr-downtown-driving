@@ -61,9 +61,13 @@ namespace UnityStandardAssets.Vehicles.Car
 
         /* ─────────────────────────── main update ─────────────────────────── */
 
+        private Camera _cachedCam;
+
         private void Update()
         {
-            float camDistSqr = (Camera.main.transform.position - transform.position).sqrMagnitude;
+            if (_cachedCam == null) _cachedCam = Camera.main;
+            if (_cachedCam == null) return;
+            float camDistSqr = (_cachedCam.transform.position - transform.position).sqrMagnitude;
             float maxDistSqr = maxRolloffDistance * maxRolloffDistance;
 
             if (m_StartedSound && camDistSqr > maxDistSqr) StopSound();
