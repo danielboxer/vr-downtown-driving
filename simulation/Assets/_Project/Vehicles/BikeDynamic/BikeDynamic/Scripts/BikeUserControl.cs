@@ -10,8 +10,6 @@ namespace UnityStandardAssets.Bike
         private BikeController m_Bike; // the bike controller we want to use
         public GameObject m_Wheel;
 
-        private float currentAngle = 0f; // Starting angle
-
         [Header("Input Actions")]
         [Tooltip("Assign InputSystem_Actions asset with a Driving action map.")]
         public InputActionAsset inputActions;

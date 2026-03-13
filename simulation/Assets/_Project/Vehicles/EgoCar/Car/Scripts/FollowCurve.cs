@@ -107,7 +107,7 @@ public class FollowCurve : MonoBehaviour
     /// </summary>
     public void RefreshSpline()
     {
-        spline = FindObjectOfType<Spline>();
+        spline = FindFirstObjectByType<Spline>();
         if (spline != null)
         {
             Debug.Log($"FollowCurve: Spline found ({spline.gameObject.name}), " +
