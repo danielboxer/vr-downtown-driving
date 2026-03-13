@@ -824,7 +824,7 @@ public class RoadNetworkBuilder : MonoBehaviour
 // ─────────────────────────────────────────────────────────────────────────────
 // LaneSegmentDecalController  (LEFT/RIGHT names swapped logic)
 // ─────────────────────────────────────────────────────────────────────────────
-[ExecuteInEditMode]
+[ExecuteAlways]
 [DisallowMultipleComponent]
 public class LaneSegmentDecalController : MonoBehaviour
 {
