@@ -59,3 +59,10 @@ Finally, in the network file, set the net offset to 0 since it will have a large
 ## VR setup unity
 
 https://www.youtube.com/watch?v=exc-73Mna3A
+
+
+### Unity XR Interaction Simulator
+
+Edit > Project Settings > XR Plug-in Management > XR Interaction Toolkit > Use XR Interaction Simulator in scenes
+
+Use right click to rotate head.
