@@ -403,6 +403,7 @@ public class RoadNetworkBuilder : MonoBehaviour
                 // Find lane endpoint to position the traffic light
                 Vector3 laneEndPos = junctionCenter;
                 Vector3 approachDir = Vector3.forward;
+                Vector3 stopLinePos = junctionCenter;
                 float totalRoadWidth = 0f;
 
                 if (edgeRecords.TryGetValue(edgeId, out RoadEdgeData edgeData))
@@ -423,6 +424,7 @@ public class RoadNetworkBuilder : MonoBehaviour
                         {
                             int last = lane.shapePoints.Count - 1;
                             Vector3 laneEnd = ToUnity(lane.shapePoints[last][0], lane.shapePoints[last][1]);
+                            stopLinePos = laneEnd;
 
                             Vector3 prevPt = ToUnity(lane.shapePoints[last - 1][0], lane.shapePoints[last - 1][1]);
                             approachDir = (laneEnd - prevPt).normalized;
@@ -466,6 +468,23 @@ public class RoadNetworkBuilder : MonoBehaviour
                 mirror.transform.rotation = Quaternion.LookRotation(-approachDir, Vector3.up);
                 // Flip the mirror along the local X axis
                 mirror.transform.localScale = new Vector3(-1f, 1f, 1f);
+
+                // ── Stop-line trigger for driving evaluation ──
+                GameObject stopLineGO = new GameObject($"StopLine_{jId}_E{edgeId}");
+                stopLineGO.transform.SetParent(junctionGO.transform);
+                stopLineGO.transform.position = stopLinePos;
+                stopLineGO.transform.rotation = Quaternion.LookRotation(approachDir, Vector3.up);
+
+                var slBox = stopLineGO.AddComponent<BoxCollider>();
+                slBox.isTrigger = true;
+                slBox.size = new Vector3(totalRoadWidth, 2f, 3f);
+                // Offset backward so it triggers before the stop line
+                slBox.center = new Vector3(0f, 0f, -1.5f);
+
+                var slTrigger = stopLineGO.AddComponent<StopLineTrigger>();
+                slTrigger.junctionId = jId;
+                slTrigger.linkIndex = primaryLink;
+                // requiredSignal defaults to None; set to Left/Right in Inspector for turn junctions
 
                 // Set initial state to red (deactivate green and yellow)
                 SetInitialLightState(head.transform);
