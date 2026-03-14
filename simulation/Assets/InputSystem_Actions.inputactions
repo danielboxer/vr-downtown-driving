@@ -1,4 +1,5 @@
 {
+    "version": 1,
     "name": "InputSystem_Actions",
     "maps": [
         {
@@ -1094,39 +1095,6 @@
                     "isPartOfComposite": true
                 },
                 {
-                    "name": "ArrowKeys",
-                    "id": "af0106e0-19b0-447b-a199-725c8503708c",
-                    "path": "1DAxis",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "",
-                    "action": "Steer",
-                    "isComposite": true,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "negative",
-                    "id": "8c7acfca-cb77-4a64-9466-35c6dd0da3e9",
-                    "path": "<Keyboard>/leftArrow",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": ";Keyboard&Mouse",
-                    "action": "Steer",
-                    "isComposite": false,
-                    "isPartOfComposite": true
-                },
-                {
-                    "name": "positive",
-                    "id": "7e434302-b2b0-40d3-847c-3cfdcd18059b",
-                    "path": "<Keyboard>/rightArrow",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": ";Keyboard&Mouse",
-                    "action": "Steer",
-                    "isComposite": false,
-                    "isPartOfComposite": true
-                },
-                {
                     "name": "",
                     "id": "634ba020-10b2-4f74-bf1f-28d864022c43",
                     "path": "<XRController>{RightHand}/thumbstick/x",
@@ -1150,17 +1118,6 @@
                 },
                 {
                     "name": "",
-                    "id": "16282366-5ded-435f-acf1-0ac37d797bac",
-                    "path": "<Keyboard>/upArrow",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": ";Keyboard&Mouse",
-                    "action": "Accelerate",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
                     "id": "4467974a-a870-458c-9605-893cf7b50236",
                     "path": "<XRController>{RightHand}/trigger",
                     "interactions": "",
@@ -1174,17 +1131,6 @@
                     "name": "",
                     "id": "53cb887f-483a-4b76-8a2b-bb0fd33c9a22",
                     "path": "<Keyboard>/s",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": ";Keyboard&Mouse",
-                    "action": "Brake",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
-                    "id": "1d119434-c653-4ce6-b8cb-7f538122a96a",
-                    "path": "<Keyboard>/downArrow",
                     "interactions": "",
                     "processors": "",
                     "groups": ";Keyboard&Mouse",
