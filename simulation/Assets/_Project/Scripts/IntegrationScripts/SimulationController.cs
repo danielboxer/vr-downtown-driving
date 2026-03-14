@@ -88,6 +88,16 @@ public class SimulationController : MonoBehaviour
     /// cache last seen state per junction
     private Dictionary<string, string> _lastTlState = new();
 
+    /// <summary>
+    /// Returns the full traffic light state string for the given junction,
+    /// or null if no state has been received yet.
+    /// Each character is one signal head: 'G'/'g' = green, 'y'/'Y' = yellow, 'r'/'R' = red.
+    /// </summary>
+    public string GetTrafficLightState(string junctionId)
+    {
+        return _lastTlState.TryGetValue(junctionId, out var state) ? state : null;
+    }
+
     /// <summary>Finds (or creates) SUMO2Unity\SUMOData\Results next to the project.</summary>
     /// <summary>Finds (or creates) SUMO2Unity\Results next to the project.</summary>
     private static string LocateOrCreateResultsFolder()

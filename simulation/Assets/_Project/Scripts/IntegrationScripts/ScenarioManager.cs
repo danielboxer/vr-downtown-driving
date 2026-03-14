@@ -39,11 +39,13 @@ public class ScenarioManager : MonoBehaviour
     [SerializeField] private string _activeScenario = "";
 
     private SimulationController _simController;
+    private DrivingEvaluator drivingEvaluator;
     private Coroutine _fadeCoroutine;
 
     private void Awake()
     {
         _simController = GetComponent<SimulationController>();
+        drivingEvaluator = GetComponent<DrivingEvaluator>();
     }
 
     private void Start()
@@ -146,6 +148,16 @@ public class ScenarioManager : MonoBehaviour
             var followCurve = activeEgo.GetComponent<FollowCurve>();
             if (followCurve != null)
                 followCurve.RefreshSpline();
+
+            // Start driving evaluation for this scenario
+            if (drivingEvaluator != null)
+            {
+                bool isBike = scenarioName.Contains("Bike");
+                var mode = isBike
+                    ? DrivingEvaluator.VehicleMode.Bike
+                    : DrivingEvaluator.VehicleMode.Car;
+                drivingEvaluator.BeginEvaluation(activeEgo, mode);
+            }
         }
     }
 }
