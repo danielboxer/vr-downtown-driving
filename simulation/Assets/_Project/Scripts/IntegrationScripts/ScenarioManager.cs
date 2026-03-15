@@ -40,12 +40,14 @@ public class ScenarioManager : MonoBehaviour
 
     private SimulationController _simController;
     private DrivingEvaluator drivingEvaluator;
+    private RouteArrowSpawner _arrowSpawner;
     private Coroutine _fadeCoroutine;
 
     private void Awake()
     {
         _simController = GetComponent<SimulationController>();
         drivingEvaluator = GetComponent<DrivingEvaluator>();
+        _arrowSpawner = GetComponent<RouteArrowSpawner>();
     }
 
     private void Start()
@@ -159,6 +161,13 @@ public class ScenarioManager : MonoBehaviour
             var followCurve = activeEgo.GetComponent<FollowCurve>();
             if (followCurve != null)
                 followCurve.RefreshSpline();
+
+            // Spawn route arrows along the active spline (if any)
+            if (_arrowSpawner != null)
+            {
+                Spline activeSpline = FindFirstObjectByType<Spline>();
+                _arrowSpawner.SpawnArrows(activeSpline);
+            }
 
             // Start driving evaluation for this scenario
             if (drivingEvaluator != null)
