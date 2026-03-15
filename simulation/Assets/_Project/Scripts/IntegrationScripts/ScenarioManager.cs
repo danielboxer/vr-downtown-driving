@@ -27,7 +27,7 @@ public class ScenarioManager : MonoBehaviour
 
     [Header("Default (used when running without SUMO)")]
     [Tooltip("Scenario to activate at Start if no config message arrives")]
-    public ScenarioId defaultScenario = ScenarioId.EgoCar_Free_Drive;
+    public ScenarioId defaultScenario = ScenarioId.EgoCar_Calibration;
 
     [Header("Transition")]
     [Tooltip("CanvasGroup on a full-screen black panel (alpha starts at 0)")]
@@ -137,6 +137,10 @@ public class ScenarioManager : MonoBehaviour
 
         switch (scenario)
         {
+            case ScenarioId.EgoCar_Calibration:
+                activeEgo = egoCar;
+                break;
+
             case ScenarioId.EgoCar_Free_Drive:
                 activeEgo = egoCar;
                 break;
@@ -144,6 +148,10 @@ public class ScenarioManager : MonoBehaviour
             case ScenarioId.EgoCar_Right_Turn:
                 activeEgo = egoCar;
                 if (carRightTurnSpline != null) carRightTurnSpline.SetActive(true);
+                break;
+
+            case ScenarioId.EgoBike_Calibration:
+                activeEgo = egoBike;
                 break;
 
             case ScenarioId.EgoBike_Free_Bike:
@@ -180,6 +188,11 @@ public class ScenarioManager : MonoBehaviour
             // Start driving evaluation for this scenario
             if (drivingEvaluator != null)
                 drivingEvaluator.BeginEvaluation(activeEgo, scenario);
+
+            // Update the dashboard HUD instruction text
+            var dashboardUI = activeEgo.GetComponentInChildren<DashboardUI>();
+            if (dashboardUI != null)
+                dashboardUI.SetScenario(scenario);
         }
     }
 }
