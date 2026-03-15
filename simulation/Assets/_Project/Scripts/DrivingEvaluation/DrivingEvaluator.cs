@@ -1,22 +1,54 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Text;
 using UnityEngine;
 using UnityStandardAssets.Vehicles.Car;
 
 /// <summary>
 /// Checklist evaluator for the novice driver training scenario.
-/// Listens for stop-line crossings and checks both traffic light state
-/// and turn signal usage at the same trigger. Place on the manager GameObject.
+/// Listens for stop-line crossings and checks traffic light state
+/// and turn signal usage based on per-scenario rules configured in the Inspector.
+/// Logs every evaluation event and exports a CSV report to Results/ when the scenario ends.
+/// Place on the manager GameObject.
 /// </summary>
 public class DrivingEvaluator : MonoBehaviour
 {
     public enum VehicleMode { Car, Bike }
+    public enum SignalDirection { Left, Right }
+
+    // ── Per-scenario configuration (set in Inspector) ──
+
+    [System.Serializable]
+    public class TurnSignalRule
+    {
+        [Tooltip("SUMO junction ID where a turn signal is expected.")]
+        public string junctionId;
+        public SignalDirection direction;
+    }
+
+    [System.Serializable]
+    public class ScenarioEvalConfig
+    {
+        [Tooltip("Must match the scenario folder name exactly.")]
+        public string scenarioName;
+        [Tooltip("Check for red-light violations at every stop line.")]
+        public bool checkRedLights = true;
+        [Tooltip("Junctions where a turn signal must be active before the stop line.")]
+        public List<TurnSignalRule> turnSignalChecks = new();
+    }
+
+    [Header("Scenario Rules")]
+    [Tooltip("Configure evaluation rules per scenario. Scenarios not listed here will not be evaluated.")]
+    [SerializeField] private List<ScenarioEvalConfig> scenarioRules = new();
 
     // Auto-resolved references (no Inspector assignment needed)
     private SimulationController simController;
     private CarUserControl carUserControl;
 
-    [Header("Mode")]
-    [Tooltip("Current vehicle type. Car checks turn signals; Bike skips them.")]
-    public VehicleMode vehicleMode = VehicleMode.Car;
+    [Header("Runtime State (read-only)")]
+    [SerializeField] private string _activeScenario = "";
+    [SerializeField] private VehicleMode _vehicleMode = VehicleMode.Car;
 
     // ── Checklist state ──
     [Header("Checklist (read-only at runtime)")]
@@ -29,6 +61,21 @@ public class DrivingEvaluator : MonoBehaviour
     /// <summary>True if the driver had the correct signal on before the stop line.</summary>
     public bool UsedTurnSignal => _usedTurnSignal;
 
+    private ScenarioEvalConfig _activeConfig;
+
+    // ── Event log for CSV export ──
+
+    private struct EvalEvent
+    {
+        public float time;
+        public string junctionId;
+        public string eventType;   // "RedLightViolation", "RedLightOK", "TurnSignalOK", "TurnSignalMissing"
+        public string detail;      // light char, signal direction, etc.
+    }
+
+    private readonly List<EvalEvent> _eventLog = new();
+    private float _evalStartTime;
+
     private void Awake()
     {
         if (simController == null)
@@ -38,19 +85,50 @@ public class DrivingEvaluator : MonoBehaviour
     }
 
     /// <summary>
-    /// Called when a new scenario starts. Resets the checklist and updates references.
+    /// Called when a new scenario starts. Resets the checklist, looks up
+    /// matching scenario rules, and updates references.
     /// </summary>
-    public void BeginEvaluation(GameObject egoVehicle, VehicleMode mode)
+    public void BeginEvaluation(GameObject egoVehicle, string scenarioName)
     {
-        vehicleMode = mode;
+        _activeScenario = scenarioName;
+        _vehicleMode = scenarioName.Contains("Bike")
+            ? VehicleMode.Bike
+            : VehicleMode.Car;
+
         _ranRedLight = false;
         _usedTurnSignal = false;
+        _eventLog.Clear();
+        _evalStartTime = Time.time;
 
-        carUserControl = (mode == VehicleMode.Car)
+        // Look up rules for this scenario
+        _activeConfig = scenarioRules.Find(r => r.scenarioName == scenarioName);
+
+        carUserControl = (_vehicleMode == VehicleMode.Car)
             ? egoVehicle.GetComponent<CarUserControl>()
             : null;
 
-        Debug.Log($"[DrivingEvaluator] Evaluation started — mode: {mode}");
+        if (_activeConfig != null)
+            Debug.Log($"[DrivingEvaluator] Evaluation started — scenario: {scenarioName}, mode: {_vehicleMode}");
+        else
+            Debug.Log($"[DrivingEvaluator] No rules configured for '{scenarioName}' — evaluation inactive.");
+    }
+
+    /// <summary>
+    /// Call when the scenario ends or before switching scenarios.
+    /// Exports the evaluation log to a CSV file in the Results/ folder.
+    /// </summary>
+    public void EndEvaluation()
+    {
+        if (_activeConfig == null || _eventLog.Count == 0)
+        {
+            Debug.Log("[DrivingEvaluator] No evaluation data to export.");
+            return;
+        }
+
+        ExportCsv();
+
+        Debug.Log($"[DrivingEvaluator] Evaluation ended — scenario: {_activeScenario}, " +
+                  $"red light violation: {_ranRedLight}, turn signal used: {_usedTurnSignal}");
     }
 
     private void OnEnable()
@@ -65,8 +143,11 @@ public class DrivingEvaluator : MonoBehaviour
 
     private void HandleStopLineCrossing(StopLineTrigger trigger, Collider ego)
     {
+        // No rules for the active scenario — skip all checks
+        if (_activeConfig == null) return;
+
         // ── 1. Red light check ──
-        if (simController != null)
+        if (_activeConfig.checkRedLights && simController != null)
         {
             string state = simController.GetTrafficLightState(trigger.junctionId);
             if (!string.IsNullOrEmpty(state))
@@ -78,36 +159,114 @@ public class DrivingEvaluator : MonoBehaviour
                 if (isRed)
                 {
                     _ranRedLight = true;
+                    LogEvent(trigger.junctionId, "RedLightViolation", $"light={c}");
                     Debug.LogWarning($"[DrivingEvaluator] RED LIGHT VIOLATION at junction {trigger.junctionId}");
                 }
                 else
                 {
+                    LogEvent(trigger.junctionId, "RedLightOK", $"light={c}");
                     Debug.Log($"[DrivingEvaluator] Crossed stop line at {trigger.junctionId} — light was {c} (OK)");
                 }
             }
         }
 
-        // ── 2. Turn signal check (car only, when a signal is required) ──
-        if (trigger.requiredSignal == StopLineTrigger.RequiredSignal.None) return;
-        if (vehicleMode == VehicleMode.Bike) return;
-        if (carUserControl == null) return;
+        // ── 2. Turn signal check (only if a rule exists for this junction) ──
+        if (_vehicleMode == VehicleMode.Bike || carUserControl == null) return;
 
-        bool signalCorrect = trigger.requiredSignal switch
+        TurnSignalRule rule = _activeConfig.turnSignalChecks.Find(
+            r => r.junctionId == trigger.junctionId);
+        if (rule == null) return;
+
+        bool signalCorrect = rule.direction switch
         {
-            StopLineTrigger.RequiredSignal.Right => carUserControl.IsRightSignalOn,
-            StopLineTrigger.RequiredSignal.Left => carUserControl.IsLeftSignalOn,
+            SignalDirection.Right => carUserControl.IsRightSignalOn,
+            SignalDirection.Left => carUserControl.IsLeftSignalOn,
             _ => true
         };
 
         if (signalCorrect)
         {
             _usedTurnSignal = true;
-            Debug.Log($"[DrivingEvaluator] Turn signal was ON at stop line ({trigger.requiredSignal}) (OK)");
+            LogEvent(trigger.junctionId, "TurnSignalOK", $"direction={rule.direction}");
+            Debug.Log($"[DrivingEvaluator] Turn signal was ON at junction {trigger.junctionId} ({rule.direction}) ✓");
         }
         else
         {
             _usedTurnSignal = false;
-            Debug.LogWarning($"[DrivingEvaluator] MISSING TURN SIGNAL at stop line ({trigger.requiredSignal})!");
+            LogEvent(trigger.junctionId, "TurnSignalMissing", $"direction={rule.direction}");
+            Debug.LogWarning($"[DrivingEvaluator] MISSING TURN SIGNAL at junction {trigger.junctionId} ({rule.direction})!");
         }
+    }
+
+    // ── Logging helpers ──
+
+    private void LogEvent(string junctionId, string eventType, string detail)
+    {
+        _eventLog.Add(new EvalEvent
+        {
+            time = Time.time - _evalStartTime,
+            junctionId = junctionId,
+            eventType = eventType,
+            detail = detail
+        });
+    }
+
+    // ── CSV export ──
+
+    private void ExportCsv()
+    {
+        string resultsDir = LocateOrCreateResultsFolder();
+        string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+        string fileName = $"evaluation_{_activeScenario}_{timestamp}.csv";
+        string filePath = Path.Combine(resultsDir, fileName);
+
+        var sb = new StringBuilder();
+
+        // Header
+        sb.AppendLine("time;scenario;vehicle_mode;junction_id;event_type;detail");
+
+        // Event rows
+        foreach (var e in _eventLog)
+        {
+            sb.Append($"{e.time:F3};");
+            sb.Append($"{_activeScenario};");
+            sb.Append($"{_vehicleMode};");
+            sb.Append($"{e.junctionId};");
+            sb.Append($"{e.eventType};");
+            sb.AppendLine(e.detail);
+        }
+
+        // Summary row
+        sb.AppendLine();
+        sb.AppendLine("# Summary");
+        sb.AppendLine($"# Scenario: {_activeScenario}");
+        sb.AppendLine($"# Vehicle Mode: {_vehicleMode}");
+        sb.AppendLine($"# Red Light Violation: {_ranRedLight}");
+        sb.AppendLine($"# Turn Signal Used: {_usedTurnSignal}");
+        sb.AppendLine($"# Total Events: {_eventLog.Count}");
+
+        File.WriteAllText(filePath, sb.ToString(), Encoding.UTF8);
+        Debug.Log($"[DrivingEvaluator] CSV exported to: {filePath}");
+    }
+
+    /// <summary>Finds (or creates) Results folder, matching the project convention.</summary>
+    private static string LocateOrCreateResultsFolder()
+    {
+        string projectRoot = Directory.GetParent(Application.dataPath).FullName;
+        DirectoryInfo dir = new DirectoryInfo(projectRoot);
+
+        while (dir != null)
+        {
+            string candidate = Path.Combine(dir.FullName, "Results");
+            if (Directory.Exists(candidate))
+                return candidate;
+
+            dir = dir.Parent;
+        }
+
+        // Not found — create it next to the project
+        string fallback = Path.Combine(projectRoot, "Results");
+        Directory.CreateDirectory(fallback);
+        return fallback;
     }
 }

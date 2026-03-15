@@ -484,7 +484,6 @@ public class RoadNetworkBuilder : MonoBehaviour
                 var slTrigger = stopLineGO.AddComponent<StopLineTrigger>();
                 slTrigger.junctionId = jId;
                 slTrigger.linkIndex = primaryLink;
-                // requiredSignal defaults to None; set to Left/Right in Inspector for turn junctions
 
                 // Set initial state to red (deactivate green and yellow)
                 SetInitialLightState(head.transform);
