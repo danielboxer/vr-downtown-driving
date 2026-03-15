@@ -55,6 +55,13 @@ public class ScenarioManager : MonoBehaviour
             ApplyScenarioImmediate(defaultScenario);
     }
 
+    private void OnDestroy()
+    {
+        // Export any remaining evaluation data when the application quits
+        if (drivingEvaluator != null)
+            drivingEvaluator.EndEvaluation();
+    }
+
     /// <summary>
     /// Called by SimulationController when a "config" message arrives from Python.
     /// If a fadeOverlay is assigned, fades to black before switching, then fades back in.
@@ -103,6 +110,10 @@ public class ScenarioManager : MonoBehaviour
 
     private void ApplyScenarioImmediate(string scenarioName)
     {
+        // Export evaluation data from the previous scenario before switching
+        if (drivingEvaluator != null && !string.IsNullOrEmpty(_activeScenario))
+            drivingEvaluator.EndEvaluation();
+
         _activeScenario = scenarioName;
         Debug.Log($"ScenarioManager: Applying scenario '{scenarioName}'");
 
@@ -151,13 +162,7 @@ public class ScenarioManager : MonoBehaviour
 
             // Start driving evaluation for this scenario
             if (drivingEvaluator != null)
-            {
-                bool isBike = scenarioName.Contains("Bike");
-                var mode = isBike
-                    ? DrivingEvaluator.VehicleMode.Bike
-                    : DrivingEvaluator.VehicleMode.Car;
-                drivingEvaluator.BeginEvaluation(activeEgo, mode);
-            }
+                drivingEvaluator.BeginEvaluation(activeEgo, scenarioName);
         }
     }
 }
