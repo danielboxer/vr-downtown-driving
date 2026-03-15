@@ -41,9 +41,17 @@ public class DrivingEvaluator : MonoBehaviour
     [Tooltip("Configure evaluation rules per scenario. Scenarios not listed here will not be evaluated.")]
     [SerializeField] private List<ScenarioEvalConfig> scenarioRules = new();
 
+    [Header("Speed Limit")]
+    [Tooltip("Speed limit in km/h. Set to 0 to disable speed monitoring.")]
+    public float speedLimitKmh = 50f;
+
+    [Tooltip("Seconds between speeding violation log entries (prevents per-frame spam).")]
+    public float speedingLogCooldown = 5f;
+
     // Auto-resolved references (no Inspector assignment needed)
     private SimulationController simController;
     private CarUserControl carUserControl;
+    private Rigidbody _egoRb;
 
     [Header("Runtime State (read-only)")]
     [SerializeField] private ScenarioId _activeScenario;
@@ -55,6 +63,9 @@ public class DrivingEvaluator : MonoBehaviour
     [SerializeField] private bool _usedTurnSignal;
     [SerializeField] private bool _hadCollision;
     [SerializeField] private int _collisionCount;
+    [SerializeField] private bool _exceededSpeedLimit;
+    [SerializeField] private int _speedingEventCount;
+    [SerializeField] private float _topSpeedKmh;
 
     /// <summary>True if the driver crossed a stop line while the light was red.</summary>
     public bool RanRedLight => _ranRedLight;
@@ -67,6 +78,12 @@ public class DrivingEvaluator : MonoBehaviour
 
     /// <summary>Number of collisions during this scenario.</summary>
     public int CollisionCount => _collisionCount;
+
+    /// <summary>True if the driver exceeded the speed limit during this scenario.</summary>
+    public bool ExceededSpeedLimit => _exceededSpeedLimit;
+
+    /// <summary>Highest speed recorded during this scenario (km/h).</summary>
+    public float TopSpeedKmh => _topSpeedKmh;
 
     private ScenarioEvalConfig _activeConfig;
 
@@ -82,6 +99,7 @@ public class DrivingEvaluator : MonoBehaviour
 
     private readonly List<EvalEvent> _eventLog = new();
     private float _evalStartTime;
+    private float _lastSpeedingLogTime = -10f;
 
     private void Awake()
     {
@@ -106,6 +124,10 @@ public class DrivingEvaluator : MonoBehaviour
         _usedTurnSignal = false;
         _hadCollision = false;
         _collisionCount = 0;
+        _exceededSpeedLimit = false;
+        _speedingEventCount = 0;
+        _topSpeedKmh = 0f;
+        _lastSpeedingLogTime = -10f;
         _eventLog.Clear();
         _evalStartTime = Time.time;
 
@@ -115,6 +137,8 @@ public class DrivingEvaluator : MonoBehaviour
         carUserControl = (_vehicleMode == VehicleMode.Car)
             ? egoVehicle.GetComponent<CarUserControl>()
             : null;
+
+        _egoRb = egoVehicle.GetComponent<Rigidbody>();
 
         if (_activeConfig != null)
             Debug.Log($"[DrivingEvaluator] Evaluation started — scenario: {scenario}, mode: {_vehicleMode}");
@@ -138,7 +162,7 @@ public class DrivingEvaluator : MonoBehaviour
 
         Debug.Log($"[DrivingEvaluator] Evaluation ended — scenario: {_activeScenario}, " +
                   $"red light violation: {_ranRedLight}, turn signal used: {_usedTurnSignal}, " +
-                  $"collisions: {_collisionCount}");
+                  $"collisions: {_collisionCount}, top speed: {_topSpeedKmh:F0} km/h");
     }
 
     private void OnEnable()
@@ -151,6 +175,31 @@ public class DrivingEvaluator : MonoBehaviour
     {
         StopLineTrigger.OnEgoCrossedStopLine -= HandleStopLineCrossing;
         CollisionDetector.OnEgoCollision -= HandleCollision;
+    }
+
+    private void FixedUpdate()
+    {
+        // Speed monitoring
+        if (_egoRb == null || speedLimitKmh <= 0f) return;
+        if (_activeConfig == null) return;
+
+        float currentSpeedKmh = _egoRb.linearVelocity.magnitude * 3.6f;
+
+        if (currentSpeedKmh > _topSpeedKmh)
+            _topSpeedKmh = currentSpeedKmh;
+
+        if (currentSpeedKmh > speedLimitKmh)
+        {
+            _exceededSpeedLimit = true;
+
+            if (Time.time - _lastSpeedingLogTime >= speedingLogCooldown)
+            {
+                _speedingEventCount++;
+                _lastSpeedingLogTime = Time.time;
+                LogEvent("", "Speeding", $"speed={currentSpeedKmh:F1};limit={speedLimitKmh:F0}");
+                Debug.LogWarning($"[DrivingEvaluator] SPEEDING: {currentSpeedKmh:F1} km/h (limit {speedLimitKmh:F0})");
+            }
+        }
     }
 
     private void HandleStopLineCrossing(StopLineTrigger trigger, Collider ego)
@@ -272,6 +321,9 @@ public class DrivingEvaluator : MonoBehaviour
         sb.AppendLine($"# Red Light Violation: {_ranRedLight}");
         sb.AppendLine($"# Turn Signal Used: {_usedTurnSignal}");
         sb.AppendLine($"# Collisions: {_collisionCount}");
+        sb.AppendLine($"# Exceeded Speed Limit: {_exceededSpeedLimit}");
+        sb.AppendLine($"# Speeding Events: {_speedingEventCount}");
+        sb.AppendLine($"# Top Speed: {_topSpeedKmh:F1} km/h (limit {speedLimitKmh:F0})");
         sb.AppendLine($"# Total Events: {_eventLog.Count}");
 
         File.WriteAllText(filePath, sb.ToString(), Encoding.UTF8);
