@@ -9,6 +9,7 @@ namespace UnityStandardAssets.Vehicles.Car
         private CarController m_Car; // The car controller we want to use
         private CarAudio m_CarAudio; // The car audio controller
         private FollowCurve m_FollowCurve; // Steering influence blending (spline guide)
+        private TiltSteeringProvider m_TiltSteering; // Optional tilt-based steering
 
         public GameObject m_Wheel; // The steering wheel GameObject
 
@@ -64,6 +65,7 @@ namespace UnityStandardAssets.Vehicles.Car
             m_Car = GetComponent<CarController>();
             m_CarAudio = GetComponent<CarAudio>();
             m_FollowCurve = GetComponent<FollowCurve>();
+            m_TiltSteering = GetComponent<TiltSteeringProvider>();
 
             // Resolve actions from the asset by name
             if (inputActions != null)
@@ -107,7 +109,10 @@ namespace UnityStandardAssets.Vehicles.Car
         private void Update()
         {
             // Read continuous axes every frame (consumed in FixedUpdate)
-            _steerInput = _steerAction?.ReadValue<float>() ?? 0f;
+            // Tilt steering overrides the action-based axis when available
+            _steerInput = (m_TiltSteering != null && m_TiltSteering.enabled)
+                ? m_TiltSteering.SteerValue
+                : _steerAction?.ReadValue<float>() ?? 0f;
             _accelInput = _accelAction?.ReadValue<float>() ?? 0f;
             _brakeInput = _brakeAction?.ReadValue<float>() ?? 0f;
             _handbrakeInput = _handbrakeAction?.ReadValue<float>() ?? 0f;
