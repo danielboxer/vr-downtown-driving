@@ -53,12 +53,20 @@ public class DrivingEvaluator : MonoBehaviour
     [Header("Checklist (read-only at runtime)")]
     [SerializeField] private bool _ranRedLight;
     [SerializeField] private bool _usedTurnSignal;
+    [SerializeField] private bool _hadCollision;
+    [SerializeField] private int _collisionCount;
 
     /// <summary>True if the driver crossed a stop line while the light was red.</summary>
     public bool RanRedLight => _ranRedLight;
 
     /// <summary>True if the driver had the correct signal on before the stop line.</summary>
     public bool UsedTurnSignal => _usedTurnSignal;
+
+    /// <summary>True if the driver collided with anything during this scenario.</summary>
+    public bool HadCollision => _hadCollision;
+
+    /// <summary>Number of collisions during this scenario.</summary>
+    public int CollisionCount => _collisionCount;
 
     private ScenarioEvalConfig _activeConfig;
 
@@ -96,6 +104,8 @@ public class DrivingEvaluator : MonoBehaviour
 
         _ranRedLight = false;
         _usedTurnSignal = false;
+        _hadCollision = false;
+        _collisionCount = 0;
         _eventLog.Clear();
         _evalStartTime = Time.time;
 
@@ -127,17 +137,20 @@ public class DrivingEvaluator : MonoBehaviour
         ExportCsv();
 
         Debug.Log($"[DrivingEvaluator] Evaluation ended — scenario: {_activeScenario}, " +
-                  $"red light violation: {_ranRedLight}, turn signal used: {_usedTurnSignal}");
+                  $"red light violation: {_ranRedLight}, turn signal used: {_usedTurnSignal}, " +
+                  $"collisions: {_collisionCount}");
     }
 
     private void OnEnable()
     {
         StopLineTrigger.OnEgoCrossedStopLine += HandleStopLineCrossing;
+        CollisionDetector.OnEgoCollision += HandleCollision;
     }
 
     private void OnDisable()
     {
         StopLineTrigger.OnEgoCrossedStopLine -= HandleStopLineCrossing;
+        CollisionDetector.OnEgoCollision -= HandleCollision;
     }
 
     private void HandleStopLineCrossing(StopLineTrigger trigger, Collider ego)
@@ -199,6 +212,22 @@ public class DrivingEvaluator : MonoBehaviour
 
     // ── Logging helpers ──
 
+    private void HandleCollision(CollisionDetector detector, Collision collision)
+    {
+        _hadCollision = true;
+        _collisionCount++;
+
+        float impactSpeed = collision.relativeVelocity.magnitude;
+        string otherName = collision.gameObject.name;
+        string otherTag = collision.gameObject.tag;
+
+        LogEvent("", "Collision",
+            $"other={otherName};tag={otherTag};impact_speed={impactSpeed:F1}");
+
+        Debug.LogWarning($"[DrivingEvaluator] COLLISION with '{otherName}' " +
+                         $"(tag={otherTag}) at {impactSpeed:F1} m/s");
+    }
+
     private void LogEvent(string junctionId, string eventType, string detail)
     {
         _eventLog.Add(new EvalEvent
@@ -242,6 +271,7 @@ public class DrivingEvaluator : MonoBehaviour
         sb.AppendLine($"# Vehicle Mode: {_vehicleMode}");
         sb.AppendLine($"# Red Light Violation: {_ranRedLight}");
         sb.AppendLine($"# Turn Signal Used: {_usedTurnSignal}");
+        sb.AppendLine($"# Collisions: {_collisionCount}");
         sb.AppendLine($"# Total Events: {_eventLog.Count}");
 
         File.WriteAllText(filePath, sb.ToString(), Encoding.UTF8);
