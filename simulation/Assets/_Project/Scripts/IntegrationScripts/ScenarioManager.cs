@@ -27,7 +27,7 @@ public class ScenarioManager : MonoBehaviour
 
     [Header("Default (used when running without SUMO)")]
     [Tooltip("Scenario to activate at Start if no config message arrives")]
-    public string defaultScenario = "EgoCar_Free_Drive";
+    public ScenarioId defaultScenario = ScenarioId.EgoCar_Free_Drive;
 
     [Header("Transition")]
     [Tooltip("CanvasGroup on a full-screen black panel (alpha starts at 0)")]
@@ -36,7 +36,8 @@ public class ScenarioManager : MonoBehaviour
     public float fadeDuration = 0.4f;
 
     [Header("Runtime State (read-only)")]
-    [SerializeField] private string _activeScenario = "";
+    [SerializeField] private ScenarioId _activeScenario;
+    [SerializeField] private bool _scenarioActive;
 
     private SimulationController _simController;
     private DrivingEvaluator drivingEvaluator;
@@ -53,8 +54,7 @@ public class ScenarioManager : MonoBehaviour
     private void Start()
     {
         // apply default immediately (no fade on initial load)
-        if (!string.IsNullOrEmpty(defaultScenario))
-            ApplyScenarioImmediate(defaultScenario);
+        ApplyScenarioImmediate(defaultScenario);
     }
 
     private void OnDestroy()
@@ -66,31 +66,38 @@ public class ScenarioManager : MonoBehaviour
 
     /// <summary>
     /// Called by SimulationController when a "config" message arrives from Python.
+    /// Parses the scenario name string into a ScenarioId.
     /// If a fadeOverlay is assigned, fades to black before switching, then fades back in.
     /// </summary>
     public void ApplyScenario(string scenarioName)
     {
+        if (!Enum.TryParse(scenarioName, out ScenarioId id))
+        {
+            Debug.LogWarning($"ScenarioManager: Unknown scenario string '{scenarioName}'.");
+            return;
+        }
+
         // skip if this scenario is already active (avoids work on repeated config messages)
-        if (scenarioName == _activeScenario)
+        if (_scenarioActive && id == _activeScenario)
             return;
 
         if (fadeOverlay != null)
         {
             if (_fadeCoroutine != null) StopCoroutine(_fadeCoroutine);
-            _fadeCoroutine = StartCoroutine(FadeTransition(scenarioName));
+            _fadeCoroutine = StartCoroutine(FadeTransition(id));
         }
         else
         {
-            ApplyScenarioImmediate(scenarioName);
+            ApplyScenarioImmediate(id);
         }
     }
 
-    private IEnumerator FadeTransition(string scenarioName)
+    private IEnumerator FadeTransition(ScenarioId scenario)
     {
         // fade to black
         yield return FadeOverlay(0f, 1f);
 
-        ApplyScenarioImmediate(scenarioName);
+        ApplyScenarioImmediate(scenario);
 
         // fade back in
         yield return FadeOverlay(1f, 0f);
@@ -110,14 +117,15 @@ public class ScenarioManager : MonoBehaviour
         fadeOverlay.alpha = to;
     }
 
-    private void ApplyScenarioImmediate(string scenarioName)
+    private void ApplyScenarioImmediate(ScenarioId scenario)
     {
         // Export evaluation data from the previous scenario before switching
-        if (drivingEvaluator != null && !string.IsNullOrEmpty(_activeScenario))
+        if (drivingEvaluator != null && _scenarioActive)
             drivingEvaluator.EndEvaluation();
 
-        _activeScenario = scenarioName;
-        Debug.Log($"ScenarioManager: Applying scenario '{scenarioName}'");
+        _activeScenario = scenario;
+        _scenarioActive = true;
+        Debug.Log($"ScenarioManager: Applying scenario '{scenario}'");
 
         // Disable everything first
         if (egoCar != null) egoCar.SetActive(false);
@@ -127,28 +135,28 @@ public class ScenarioManager : MonoBehaviour
 
         GameObject activeEgo = null;
 
-        switch (scenarioName)
+        switch (scenario)
         {
-            case "EgoCar_Free_Drive":
+            case ScenarioId.EgoCar_Free_Drive:
                 activeEgo = egoCar;
                 break;
 
-            case "EgoCar_Right_Turn":
+            case ScenarioId.EgoCar_Right_Turn:
                 activeEgo = egoCar;
                 if (carRightTurnSpline != null) carRightTurnSpline.SetActive(true);
                 break;
 
-            case "EgoBike_Free_Bike":
+            case ScenarioId.EgoBike_Free_Bike:
                 activeEgo = egoBike;
                 break;
 
-            case "EgoBike_Right_Turn":
+            case ScenarioId.EgoBike_Right_Turn:
                 activeEgo = egoBike;
                 if (bikeRightTurnSpline != null) bikeRightTurnSpline.SetActive(true);
                 break;
 
             default:
-                Debug.LogWarning($"ScenarioManager: Unknown scenario '{scenarioName}', using defaults.");
+                Debug.LogWarning($"ScenarioManager: Unhandled scenario '{scenario}'.");
                 return;
         }
 
@@ -171,7 +179,7 @@ public class ScenarioManager : MonoBehaviour
 
             // Start driving evaluation for this scenario
             if (drivingEvaluator != null)
-                drivingEvaluator.BeginEvaluation(activeEgo, scenarioName);
+                drivingEvaluator.BeginEvaluation(activeEgo, scenario);
         }
     }
 }
