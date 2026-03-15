@@ -3336,7 +3336,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StopLineTrigger
   junctionId: 38
   linkIndex: 0
-  requiredSignal: 0
 --- !u!65 &14947399
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -4005,7 +4004,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StopLineTrigger
   junctionId: 33
   linkIndex: 5
-  requiredSignal: 0
 --- !u!65 &20825175
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -9864,7 +9862,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StopLineTrigger
   junctionId: 31
   linkIndex: 0
-  requiredSignal: 0
 --- !u!65 &46726207
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -19249,7 +19246,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StopLineTrigger
   junctionId: 32
   linkIndex: 5
-  requiredSignal: 0
 --- !u!65 &89577835
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -31575,7 +31571,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StopLineTrigger
   junctionId: 33
   linkIndex: 0
-  requiredSignal: 0
 --- !u!65 &140969909
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -33358,7 +33353,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StopLineTrigger
   junctionId: 33
   linkIndex: 12
-  requiredSignal: 0
 --- !u!65 &151001486
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -50336,7 +50330,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StopLineTrigger
   junctionId: 41
   linkIndex: 10
-  requiredSignal: 0
 --- !u!65 &228441518
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -86798,7 +86791,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StopLineTrigger
   junctionId: 40
   linkIndex: 7
-  requiredSignal: 0
 --- !u!65 &398316589
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -96873,7 +96865,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StopLineTrigger
   junctionId: 40
   linkIndex: 3
-  requiredSignal: 0
 --- !u!65 &440224838
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -116146,7 +116137,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StopLineTrigger
   junctionId: 32
   linkIndex: 0
-  requiredSignal: 0
 --- !u!65 &528299048
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -119796,7 +119786,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StopLineTrigger
   junctionId: 24
   linkIndex: 14
-  requiredSignal: 0
 --- !u!65 &543685279
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -126233,7 +126222,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StopLineTrigger
   junctionId: 38
   linkIndex: 10
-  requiredSignal: 0
 --- !u!65 &573799418
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -154025,7 +154013,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StopLineTrigger
   junctionId: 24
   linkIndex: 5
-  requiredSignal: 0
 --- !u!65 &714280119
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -181080,7 +181067,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StopLineTrigger
   junctionId: 25
   linkIndex: 4
-  requiredSignal: 0
 --- !u!65 &844827501
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -187912,7 +187898,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StopLineTrigger
   junctionId: 40
   linkIndex: 0
-  requiredSignal: 0
 --- !u!65 &869889182
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -189223,7 +189208,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StopLineTrigger
   junctionId: 33
   linkIndex: 19
-  requiredSignal: 0
 --- !u!65 &876834520
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -221195,7 +221179,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StopLineTrigger
   junctionId: 32
   linkIndex: 7
-  requiredSignal: 0
 --- !u!65 &1018501573
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -267450,7 +267433,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StopLineTrigger
   junctionId: 25
   linkIndex: 0
-  requiredSignal: 0
 --- !u!65 &1223032064
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -280734,7 +280716,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StopLineTrigger
   junctionId: 25
   linkIndex: 8
-  requiredSignal: 0
 --- !u!65 &1283291532
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -325096,7 +325077,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StopLineTrigger
   junctionId: 25
   linkIndex: 12
-  requiredSignal: 0
 --- !u!65 &1474440295
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -334289,7 +334269,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StopLineTrigger
   junctionId: 41
   linkIndex: 7
-  requiredSignal: 0
 --- !u!65 &1517356063
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -338722,7 +338701,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StopLineTrigger
   junctionId: 24
   linkIndex: 10
-  requiredSignal: 0
 --- !u!65 &1534546197
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -348359,7 +348337,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StopLineTrigger
   junctionId: 38
   linkIndex: 5
-  requiredSignal: 0
 --- !u!65 &1578801273
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -348755,6 +348732,7 @@ GameObject:
   - component: {fileID: 1580975092}
   - component: {fileID: 1580975093}
   - component: {fileID: 1580975094}
+  - component: {fileID: 1580975095}
   m_Layer: 0
   m_Name: Managers
   m_TagString: Untagged
@@ -348871,9 +348849,33 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3d58a44ad5b939649807c3f80b21ac48, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DrivingEvaluator
-  vehicleMode: 0
+  scenarioRules:
+  - scenarioName: 
+    checkRedLights: 0
+    turnSignalChecks: []
+  _activeScenario: 
+  _vehicleMode: 0
   _ranRedLight: 0
   _usedTurnSignal: 0
+--- !u!114 &1580975095
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1580975088}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3eb8afb260f1f924290968be7973be1b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RouteArrowSpawner
+  spacing: 15
+  floatHeight: 3
+  arrowScale: 1.5
+  arrowColor: {r: 0.2, g: 0.8, b: 1, a: 0.8}
+  bobAmplitude: 0.3
+  bobSpeed: 1
+  bobPhaseStep: 0.4
 --- !u!1 &1581222396
 GameObject:
   m_ObjectHideFlags: 0
@@ -427881,7 +427883,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StopLineTrigger
   junctionId: 24
   linkIndex: 0
-  requiredSignal: 0
 --- !u!65 &1925709397
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -429210,7 +429211,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StopLineTrigger
   junctionId: 32
   linkIndex: 2
-  requiredSignal: 0
 --- !u!65 &1932077730
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -436279,7 +436279,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StopLineTrigger
   junctionId: 41
   linkIndex: 0
-  requiredSignal: 0
 --- !u!65 &1963167311
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -453459,7 +453458,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StopLineTrigger
   junctionId: 41
   linkIndex: 3
-  requiredSignal: 0
 --- !u!65 &2045163170
 BoxCollider:
   m_ObjectHideFlags: 0

@@ -30,8 +30,7 @@ public class DrivingEvaluator : MonoBehaviour
     [System.Serializable]
     public class ScenarioEvalConfig
     {
-        [Tooltip("Must match the scenario folder name exactly.")]
-        public string scenarioName;
+        public ScenarioId scenario;
         [Tooltip("Check for red-light violations at every stop line.")]
         public bool checkRedLights = true;
         [Tooltip("Junctions where a turn signal must be active before the stop line.")]
@@ -47,7 +46,7 @@ public class DrivingEvaluator : MonoBehaviour
     private CarUserControl carUserControl;
 
     [Header("Runtime State (read-only)")]
-    [SerializeField] private string _activeScenario = "";
+    [SerializeField] private ScenarioId _activeScenario;
     [SerializeField] private VehicleMode _vehicleMode = VehicleMode.Car;
 
     // ── Checklist state ──
@@ -88,10 +87,10 @@ public class DrivingEvaluator : MonoBehaviour
     /// Called when a new scenario starts. Resets the checklist, looks up
     /// matching scenario rules, and updates references.
     /// </summary>
-    public void BeginEvaluation(GameObject egoVehicle, string scenarioName)
+    public void BeginEvaluation(GameObject egoVehicle, ScenarioId scenario)
     {
-        _activeScenario = scenarioName;
-        _vehicleMode = scenarioName.Contains("Bike")
+        _activeScenario = scenario;
+        _vehicleMode = scenario.ToString().Contains("Bike")
             ? VehicleMode.Bike
             : VehicleMode.Car;
 
@@ -101,16 +100,16 @@ public class DrivingEvaluator : MonoBehaviour
         _evalStartTime = Time.time;
 
         // Look up rules for this scenario
-        _activeConfig = scenarioRules.Find(r => r.scenarioName == scenarioName);
+        _activeConfig = scenarioRules.Find(r => r.scenario == scenario);
 
         carUserControl = (_vehicleMode == VehicleMode.Car)
             ? egoVehicle.GetComponent<CarUserControl>()
             : null;
 
         if (_activeConfig != null)
-            Debug.Log($"[DrivingEvaluator] Evaluation started — scenario: {scenarioName}, mode: {_vehicleMode}");
+            Debug.Log($"[DrivingEvaluator] Evaluation started — scenario: {scenario}, mode: {_vehicleMode}");
         else
-            Debug.Log($"[DrivingEvaluator] No rules configured for '{scenarioName}' — evaluation inactive.");
+            Debug.Log($"[DrivingEvaluator] No rules configured for '{scenario}' — evaluation inactive.");
     }
 
     /// <summary>
