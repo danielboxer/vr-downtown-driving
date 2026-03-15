@@ -8,6 +8,7 @@ namespace UnityStandardAssets.Bike
     public class BikeUserControl : MonoBehaviour
     {
         private BikeController m_Bike; // the bike controller we want to use
+        private TiltSteeringProvider m_TiltSteering; // Optional tilt-based steering
         public GameObject m_Wheel;
 
         [Header("Input Actions")]
@@ -33,6 +34,7 @@ namespace UnityStandardAssets.Bike
         {
             // get the bike controller
             m_Bike = GetComponent<BikeController>();
+            m_TiltSteering = GetComponent<TiltSteeringProvider>();
 
             // Resolve actions from the asset by name
             if (inputActions != null)
@@ -66,7 +68,10 @@ namespace UnityStandardAssets.Bike
 
         private void Update()
         {
-            _steerInput = _steerAction?.ReadValue<float>() ?? 0f;
+            // Tilt steering overrides the action-based axis when available
+            _steerInput = (m_TiltSteering != null && m_TiltSteering.enabled)
+                ? m_TiltSteering.SteerValue
+                : _steerAction?.ReadValue<float>() ?? 0f;
             _accelInput = _accelAction?.ReadValue<float>() ?? 0f;
             _brakeInput = _brakeAction?.ReadValue<float>() ?? 0f;
             _handbrakeInput = _handbrakeAction?.ReadValue<float>() ?? 0f;
