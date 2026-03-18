@@ -337,6 +337,13 @@ public class SimulationController : MonoBehaviour
             foreach (var id in vehiclesToRemove)
             {
                 GameObject vehicleToDestroy = vehicleObjects[id];
+                // Keep detached (crashed) vehicles as physics debris
+                VehicleController vc = vehicleToDestroy.GetComponent<VehicleController>();
+                if (vc != null && vc.IsDetached)
+                {
+                    vehicleObjects.Remove(id);
+                    continue;
+                }
                 GameObject.Destroy(vehicleToDestroy);
                 vehicleObjects.Remove(id);
             }
@@ -358,7 +365,7 @@ public class SimulationController : MonoBehaviour
                 {
                     GameObject existingVehicle = vehicleObjects[vehicle.vehicle_id];
                     VehicleController vehicleController = existingVehicle.GetComponent<VehicleController>();
-                    if (vehicleController != null)
+                    if (vehicleController != null && !vehicleController.IsDetached)
                     {
                         vehicleController.UpdateTarget(newPosition, newRotation, vehicleSpeed, vehiclevertical_speed, vehiclelateral_speed);
                     }

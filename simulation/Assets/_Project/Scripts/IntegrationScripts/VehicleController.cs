@@ -21,6 +21,24 @@ public class VehicleController : MonoBehaviour
     private Vector3 residualAngularVel;           // ★ keeps turn’s leftover spin
     private float residualTimer;                // ★ fade-out countdown
 
+    /// <summary>True after a collision detaches this vehicle from SUMO control.</summary>
+    public bool IsDetached { get; private set; }
+
+    /// <summary>
+    /// Detach this NPC from SUMO control and apply a collision impulse.
+    /// After this call the vehicle becomes a normal physics object.
+    /// </summary>
+    public void Detach(Vector3 impactImpulse)
+    {
+        if (IsDetached) return;
+        IsDetached = true;
+
+        rb.useGravity = true;
+        rb.linearDamping = 2f;
+        rb.angularDamping = 1f;
+        rb.AddForce(impactImpulse, ForceMode.Impulse);
+    }
+
     private void Start()
     {
         rb = GetComponent<Rigidbody>() ?? gameObject.AddComponent<Rigidbody>();
@@ -60,6 +78,9 @@ public class VehicleController : MonoBehaviour
     }
     private void FixedUpdate()
     {
+        // Detached vehicles are pure physics objects — no SUMO control
+        if (IsDetached) return;
+
         float dt = curTime - lastTime;
         if (dt <= 0f)
         {
