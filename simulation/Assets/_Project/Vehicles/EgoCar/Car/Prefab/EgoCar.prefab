@@ -755,6 +755,7 @@ GameObject:
   - component: {fileID: 4782113893452823864}
   - component: {fileID: 5419899898733022588}
   - component: {fileID: 5378438025674776432}
+  - component: {fileID: 1158735401654384248}
   m_Layer: 0
   m_Name: EgoCar
   m_TagString: Player
@@ -960,6 +961,24 @@ MonoBehaviour:
   _dbgClosestT: 0
   _dbgDistanceToSpline: 0
   _dbgIsActive: 0
+--- !u!114 &1158735401654384248
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2471852994914885337}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ec843d34e21ba0147aa498d33db6bbc4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TiltSteeringProvider
+  controllerHand: 0
+  steerAxis: 0
+  maxSteerAngle: 45
+  calibrateOnEnable: 1
+  inputActions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
+  actionMapName: Driving
 --- !u!1 &2861148910917411302
 GameObject:
   m_ObjectHideFlags: 0
