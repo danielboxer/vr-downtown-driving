@@ -84,13 +84,13 @@ public class FollowCurve : MonoBehaviour
     private float currentClosestT;
 
     // Debug readouts (visible in the Inspector at runtime)
-    [Header("Debug (read-only at runtime)")]
-    [SerializeField] private float _dbgEffectiveWeight;
-    [SerializeField] private float _dbgSplineSteer;
-    [SerializeField] private float _dbgLateralOffset;
-    [SerializeField] private float _dbgClosestT;
-    [SerializeField] private float _dbgDistanceToSpline;
-    [SerializeField] private bool _dbgIsActive;
+    [Header("Debug")]
+    [ReadOnly, SerializeField] private float _dbgEffectiveWeight;
+    [ReadOnly, SerializeField] private float _dbgSplineSteer;
+    [ReadOnly, SerializeField] private float _dbgLateralOffset;
+    [ReadOnly, SerializeField] private float _dbgClosestT;
+    [ReadOnly, SerializeField] private float _dbgDistanceToSpline;
+    [ReadOnly, SerializeField] private bool _dbgIsActive;
 
     // ──────────────────────────────────────────────────────────────
     //  Unity lifecycle
@@ -135,6 +135,23 @@ public class FollowCurve : MonoBehaviour
         currentClosestT = FindClosestTOnSpline(transform.position);
         Vector3 closestPoint = spline.GetPoint(currentClosestT);
         _dbgClosestT = currentClosestT;
+
+        // End-of-spline check: once past the last point, release control
+        if (currentClosestT >= 0.99f)
+        {
+            Vector3 splineEnd = spline.GetPoint(1f);
+            Vector3 carForwardFlat = transform.forward;
+            carForwardFlat.y = 0f;
+            // If the car is moving away from the spline end, release
+            Vector3 toEnd = splineEnd - transform.position;
+            toEnd.y = 0f;
+            if (Vector3.Dot(carForwardFlat, toEnd) < 0f)
+            {
+                _dbgIsActive = false;
+                _dbgEffectiveWeight = 0f;
+                return playerSteering;
+            }
+        }
 
         // 1b. Distance check — fade out when the car is far from the spline
         float distToSpline = Vector3.Distance(transform.position, closestPoint);

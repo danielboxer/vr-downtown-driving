@@ -43,6 +43,9 @@ public class TiltSteeringProvider : MonoBehaviour
     /// <summary>Current steering value from –1 (full left) to +1 (full right).</summary>
     public float SteerValue { get; private set; }
 
+    /// <summary>True when an XR controller is detected and providing data.</summary>
+    public bool HasController { get; private set; }
+
     private float _centerAngle;
     private bool _calibrated;
     private InputAction _calibrateAction;
@@ -60,12 +63,14 @@ public class TiltSteeringProvider : MonoBehaviour
     {
         _calibrateAction?.Enable();
         _calibrated = false;
+        HasController = false;
         SteerValue = 0f;
     }
 
     private void OnDisable()
     {
         _calibrateAction?.Disable();
+        HasController = false;
         SteerValue = 0f;
     }
 
@@ -75,7 +80,12 @@ public class TiltSteeringProvider : MonoBehaviour
             ? XRController.rightHand
             : XRController.leftHand;
 
-        if (controller == null) return;
+        if (controller == null)
+        {
+            HasController = false;
+            return;
+        }
+        HasController = true;
 
         Quaternion rotation = controller.deviceRotation.ReadValue();
         float currentAngle = ExtractAxis(rotation);
