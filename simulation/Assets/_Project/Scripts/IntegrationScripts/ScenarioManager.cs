@@ -35,9 +35,9 @@ public class ScenarioManager : MonoBehaviour
     [Tooltip("Duration of each fade direction (seconds)")]
     public float fadeDuration = 0.4f;
 
-    [Header("Runtime State (read-only)")]
-    [SerializeField] private ScenarioId _activeScenario;
-    [SerializeField] private bool _scenarioActive;
+    [Header("Runtime State")]
+    [ReadOnly, SerializeField] private ScenarioId _activeScenario;
+    [ReadOnly, SerializeField] private bool _scenarioActive;
 
     private SimulationController _simController;
     private DrivingEvaluator drivingEvaluator;
