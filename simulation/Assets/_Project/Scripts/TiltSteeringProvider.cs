@@ -26,6 +26,9 @@ public class TiltSteeringProvider : MonoBehaviour
     [Tooltip("Max tilt angle (degrees) for full steering lock.")]
     public float maxSteerAngle = 45f;
 
+    [Tooltip("Negate the steering direction. Enable if tilting right steers left.")]
+    public bool invertSteering = true;
+
     [Header("Calibration")]
     [Tooltip("Auto-calibrate center the first time a valid reading arrives.")]
     public bool calibrateOnEnable = true;
@@ -91,6 +94,7 @@ public class TiltSteeringProvider : MonoBehaviour
         }
 
         float delta = Mathf.DeltaAngle(_centerAngle, currentAngle);
+        if (invertSteering) delta = -delta;
         SteerValue = Mathf.Clamp(delta / maxSteerAngle, -1f, 1f);
     }
 

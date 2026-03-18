@@ -818,6 +818,7 @@ GameObject:
   - component: {fileID: 1482131652421376735}
   - component: {fileID: 3323033579634127223}
   - component: {fileID: 2483689335993353849}
+  - component: {fileID: 3704634321560435116}
   m_Layer: 0
   m_Name: EgoBike
   m_TagString: Player
@@ -947,6 +948,24 @@ MonoBehaviour:
   dopplerLevel: 1
   useDoppler: 1
   randomPitchOffset: 0.05
+--- !u!114 &3704634321560435116
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3049986642694483780}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ec843d34e21ba0147aa498d33db6bbc4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TiltSteeringProvider
+  controllerHand: 0
+  steerAxis: 1
+  maxSteerAngle: 45
+  calibrateOnEnable: 1
+  inputActions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
+  actionMapName: Driving
 --- !u!1 &4468101401047829185
 GameObject:
   m_ObjectHideFlags: 0
