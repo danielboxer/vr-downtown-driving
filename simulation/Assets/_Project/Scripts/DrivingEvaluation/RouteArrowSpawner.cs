@@ -89,7 +89,10 @@ public class RouteArrowSpawner : MonoBehaviour
             GameObject go = new GameObject($"RouteArrow_{a}");
             go.transform.SetParent(transform);
             go.transform.position = pos;
-            go.transform.rotation = Quaternion.LookRotation(tangent, Vector3.up);
+            // Point the arrow's forward along the route, then tilt it to
+            // face downward so the driver can see the shape from below.
+            Quaternion faceForward = Quaternion.LookRotation(tangent, Vector3.up);
+            go.transform.rotation = faceForward * Quaternion.Euler(90f, 0f, 0f);
             go.transform.localScale = Vector3.one * arrowScale;
 
             go.AddComponent<MeshFilter>().sharedMesh = _arrowMesh;
@@ -161,30 +164,27 @@ public class RouteArrowSpawner : MonoBehaviour
 
         if (_arrowMaterial == null)
         {
-            // Unlit transparent material so arrows are visible in any lighting
+            // Unlit material so arrows are visible in any lighting
             _arrowMaterial = new Material(Shader.Find("Unlit/Color"));
             _arrowMaterial.color = arrowColor;
         }
     }
 
     /// <summary>
-    /// Creates a simple double-sided arrow mesh on the XZ plane (pointing along +Z).
-    /// The shape is a narrow shaft + triangular arrowhead.
+    /// Creates a flat double-sided arrow mesh on the XZ plane (pointing +Z).
+    /// Both faces are rendered so it is visible from above and below.
     /// </summary>
     private static Mesh CreateArrowMesh()
     {
         var mesh = new Mesh { name = "RouteArrow" };
 
         // Arrow shape (top-down view, pointing +Z)
-        //
         //       4 (tip)
         //      / \
-        //     /   \
-        //    5     3     (wings, wider)
-        //    |     |
-        //    6     2     (shaft-to-head junction)
-        //    |     |
-        //    0─────1     (shaft back)
+        //     5   3      (head wings)
+        //     6   2      (shaft-to-head junction)
+        //     |   |
+        //     0───1      (shaft back)
 
         mesh.vertices = new[]
         {
