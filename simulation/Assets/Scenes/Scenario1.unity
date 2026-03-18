@@ -366619,6 +366619,57 @@ MonoBehaviour:
   m_FadeFactor: 1
   version: 1
   m_DecalLayerMask: 1
+--- !u!1 &1654852601
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1654852603}
+  - component: {fileID: 1654852602}
+  m_Layer: 0
+  m_Name: TestSimulation
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1654852602
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1654852601}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ef611bc65106e1547b9e95d9d25f18ea, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TestSimulation
+  stepLength: 0.1
+  prefabs:
+  - {fileID: 1316973427445556549, guid: 5fb576aff4ca6cc45858605d8beb5ccc, type: 3}
+  - {fileID: 5548627528071542946, guid: 0222797132bed0544b325a1a3bebdd1b, type: 3}
+  spawnInterval: 3
+  speed: 1
+  lifetime: 15
+--- !u!4 &1654852603
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1654852601}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 250.33, y: -0.015, z: 189.52}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1655116888
 GameObject:
   m_ObjectHideFlags: 0
@@ -474998,3 +475049,4 @@ SceneRoots:
   - {fileID: 1449816492}
   - {fileID: 1019205295}
   - {fileID: 1772477232}
+  - {fileID: 1654852603}
