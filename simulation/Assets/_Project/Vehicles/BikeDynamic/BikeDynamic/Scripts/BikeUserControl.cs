@@ -29,6 +29,10 @@ namespace UnityStandardAssets.Bike
         private float _accelInput;
         private float _brakeInput;
         private float _handbrakeInput;
+        private float _smoothedSteer; // Smoothed keyboard steering value
+
+        [Tooltip("Smoothing speed for keyboard steering (higher = snappier).")]
+        public float steerSmoothing = 5f; // Mimics old Input.GetAxis smoothing
 
         private void Awake()
         {
@@ -68,10 +72,20 @@ namespace UnityStandardAssets.Bike
 
         private void Update()
         {
-            // Tilt steering overrides the action-based axis when available
-            _steerInput = (m_TiltSteering != null && m_TiltSteering.enabled)
-                ? m_TiltSteering.SteerValue
-                : _steerAction?.ReadValue<float>() ?? 0f;
+            // Combine tilt and action input — whichever has more authority wins
+            float rawAction = _steerAction?.ReadValue<float>() ?? 0f;
+            // Smooth keyboard input to mimic old Input.GetAxis ramp-up/down
+            _smoothedSteer = Mathf.MoveTowards(_smoothedSteer, rawAction, steerSmoothing * Time.deltaTime);
+            float actionSteer = _smoothedSteer;
+            if (m_TiltSteering != null && m_TiltSteering.enabled && m_TiltSteering.HasController)
+            {
+                float tilt = m_TiltSteering.SteerValue;
+                _steerInput = Mathf.Abs(tilt) > Mathf.Abs(actionSteer) ? tilt : actionSteer;
+            }
+            else
+            {
+                _steerInput = actionSteer;
+            }
             _accelInput = _accelAction?.ReadValue<float>() ?? 0f;
             _brakeInput = _brakeAction?.ReadValue<float>() ?? 0f;
             _handbrakeInput = _handbrakeAction?.ReadValue<float>() ?? 0f;

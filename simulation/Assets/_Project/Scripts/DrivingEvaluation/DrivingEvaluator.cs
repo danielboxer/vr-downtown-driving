@@ -53,19 +53,19 @@ public class DrivingEvaluator : MonoBehaviour
     private CarUserControl carUserControl;
     private Rigidbody _egoRb;
 
-    [Header("Runtime State (read-only)")]
-    [SerializeField] private ScenarioId _activeScenario;
-    [SerializeField] private VehicleMode _vehicleMode = VehicleMode.Car;
+    [Header("Runtime State")]
+    [ReadOnly, SerializeField] private ScenarioId _activeScenario;
+    [ReadOnly, SerializeField] private VehicleMode _vehicleMode = VehicleMode.Car;
 
     // ── Checklist state ──
-    [Header("Checklist (read-only at runtime)")]
-    [SerializeField] private bool _ranRedLight;
-    [SerializeField] private bool _usedTurnSignal;
-    [SerializeField] private bool _hadCollision;
-    [SerializeField] private int _collisionCount;
-    [SerializeField] private bool _exceededSpeedLimit;
-    [SerializeField] private int _speedingEventCount;
-    [SerializeField] private float _topSpeedKmh;
+    [Header("Checklist")]
+    [ReadOnly, SerializeField] private bool _ranRedLight;
+    [ReadOnly, SerializeField] private bool _usedTurnSignal;
+    [ReadOnly, SerializeField] private bool _hadCollision;
+    [ReadOnly, SerializeField] private int _collisionCount;
+    [ReadOnly, SerializeField] private bool _exceededSpeedLimit;
+    [ReadOnly, SerializeField] private int _speedingEventCount;
+    [ReadOnly, SerializeField] private float _topSpeedKmh;
 
     /// <summary>True if the driver crossed a stop line while the light was red.</summary>
     public bool RanRedLight => _ranRedLight;
