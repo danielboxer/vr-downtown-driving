@@ -348833,10 +348833,11 @@ MonoBehaviour:
   egoBike: {fileID: 1449816493}
   carRightTurnSpline: {fileID: 1451207572}
   bikeRightTurnSpline: {fileID: 0}
-  defaultScenario: EgoCar_Free_Drive
+  defaultScenario: 2
   fadeOverlay: {fileID: 0}
   fadeDuration: 0.4
-  _activeScenario: 
+  _activeScenario: 0
+  _scenarioActive: 0
 --- !u!114 &1580975094
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -348850,13 +348851,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DrivingEvaluator
   scenarioRules:
-  - scenarioName: 
+  - scenario: 0
     checkRedLights: 0
     turnSignalChecks: []
-  _activeScenario: 
+  speedLimitKmh: 50
+  speedingLogCooldown: 5
+  _activeScenario: 0
   _vehicleMode: 0
   _ranRedLight: 0
   _usedTurnSignal: 0
+  _hadCollision: 0
+  _collisionCount: 0
+  _exceededSpeedLimit: 0
+  _speedingEventCount: 0
+  _topSpeedKmh: 0
 --- !u!114 &1580975095
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -348872,9 +348880,9 @@ MonoBehaviour:
   spacing: 15
   floatHeight: 3
   arrowScale: 1.5
-  arrowColor: {r: 0.2, g: 0.8, b: 1, a: 0.8}
+  arrowColor: {r: 0.21068175, g: 0.9056604, b: 0.10679956, a: 0.8}
   bobAmplitude: 0.3
-  bobSpeed: 1
+  bobSpeed: 0.5
   bobPhaseStep: 0.4
 --- !u!1 &1581222396
 GameObject:
