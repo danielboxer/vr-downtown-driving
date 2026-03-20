@@ -44,9 +44,13 @@ public class RoadNetworkBuilder : MonoBehaviour
 
     [Header("Sidewalk")]
     [Tooltip("Height of raised curb above the road surface. Low values let vehicles drive over.")]
-    public float sidewalkHeight = 0.04f;
-    [Tooltip("Width of the curb strip perpendicular to the road edge.")]
-    public float curbWidth = 0.12f;
+    public float sidewalkHeight = 0.2f;
+    [Tooltip("Width of the flat sidewalk top extending outward from the road edge.")]
+    public float curbWidth = 5f;
+    [Tooltip("Width of the slope ramp on the road side.")]
+    public float innerSlopeWidth = 0.15f;
+    [Tooltip("Width of the slope ramp on the outer side blending into terrain.")]
+    public float outerSlopeWidth = 1.0f;
     [Tooltip("Material for sidewalk curb walls. Falls back to terrain material if null.")]
     public Material sidewalkWallMaterial;
 
@@ -509,9 +513,6 @@ public class RoadNetworkBuilder : MonoBehaviour
         var verts = new Vector3[segCount * 12];
         var tris = new int[segCount * 18];
 
-        // Fixed slope width for road-facing and outer ramps
-        const float slopeW = 0.15f;
-
         // Distance-based height taper at strip ends
         const float taperDist = 2.0f;
         float[] cumDist = new float[edgePts.Length];
@@ -536,8 +537,8 @@ public class RoadNetworkBuilder : MonoBehaviour
             Vector3 outDir = new Vector3(-dir.z, 0f, dir.x) * outwardSign;
 
             // Inner slope: small ramp from road level up to curb top at the edge point
-            Vector3 innerBotA = new Vector3(a.x - outDir.x * slopeW, 0f, a.z - outDir.z * slopeW);
-            Vector3 innerBotB = new Vector3(b.x - outDir.x * slopeW, 0f, b.z - outDir.z * slopeW);
+            Vector3 innerBotA = new Vector3(a.x - outDir.x * innerSlopeWidth, 0f, a.z - outDir.z * innerSlopeWidth);
+            Vector3 innerBotB = new Vector3(b.x - outDir.x * innerSlopeWidth, 0f, b.z - outDir.z * innerSlopeWidth);
             Vector3 innerTopA = new Vector3(a.x, hA, a.z);
             Vector3 innerTopB = new Vector3(b.x, hB, b.z);
 
@@ -545,9 +546,9 @@ public class RoadNetworkBuilder : MonoBehaviour
             Vector3 outerTopA = new Vector3(a.x + outDir.x * curbWidth, hA, a.z + outDir.z * curbWidth);
             Vector3 outerTopB = new Vector3(b.x + outDir.x * curbWidth, hB, b.z + outDir.z * curbWidth);
 
-            // Outer slope: ramp back down to ground
-            Vector3 outerBotA = new Vector3(a.x + outDir.x * (curbWidth + slopeW), 0f, a.z + outDir.z * (curbWidth + slopeW));
-            Vector3 outerBotB = new Vector3(b.x + outDir.x * (curbWidth + slopeW), 0f, b.z + outDir.z * (curbWidth + slopeW));
+            // Outer slope: gentle ramp back down to ground
+            Vector3 outerBotA = new Vector3(a.x + outDir.x * (curbWidth + outerSlopeWidth), 0f, a.z + outDir.z * (curbWidth + outerSlopeWidth));
+            Vector3 outerBotB = new Vector3(b.x + outDir.x * (curbWidth + outerSlopeWidth), 0f, b.z + outDir.z * (curbWidth + outerSlopeWidth));
 
             int vi = i * 12;
             int ti = i * 18;
