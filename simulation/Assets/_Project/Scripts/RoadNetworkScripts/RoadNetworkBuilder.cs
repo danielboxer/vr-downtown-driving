@@ -42,6 +42,15 @@ public class RoadNetworkBuilder : MonoBehaviour
     public Material polygonResidentialMaterial;
     private Material polygonFallbackMaterial;
 
+    [Header("Sidewalk")]
+    [Tooltip("Height of raised curb above the road surface. Low values let vehicles drive over.")]
+    public float sidewalkHeight = 0.04f;
+    [Tooltip("Width of the curb strip perpendicular to the road edge.")]
+    public float curbWidth = 0.12f;
+    [Tooltip("Material for sidewalk curb walls. Falls back to terrain material if null.")]
+    public Material sidewalkWallMaterial;
+
+
     private GameObject roadNetworkRoot;
 
     // ★ NEW: Ground-layer support --------------------------------------------
@@ -68,6 +77,7 @@ public class RoadNetworkBuilder : MonoBehaviour
     // NEW: cache junction polygons (Unity XZ plane)
     private readonly List<Vector2[]> _junctionPolys2D = new();
 
+
     // Parsed net file, kept for traffic light generation
     private NetType _netFile;
 
@@ -78,6 +88,26 @@ public class RoadNetworkBuilder : MonoBehaviour
             DestroyImmediate(roadNetworkRoot);
             roadNetworkRoot = null;
         }
+
+        // Also destroy any orphaned root left from a previous builder instance
+        var oldRoot = GameObject.Find("RoadNetworkRoot");
+        if (oldRoot != null)
+            DestroyImmediate(oldRoot);
+
+        // Destroy orphaned Junctions root (not parented to roadNetworkRoot)
+        var oldJunctions = GameObject.Find("Junctions");
+        if (oldJunctions != null)
+            DestroyImmediate(oldJunctions);
+
+        ParseSumoXmlFiles(sumoFilesFolder);
+    }
+
+    /// <summary>
+    /// Parses SUMO XML files into in-memory records without destroying existing GameObjects.
+    /// Creates roadNetworkRoot if it doesn't exist.
+    /// </summary>
+    public void ParseSumoXmlFiles(string sumoFilesFolder)
+    {
         laneWidthMap.Clear();
         junctionRecords?.Clear();
         laneRecords?.Clear();
@@ -92,8 +122,16 @@ public class RoadNetworkBuilder : MonoBehaviour
         if (groundLayer < 0)
             Debug.LogWarning($"Layer \"{groundLayerName}\" does not exist – objects will keep their current layer.");
 
-        roadNetworkRoot = new GameObject("RoadNetworkRoot");
-        if (groundLayer >= 0) roadNetworkRoot.layer = groundLayer;        // ★ NEW
+        if (roadNetworkRoot == null)
+        {
+            // Try to find an existing root in the scene before creating a new one
+            FindExistingRoot();
+        }
+        if (roadNetworkRoot == null)
+        {
+            roadNetworkRoot = new GameObject("RoadNetworkRoot");
+            if (groundLayer >= 0) roadNetworkRoot.layer = groundLayer;
+        }
 
         var netFilePath = Path.Combine(sumoXmlFolderPath, "Sumo2Unity.net.xml");
         var polyFilePath = Path.Combine(sumoXmlFolderPath, "Sumo2Unity.poly.xml");
@@ -225,6 +263,18 @@ public class RoadNetworkBuilder : MonoBehaviour
         SetLayerRecursively(roadNetworkRoot, groundLayer);
     }
 
+    /// <summary>
+    /// Attempts to find an existing RoadNetworkRoot in the scene and assign it.
+    /// Returns true if one was found.
+    /// </summary>
+    public bool FindExistingRoot()
+    {
+        if (roadNetworkRoot != null) return true;
+        var existing = GameObject.Find("RoadNetworkRoot");
+        if (existing != null) { roadNetworkRoot = existing; return true; }
+        return false;
+    }
+
     public void GenerateRoadsAndJunctions()
     {
         // lanes
@@ -273,7 +323,7 @@ public class RoadNetworkBuilder : MonoBehaviour
                 verts2D[i] = new Vector2((float)(xy[0] - originX), (float)(xy[1] - originY));
             }
 
-            // cache for clipping
+            // Cache for decal clipping
             _junctionPolys2D.Add((Vector2[])verts2D.Clone());
 
             MeshTriangulator triangulator = new MeshTriangulator(verts2D);
@@ -311,6 +361,10 @@ public class RoadNetworkBuilder : MonoBehaviour
 
         // ★ NEW: make sure every child built above is on the Ground layer
         SetLayerRecursively(roadNetworkRoot, groundLayer);
+
+        // Generate raised curb strips along road edges
+        if (sidewalkHeight > 0.01f)
+            GenerateCurbs();
     }
 
     // -------------------- helper --------------------------------------------
@@ -324,8 +378,287 @@ public class RoadNetworkBuilder : MonoBehaviour
     // ------------------------------------------------------------------------
 
     // ======================================================================
+    //  Curb / Sidewalk Strip Generation
+    // ======================================================================
+
+    /// <summary>
+    /// Generates raised curb strips along the outer edges of every road.
+    /// Skips the median side when an opposite-direction edge exists so
+    /// curbs only appear at road boundaries, not in the middle of the road.
+    /// </summary>
+    private void GenerateCurbs()
+    {
+        GameObject curbRoot = new GameObject("Curbs");
+        curbRoot.transform.SetParent(roadNetworkRoot.transform);
+
+        int curbIdx = 0;
+        foreach (var edgeData in edgeRecords.Values)
+        {
+            var lanes = edgeData.GetLaneDataList();
+            if (lanes.Count == 0) continue;
+
+            bool hasOpposite = HasOppositeEdge(edgeData);
+
+            // Rightmost lane (index 0) outer edge -- always generate
+            var firstLane = lanes[0];
+            if (firstLane.shapePoints.Count >= 2)
+            {
+                float w = laneWidthMap.TryGetValue(firstLane.laneId, out float fw) ? fw : laneMeshScaleWidth;
+                var edgePts = ComputeLaneEdge(firstLane, w, false);
+                if (edgePts.Length >= 2)
+                    BuildCurbStrip(edgePts, $"Curb_{curbIdx++}", curbRoot.transform, -1);
+            }
+
+            // Leftmost lane outer edge -- skip if opposite edge exists (that side is the median)
+            if (!hasOpposite)
+            {
+                var lastLane = lanes[lanes.Count - 1];
+                if (lastLane.shapePoints.Count >= 2)
+                {
+                    float w = laneWidthMap.TryGetValue(lastLane.laneId, out float lw) ? lw : laneMeshScaleWidth;
+                    var edgePts = ComputeLaneEdge(lastLane, w, true);
+                    if (edgePts.Length >= 2)
+                        BuildCurbStrip(edgePts, $"Curb_{curbIdx++}", curbRoot.transform, 1);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Returns true if an opposite-direction edge exists for the given edge.
+    /// Two edges are opposite when their from/to junctions are swapped.
+    /// </summary>
+    private bool HasOppositeEdge(RoadEdgeData edge)
+    {
+        var from = edge.GetFromJunction();
+        var to = edge.GetToJunction();
+        if (from == null || to == null) return false;
+
+        foreach (var other in edgeRecords.Values)
+        {
+            if (other == edge) continue;
+            var oFrom = other.GetFromJunction();
+            var oTo = other.GetToJunction();
+            if (oFrom == null || oTo == null) continue;
+
+            if (oFrom.junctionId == to.junctionId && oTo.junctionId == from.junctionId)
+                return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Computes the outer edge points of a lane.
+    /// left=true returns the left side, left=false returns the right side.
+    /// </summary>
+    private Vector3[] ComputeLaneEdge(RoadLaneData lane, float width, bool left)
+    {
+        int n = lane.shapePoints.Count;
+        var pts = new Vector3[n];
+
+        for (int i = 0; i < n; i++)
+        {
+            Vector3 center = ToUnity(lane.shapePoints[i][0], lane.shapePoints[i][1]);
+
+            // Direction to next or previous point
+            Vector3 dir;
+            if (i < n - 1)
+                dir = (ToUnity(lane.shapePoints[i + 1][0], lane.shapePoints[i + 1][1]) - center).normalized;
+            else
+                dir = (center - ToUnity(lane.shapePoints[i - 1][0], lane.shapePoints[i - 1][1])).normalized;
+
+            // Perpendicular (left of travel direction)
+            Vector3 perp = new Vector3(-dir.z, 0f, dir.x);
+            pts[i] = center + perp * (width * 0.5f) * (left ? 1f : -1f);
+        }
+        return pts;
+    }
+
+    /// <summary>
+    /// Subdivides a polyline so no segment exceeds maxLen.
+    /// Ensures enough vertices for smooth per-vertex effects like height tapering.
+    /// </summary>
+    private static Vector3[] SubdividePolyline(Vector3[] pts, float maxLen)
+    {
+        if (pts.Length < 2) return pts;
+        var result = new List<Vector3> { pts[0] };
+        for (int i = 0; i < pts.Length - 1; i++)
+        {
+            Vector3 a = pts[i];
+            Vector3 b = pts[i + 1];
+            float len = Vector3.Distance(a, b);
+            int divs = Mathf.CeilToInt(len / maxLen);
+            for (int j = 1; j <= divs; j++)
+                result.Add(Vector3.Lerp(a, b, (float)j / divs));
+        }
+        return result.ToArray();
+    }
+
+    /// <summary>
+    /// Builds a curb strip with sloped inner and outer faces along a polyline.
+    /// Cross-section: inner slope (road->top), flat top, outer slope (top->ground).
+    /// outwardSign: +1 extends left of travel, -1 extends right of travel.
+    /// </summary>
+    private void BuildCurbStrip(Vector3[] edgePts, string name, Transform parent, int outwardSign)
+    {
+        // Subdivide to ensure smooth taper at ends
+        edgePts = SubdividePolyline(edgePts, 1.0f);
+
+        int segCount = edgePts.Length - 1;
+        // 3 quads per segment (inner slope, top, outer slope) = 12 verts, 18 indices
+        var verts = new Vector3[segCount * 12];
+        var tris = new int[segCount * 18];
+
+        // Fixed slope width for road-facing and outer ramps
+        const float slopeW = 0.15f;
+
+        // Distance-based height taper at strip ends
+        const float taperDist = 2.0f;
+        float[] cumDist = new float[edgePts.Length];
+        cumDist[0] = 0f;
+        for (int k = 1; k < edgePts.Length; k++)
+            cumDist[k] = cumDist[k - 1] + Vector3.Distance(edgePts[k], edgePts[k - 1]);
+        float totalLen = cumDist[cumDist.Length - 1];
+
+        for (int i = 0; i < segCount; i++)
+        {
+            Vector3 a = edgePts[i];
+            Vector3 b = edgePts[i + 1];
+
+            // Taper height near strip endpoints
+            float dA = Mathf.Min(cumDist[i], totalLen - cumDist[i]);
+            float dB = Mathf.Min(cumDist[i + 1], totalLen - cumDist[i + 1]);
+            float hA = Mathf.Clamp01(dA / taperDist) * sidewalkHeight;
+            float hB = Mathf.Clamp01(dB / taperDist) * sidewalkHeight;
+
+            // Unit outward perpendicular for this segment
+            Vector3 dir = (b - a).normalized;
+            Vector3 outDir = new Vector3(-dir.z, 0f, dir.x) * outwardSign;
+
+            // Inner slope: small ramp from road level up to curb top at the edge point
+            Vector3 innerBotA = new Vector3(a.x - outDir.x * slopeW, 0f, a.z - outDir.z * slopeW);
+            Vector3 innerBotB = new Vector3(b.x - outDir.x * slopeW, 0f, b.z - outDir.z * slopeW);
+            Vector3 innerTopA = new Vector3(a.x, hA, a.z);
+            Vector3 innerTopB = new Vector3(b.x, hB, b.z);
+
+            // Top face: extends outward by curbWidth (all width growth goes here)
+            Vector3 outerTopA = new Vector3(a.x + outDir.x * curbWidth, hA, a.z + outDir.z * curbWidth);
+            Vector3 outerTopB = new Vector3(b.x + outDir.x * curbWidth, hB, b.z + outDir.z * curbWidth);
+
+            // Outer slope: ramp back down to ground
+            Vector3 outerBotA = new Vector3(a.x + outDir.x * (curbWidth + slopeW), 0f, a.z + outDir.z * (curbWidth + slopeW));
+            Vector3 outerBotB = new Vector3(b.x + outDir.x * (curbWidth + slopeW), 0f, b.z + outDir.z * (curbWidth + slopeW));
+
+            int vi = i * 12;
+            int ti = i * 18;
+
+            // Inner slope
+            verts[vi + 0] = innerBotA;
+            verts[vi + 1] = innerTopA;
+            verts[vi + 2] = innerTopB;
+            verts[vi + 3] = innerBotB;
+            tris[ti + 0] = vi; tris[ti + 1] = vi + 1; tris[ti + 2] = vi + 2;
+            tris[ti + 3] = vi; tris[ti + 4] = vi + 2; tris[ti + 5] = vi + 3;
+
+            // Top face
+            verts[vi + 4] = innerTopA;
+            verts[vi + 5] = outerTopA;
+            verts[vi + 6] = outerTopB;
+            verts[vi + 7] = innerTopB;
+            tris[ti + 6] = vi + 4; tris[ti + 7] = vi + 5; tris[ti + 8] = vi + 6;
+            tris[ti + 9] = vi + 4; tris[ti + 10] = vi + 6; tris[ti + 11] = vi + 7;
+
+            // Outer slope
+            verts[vi + 8] = outerBotB;
+            verts[vi + 9] = outerTopB;
+            verts[vi + 10] = outerTopA;
+            verts[vi + 11] = outerBotA;
+            tris[ti + 12] = vi + 8; tris[ti + 13] = vi + 9; tris[ti + 14] = vi + 10;
+            tris[ti + 15] = vi + 8; tris[ti + 16] = vi + 10; tris[ti + 17] = vi + 11;
+        }
+
+        Mesh curbMesh = new Mesh { name = name, vertices = verts, triangles = tris };
+
+        // Winding is correct for outwardSign=+1; flip for -1 so normals face outward
+        if (outwardSign < 0)
+            FlipTriangleWinding(curbMesh);
+
+        curbMesh.RecalculateNormals();
+        curbMesh.RecalculateBounds();
+
+        GameObject go = new GameObject(name);
+        go.transform.SetParent(parent);
+
+        go.AddComponent<MeshFilter>().sharedMesh = curbMesh;
+        go.AddComponent<MeshRenderer>().sharedMaterial =
+            sidewalkWallMaterial != null ? sidewalkWallMaterial : GetPolygonMaterial("terrain");
+
+        // MeshCollider for collision (non-convex is fine since curbs are static)
+        var col = go.AddComponent<MeshCollider>();
+        col.sharedMesh = curbMesh;
+        col.convex = false;
+    }
+
+    // ======================================================================
     //  Traffic Light Generation
     // ======================================================================
+
+    // ======================================================================
+    //  Selective Deletion
+    // ======================================================================
+
+    /// <summary>
+    /// Destroys children of roadNetworkRoot whose names start with any of the given prefixes.
+    /// </summary>
+    private void DestroyChildrenByPrefix(params string[] prefixes)
+    {
+        if (roadNetworkRoot == null) return;
+        var toDestroy = new List<GameObject>();
+        foreach (Transform child in roadNetworkRoot.transform)
+        {
+            foreach (var prefix in prefixes)
+            {
+                if (child.name.StartsWith(prefix, StringComparison.Ordinal))
+                {
+                    toDestroy.Add(child.gameObject);
+                    break;
+                }
+            }
+        }
+        foreach (var go in toDestroy)
+            DestroyImmediate(go);
+    }
+
+    /// <summary>
+    /// Destroys a direct child of roadNetworkRoot with the exact given name.
+    /// </summary>
+    private void DestroyChildByName(string exactName)
+    {
+        if (roadNetworkRoot == null) return;
+        var t = roadNetworkRoot.transform.Find(exactName);
+        if (t != null) DestroyImmediate(t.gameObject);
+    }
+
+    /// <summary>Deletes road lane segments, junction meshes, and curbs.</summary>
+    public void DeleteRoadObjects()
+    {
+        DestroyChildrenByPrefix("LaneSegment_", "Junction_");
+        DestroyChildByName("Curbs");
+    }
+
+    /// <summary>Deletes non-terrain polygon objects (Shape_ prefix).</summary>
+    public void DeletePolygonObjects()
+    {
+        DestroyChildrenByPrefix("Shape_");
+    }
+
+    /// <summary>Deletes traffic light hierarchy (Junctions is a scene-root object).</summary>
+    public void DeleteTrafficLightObjects()
+    {
+        var junctions = GameObject.Find("Junctions");
+        if (junctions != null)
+            DestroyImmediate(junctions);
+    }
 
     /// <summary>
     /// Generates traffic light GameObjects for every junction whose type is
@@ -585,27 +918,10 @@ public class RoadNetworkBuilder : MonoBehaviour
         mf.sharedMesh = polyMesh;
         mr.sharedMaterial = GetPolygonMaterial(polygonType);
 
-        if (!string.IsNullOrEmpty(polygonType) && (polygonType.Equals("terrain", StringComparison.OrdinalIgnoreCase)
-            || polygonType.ToLowerInvariant().Contains("terrain")))
-        {
-            // Use a BoxCollider for large flat polygons to avoid PhysX large-triangle warnings
-            Bounds b = polyMesh.bounds;
-            bool isFlat = b.size.y < 0.1f;
-            bool isLarge = b.size.x > 500f || b.size.z > 500f;
-
-            if (isFlat && isLarge)
-            {
-                var box = polyGO.AddComponent<BoxCollider>();
-                box.center = b.center;
-                box.size = new Vector3(b.size.x, Mathf.Max(b.size.y, 0.01f), b.size.z);
-            }
-            else
-            {
-                var meshCol = polyGO.AddComponent<MeshCollider>();
-                meshCol.sharedMesh = polyMesh;
-                meshCol.convex = false;
-            }
-        }
+        // Physics collider so vehicles don't fall through
+        var mc = polyGO.AddComponent<MeshCollider>();
+        mc.sharedMesh = polyMesh;
+        mc.convex = false;
     }
 
     private void FlipTriangleWinding(Mesh mesh)

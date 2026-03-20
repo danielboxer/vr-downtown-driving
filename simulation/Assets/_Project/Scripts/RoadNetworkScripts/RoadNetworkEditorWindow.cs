@@ -5,6 +5,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using Unity.VisualScripting.Antlr3.Runtime.Misc;
 using UnityEditor;
 using UnityEngine;
@@ -89,18 +90,37 @@ public class RoadNetworkEditorWindow : EditorWindow
     private double lastSlideSwap;
     private const float slideInterval = 3f;
 
-    private static string LocateSumoDataFolder()
+    private static string[] scenarioNames;
+    private static int selectedScenarioIndex;
+
+    private static string LocateScenariosRoot()
     {
         string projectRoot = Directory.GetParent(Application.dataPath).FullName;
-        DirectoryInfo dir = new DirectoryInfo(projectRoot);
+        string candidate = Path.Combine(projectRoot, "Scenarios");
+        if (Directory.Exists(candidate)) return candidate;
+        return null;
+    }
 
-        while (dir != null)
-        {
-            string candidate = Path.Combine(dir.FullName, "Sumo2Unity", "Scenario1");
-            if (Directory.Exists(candidate)) return candidate;
-            dir = dir.Parent;
-        }
-        return Path.Combine(Application.dataPath, "SumoFiles");
+    private static void RefreshScenarioList()
+    {
+        string root = LocateScenariosRoot();
+        if (root == null) { scenarioNames = null; return; }
+
+        var dirs = Directory.GetDirectories(root)
+            .Where(d => !Path.GetFileName(d).Equals("Results", StringComparison.OrdinalIgnoreCase))
+            .OrderBy(d => d)
+            .ToArray();
+
+        scenarioNames = new string[dirs.Length];
+        for (int i = 0; i < dirs.Length; i++)
+            scenarioNames[i] = Path.GetFileName(dirs[i]);
+
+        // Try to keep previous selection
+        if (selectedScenarioIndex >= scenarioNames.Length)
+            selectedScenarioIndex = 0;
+
+        if (scenarioNames.Length > 0)
+            sumoXmlFolderPath = Path.Combine(root, scenarioNames[selectedScenarioIndex]);
     }
 
     [MenuItem("Sumo2Unity/1. Create Road Network")]
@@ -109,7 +129,7 @@ public class RoadNetworkEditorWindow : EditorWindow
         RoadNetworkEditorWindow w = GetWindow<RoadNetworkEditorWindow>("Sumo2Unity - Road Network");
         w.minSize = new Vector2(Sumo2UnityGuiConsts.WindowWidth, Sumo2UnityGuiConsts.WindowHeight);
         w.maxSize = w.minSize;
-        sumoXmlFolderPath = LocateSumoDataFolder();
+        RefreshScenarioList();
     }
 
     private void OnEnable()
@@ -131,47 +151,117 @@ public class RoadNetworkEditorWindow : EditorWindow
         GUILayout.Label("Import Sumo Files and Generate Network", EditorStyles.boldLabel);
         GUILayout.Space(5);
 
+        // Scenario dropdown (auto-detected from Scenarios/ folder)
+        if (scenarioNames != null && scenarioNames.Length > 0)
+        {
+            int newIndex = EditorGUILayout.Popup("Scenario", selectedScenarioIndex, scenarioNames);
+            if (newIndex != selectedScenarioIndex)
+            {
+                selectedScenarioIndex = newIndex;
+                string root = LocateScenariosRoot();
+                if (root != null)
+                    sumoXmlFolderPath = Path.Combine(root, scenarioNames[selectedScenarioIndex]);
+            }
+        }
+
         sumoXmlFolderPath = EditorGUILayout.TextField(
             new GUIContent("Sumo Files Folder",
             "Directory containing Sumo .xml files (e.g., map.net.xml)."),
             sumoXmlFolderPath);
 
-        if (GUILayout.Button("Select Sumo Files Folder"))
+        using (new GUILayout.HorizontalScope())
         {
-            string chosen = EditorUtility.OpenFolderPanel("Choose the folder", sumoXmlFolderPath, "");
-            if (!string.IsNullOrEmpty(chosen)) sumoXmlFolderPath = chosen;
+            if (GUILayout.Button("Select Folder"))
+            {
+                string chosen = EditorUtility.OpenFolderPanel("Choose the folder", sumoXmlFolderPath, "");
+                if (!string.IsNullOrEmpty(chosen)) sumoXmlFolderPath = chosen;
+            }
+            if (GUILayout.Button("Refresh Scenarios"))
+                RefreshScenarioList();
         }
 
         GUILayout.Space(15);
 
-        if (GUILayout.Button("Start"))
+        if (GUILayout.Button("Generate All (Full Rebuild)"))
         {
-            try
-            {
-                GameObject cam = GameObject.Find("Main Camera");
-                if (cam) cam.SetActive(false);
-            }
-            catch (Exception ex) { UnityEngine.Debug.LogError(ex); }
-
-            // Ensure we have a fresh builder instance
-            RoadNetworkBuilder builder = FindFirstObjectByType<RoadNetworkBuilder>();
-            if (builder == null)
-                builder = new GameObject("RoadNetworkBuilder").AddComponent<RoadNetworkBuilder>();
-
-            builder.InitializeInEditMode();
-
-            EditorUtility.DisplayProgressBar("Generation Progress", "Loading Sumo XML Files", 0f);
-            builder.LoadSumoXmlFiles(sumoXmlFolderPath);
-
-            EditorUtility.DisplayProgressBar("Generation Progress", "Generating Road Network", 0.2f);
-            builder.GenerateRoadsAndJunctions();
-
-            EditorUtility.DisplayProgressBar("Generation Progress", "Generating Traffic Lights", 0.6f);
-            builder.GenerateTrafficLights();
-
-            EditorUtility.ClearProgressBar();
-            Close();
+            RunFullGeneration();
         }
+
+        GUILayout.Space(10);
+        GUILayout.Label("Selective Regeneration", EditorStyles.boldLabel);
+        GUILayout.Label("Deletes only the selected part, then regenerates it.", EditorStyles.miniLabel);
+        GUILayout.Space(5);
+
+        using (new GUILayout.HorizontalScope())
+        {
+            if (GUILayout.Button("Roads & Junctions"))
+                RunSelectiveRegen(roads: true, trafficLights: false);
+            if (GUILayout.Button("Traffic Lights"))
+                RunSelectiveRegen(roads: false, trafficLights: true);
+        }
+    }
+
+    private RoadNetworkBuilder GetOrCreateBuilder()
+    {
+        RoadNetworkBuilder builder = FindFirstObjectByType<RoadNetworkBuilder>();
+        if (builder == null)
+            builder = new GameObject("RoadNetworkBuilder").AddComponent<RoadNetworkBuilder>();
+        builder.InitializeInEditMode();
+        return builder;
+    }
+
+    private void DisableMainCamera()
+    {
+        try
+        {
+            GameObject cam = GameObject.Find("Main Camera");
+            if (cam) cam.SetActive(false);
+        }
+        catch (Exception ex) { UnityEngine.Debug.LogError(ex); }
+    }
+
+    private void RunFullGeneration()
+    {
+        DisableMainCamera();
+
+        RoadNetworkBuilder builder = GetOrCreateBuilder();
+
+        EditorUtility.DisplayProgressBar("Generation Progress", "Loading Sumo XML Files", 0f);
+        builder.LoadSumoXmlFiles(sumoXmlFolderPath);
+
+        EditorUtility.DisplayProgressBar("Generation Progress", "Generating Road Network", 0.2f);
+        builder.GenerateRoadsAndJunctions();
+
+        EditorUtility.DisplayProgressBar("Generation Progress", "Generating Traffic Lights", 0.6f);
+        builder.GenerateTrafficLights();
+
+        EditorUtility.ClearProgressBar();
+    }
+
+    private void RunSelectiveRegen(bool roads, bool trafficLights)
+    {
+        RoadNetworkBuilder builder = GetOrCreateBuilder();
+
+        EditorUtility.DisplayProgressBar("Regeneration", "Parsing Sumo XML Files", 0f);
+        builder.ParseSumoXmlFiles(sumoXmlFolderPath);
+
+        if (roads)
+        {
+            EditorUtility.DisplayProgressBar("Regeneration", "Deleting old roads...", 0.1f);
+            builder.DeleteRoadObjects();
+            EditorUtility.DisplayProgressBar("Regeneration", "Generating Roads & Junctions", 0.3f);
+            builder.GenerateRoadsAndJunctions();
+        }
+
+        if (trafficLights)
+        {
+            EditorUtility.DisplayProgressBar("Regeneration", "Deleting old traffic lights...", 0.5f);
+            builder.DeleteTrafficLightObjects();
+            EditorUtility.DisplayProgressBar("Regeneration", "Generating Traffic Lights", 0.7f);
+            builder.GenerateTrafficLights();
+        }
+
+        EditorUtility.ClearProgressBar();
     }
 
     private void OnInspectorUpdate() => Repaint();
