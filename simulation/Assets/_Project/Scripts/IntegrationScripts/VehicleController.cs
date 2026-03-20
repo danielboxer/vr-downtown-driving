@@ -28,14 +28,15 @@ public class VehicleController : MonoBehaviour
     /// Detach this NPC from SUMO control and apply a collision impulse.
     /// After this call the vehicle becomes a normal physics object.
     /// </summary>
-    public void Detach(Vector3 impactImpulse)
+    public void Detach(Vector3 impactImpulse, Vector3 contactPoint)
     {
         if (IsDetached) return;
         IsDetached = true;
 
-        rb.linearDamping = 2f;
-        rb.angularDamping = 1f;
-        rb.AddForce(impactImpulse, ForceMode.Impulse);
+        rb.useGravity = true;
+        rb.linearDamping = 0.5f;
+        rb.angularDamping = 0.5f;
+        rb.AddForceAtPosition(impactImpulse, contactPoint, ForceMode.Impulse);
     }
 
     private void Start()
