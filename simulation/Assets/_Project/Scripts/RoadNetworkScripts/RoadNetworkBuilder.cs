@@ -51,6 +51,8 @@ public class RoadNetworkBuilder : MonoBehaviour
     public float innerSlopeWidth = 0.15f;
     [Tooltip("Width of the slope ramp on the outer side blending into terrain.")]
     public float outerSlopeWidth = 1.0f;
+    [Tooltip("Fillet radius at curb corners (meters). Larger values = more rounding.")]
+    public float curbFilletRadius = 0.05f;
     [Tooltip("Material for sidewalk curb walls. Falls back to terrain material if null.")]
     public Material sidewalkWallMaterial;
 
@@ -509,9 +511,15 @@ public class RoadNetworkBuilder : MonoBehaviour
         edgePts = SubdividePolyline(edgePts, 1.0f);
 
         int segCount = edgePts.Length - 1;
-        // 3 quads per segment (inner slope, top, outer slope) = 12 verts, 18 indices
-        var verts = new Vector3[segCount * 12];
-        var tris = new int[segCount * 18];
+        // Cross-section profile: straight ramps with rounded corners
+        Vector2[] profile = BuildCurbProfile();
+        int profileCount = profile.Length;
+        int strips = profileCount - 1;
+
+        int vertsPerSeg = profileCount * 2;
+        int trisPerSeg = strips * 6;
+        var verts = new Vector3[segCount * vertsPerSeg];
+        var tris = new int[segCount * trisPerSeg];
 
         // Distance-based height taper at strip ends
         const float taperDist = 2.0f;
@@ -536,46 +544,36 @@ public class RoadNetworkBuilder : MonoBehaviour
             Vector3 dir = (b - a).normalized;
             Vector3 outDir = new Vector3(-dir.z, 0f, dir.x) * outwardSign;
 
-            // Inner slope: small ramp from road level up to curb top at the edge point
-            Vector3 innerBotA = new Vector3(a.x - outDir.x * innerSlopeWidth, 0f, a.z - outDir.z * innerSlopeWidth);
-            Vector3 innerBotB = new Vector3(b.x - outDir.x * innerSlopeWidth, 0f, b.z - outDir.z * innerSlopeWidth);
-            Vector3 innerTopA = new Vector3(a.x, hA, a.z);
-            Vector3 innerTopB = new Vector3(b.x, hB, b.z);
+            int vi = i * vertsPerSeg;
+            int ti = i * trisPerSeg;
 
-            // Top face: extends outward by curbWidth (all width growth goes here)
-            Vector3 outerTopA = new Vector3(a.x + outDir.x * curbWidth, hA, a.z + outDir.z * curbWidth);
-            Vector3 outerTopB = new Vector3(b.x + outDir.x * curbWidth, hB, b.z + outDir.z * curbWidth);
+            // Place vertices along cross-section profile
+            for (int p = 0; p < profileCount; p++)
+            {
+                float offset = profile[p].x;
+                float hFrac = profile[p].y;
 
-            // Outer slope: gentle ramp back down to ground
-            Vector3 outerBotA = new Vector3(a.x + outDir.x * (curbWidth + outerSlopeWidth), 0f, a.z + outDir.z * (curbWidth + outerSlopeWidth));
-            Vector3 outerBotB = new Vector3(b.x + outDir.x * (curbWidth + outerSlopeWidth), 0f, b.z + outDir.z * (curbWidth + outerSlopeWidth));
+                verts[vi + p * 2] = new Vector3(
+                    a.x + outDir.x * offset, hA * hFrac, a.z + outDir.z * offset);
+                verts[vi + p * 2 + 1] = new Vector3(
+                    b.x + outDir.x * offset, hB * hFrac, b.z + outDir.z * offset);
+            }
 
-            int vi = i * 12;
-            int ti = i * 18;
+            // Build quads between adjacent profile strips
+            for (int s = 0; s < strips; s++)
+            {
+                int v0 = vi + s * 2;
+                int v1 = vi + s * 2 + 1;
+                int v2 = vi + s * 2 + 2;
+                int v3 = vi + s * 2 + 3;
 
-            // Inner slope
-            verts[vi + 0] = innerBotA;
-            verts[vi + 1] = innerTopA;
-            verts[vi + 2] = innerTopB;
-            verts[vi + 3] = innerBotB;
-            tris[ti + 0] = vi; tris[ti + 1] = vi + 1; tris[ti + 2] = vi + 2;
-            tris[ti + 3] = vi; tris[ti + 4] = vi + 2; tris[ti + 5] = vi + 3;
-
-            // Top face
-            verts[vi + 4] = innerTopA;
-            verts[vi + 5] = outerTopA;
-            verts[vi + 6] = outerTopB;
-            verts[vi + 7] = innerTopB;
-            tris[ti + 6] = vi + 4; tris[ti + 7] = vi + 5; tris[ti + 8] = vi + 6;
-            tris[ti + 9] = vi + 4; tris[ti + 10] = vi + 6; tris[ti + 11] = vi + 7;
-
-            // Outer slope
-            verts[vi + 8] = outerBotB;
-            verts[vi + 9] = outerTopB;
-            verts[vi + 10] = outerTopA;
-            verts[vi + 11] = outerBotA;
-            tris[ti + 12] = vi + 8; tris[ti + 13] = vi + 9; tris[ti + 14] = vi + 10;
-            tris[ti + 15] = vi + 8; tris[ti + 16] = vi + 10; tris[ti + 17] = vi + 11;
+                tris[ti + s * 6 + 0] = v0;
+                tris[ti + s * 6 + 1] = v2;
+                tris[ti + s * 6 + 2] = v1;
+                tris[ti + s * 6 + 3] = v1;
+                tris[ti + s * 6 + 4] = v2;
+                tris[ti + s * 6 + 5] = v3;
+            }
         }
 
         Mesh curbMesh = new Mesh { name = name, vertices = verts, triangles = tris };
@@ -598,6 +596,96 @@ public class RoadNetworkBuilder : MonoBehaviour
         var col = go.AddComponent<MeshCollider>();
         col.sharedMesh = curbMesh;
         col.convex = false;
+    }
+
+    /// <summary>
+    /// Builds the cross-section profile for curb geometry.
+    /// Straight inner slope, flat top, straight outer slope, with circular-arc bevels at corners.
+    /// Returns (offset, heightFraction) pairs where offset is meters from the road edge point.
+    /// </summary>
+    private Vector2[] BuildCurbProfile()
+    {
+        const int arcSegments = 4;
+        float h = sidewalkHeight;
+        if (h < 0.001f) return new[] { new Vector2(-innerSlopeWidth, 0f), new Vector2(curbWidth + outerSlopeWidth, 0f) };
+
+        var pts = new List<Vector2>();
+
+        // Inner slope bottom (road level)
+        pts.Add(new Vector2(-innerSlopeWidth, 0f));
+
+        // Inner corner bevel: circular arc tangent to inner slope and flat top
+        {
+            float L = Mathf.Sqrt(innerSlopeWidth * innerSlopeWidth + h * h);
+            float maxW = h * h / (L + innerSlopeWidth) * 0.9f;
+            float W = Mathf.Min(curbFilletRadius, innerSlopeWidth * 0.9f, curbWidth * 0.4f, maxW);
+
+            if (W > 0.001f)
+            {
+                Vector2 d1 = new Vector2(innerSlopeWidth / L, h / L);
+                Vector2 corner = new Vector2(0f, h);
+                Vector2 T1 = corner - d1 * W;
+                Vector2 T2 = corner + new Vector2(W, 0f);
+
+                float R = W * (L + innerSlopeWidth) / h;
+                Vector2 C = new Vector2(W, h - R);
+
+                float startAngle = Mathf.Atan2(T1.y - C.y, T1.x - C.x);
+                float endAngle = Mathf.PI * 0.5f;
+
+                for (int a = 0; a <= arcSegments; a++)
+                {
+                    float t = (float)a / arcSegments;
+                    float angle = Mathf.Lerp(startAngle, endAngle, t);
+                    pts.Add(C + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * R);
+                }
+            }
+            else
+            {
+                pts.Add(new Vector2(0f, h));
+            }
+        }
+
+        // Outer corner bevel: circular arc tangent to flat top and outer slope
+        {
+            float L = Mathf.Sqrt(outerSlopeWidth * outerSlopeWidth + h * h);
+            float maxW = h * h / (L + outerSlopeWidth) * 0.9f;
+            float W = Mathf.Min(curbFilletRadius, outerSlopeWidth * 0.9f, curbWidth * 0.4f, maxW);
+
+            if (W > 0.001f)
+            {
+                Vector2 d2 = new Vector2(outerSlopeWidth / L, -h / L);
+                Vector2 corner = new Vector2(curbWidth, h);
+                Vector2 T1 = corner - new Vector2(W, 0f);
+                Vector2 T2 = corner + d2 * W;
+
+                float R = W * (L + outerSlopeWidth) / h;
+                Vector2 C = new Vector2(curbWidth - W, h - R);
+
+                float startAngle = Mathf.PI * 0.5f;
+                float endAngle = Mathf.Atan2(T2.y - C.y, T2.x - C.x);
+
+                for (int a = 0; a <= arcSegments; a++)
+                {
+                    float t = (float)a / arcSegments;
+                    float angle = Mathf.Lerp(startAngle, endAngle, t);
+                    pts.Add(C + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * R);
+                }
+            }
+            else
+            {
+                pts.Add(new Vector2(curbWidth, h));
+            }
+        }
+
+        // Outer slope bottom (ground level)
+        pts.Add(new Vector2(curbWidth + outerSlopeWidth, 0f));
+
+        // Normalize height from meters to fraction of sidewalkHeight
+        for (int i = 0; i < pts.Count; i++)
+            pts[i] = new Vector2(pts[i].x, pts[i].y / h);
+
+        return pts.ToArray();
     }
 
     // ======================================================================
