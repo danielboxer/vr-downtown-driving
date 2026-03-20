@@ -749,6 +749,8 @@ GameObject:
   m_Component:
   - component: {fileID: 5240819467718178132}
   - component: {fileID: 4396496334863772336}
+  - component: {fileID: 5570055172444553782}
+  - component: {fileID: 5113218512978607209}
   - component: {fileID: 7420378212224668341}
   - component: {fileID: 7558851046672289916}
   - component: {fileID: 5757802278771181401}
@@ -786,7 +788,6 @@ Transform:
   - {fileID: 5834272665000361218}
   - {fileID: 6668471603246361197}
   - {fileID: 5551458221394509086}
-  - {fileID: 7604133193758616481}
   - {fileID: 866563749239405964}
   - {fileID: 349184258200093155}
   - {fileID: 6798642831764386222}
@@ -820,6 +821,42 @@ Rigidbody:
   m_Interpolate: 1
   m_Constraints: 0
   m_CollisionDetection: 0
+--- !u!65 &5570055172444553782
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2471852994914885337}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1.46, y: 1.41, z: 4.49}
+  m_Center: {x: 0, y: 0.83, z: -2.45}
+--- !u!114 &5113218512978607209
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2471852994914885337}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 05af0554d3e976e46a4c5dddd21dd312, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CollisionDetector
+  minImpactSpeed: 1
+  cooldown: 2
+  impactForceMultiplier: 1.5
 --- !u!114 &7420378212224668341
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -871,6 +908,7 @@ MonoBehaviour:
   m_Wheel: {fileID: 5421761259626824293}
   rotationSpeed: 5
   returnSpeed: 5
+  steerSmoothing: 5
   leftTurnSignal: {fileID: 323895062250636487}
   rightTurnSignal: {fileID: 8999855572831916533}
   blinkInterval: 0.5
@@ -976,6 +1014,7 @@ MonoBehaviour:
   controllerHand: 0
   steerAxis: 0
   maxSteerAngle: 45
+  invertSteering: 1
   calibrateOnEnable: 1
   inputActions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   actionMapName: Driving
@@ -1131,59 +1170,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_StartingHoverFilters: []
   m_StartingSelectFilters: []
---- !u!1 &3400859244453428960
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 7604133193758616481}
-  - component: {fileID: 6019563344181224600}
-  m_Layer: 0
-  m_Name: Collider
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &7604133193758616481
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3400859244453428960}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.71, z: -2.704}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 5240819467718178132}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!65 &6019563344181224600
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3400859244453428960}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 1.59, y: 0.41, z: 4.64}
-  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &3679413886158829882
 GameObject:
   m_ObjectHideFlags: 0

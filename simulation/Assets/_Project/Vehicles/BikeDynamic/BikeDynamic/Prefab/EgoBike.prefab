@@ -815,6 +815,8 @@ GameObject:
   m_Component:
   - component: {fileID: 5990695851932346248}
   - component: {fileID: 1469536262496542006}
+  - component: {fileID: 1954705824133040961}
+  - component: {fileID: 1320684572564353054}
   - component: {fileID: 1482131652421376735}
   - component: {fileID: 3323033579634127223}
   - component: {fileID: 2483689335993353849}
@@ -876,6 +878,42 @@ Rigidbody:
   m_Interpolate: 1
   m_Constraints: 0
   m_CollisionDetection: 0
+--- !u!65 &1954705824133040961
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3049986642694483780}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.12536694, y: 0.57288575, z: 1.1838899}
+  m_Center: {x: 0, y: 0.43991238, z: -0.72204566}
+--- !u!114 &1320684572564353054
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3049986642694483780}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 05af0554d3e976e46a4c5dddd21dd312, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CollisionDetector
+  minImpactSpeed: 1
+  cooldown: 2
+  impactForceMultiplier: 1.5
 --- !u!114 &1482131652421376735
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -926,6 +964,7 @@ MonoBehaviour:
   m_Wheel: {fileID: 4725303432921780947}
   inputActions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   actionMapName: Driving
+  steerSmoothing: 5
 --- !u!114 &2483689335993353849
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -963,6 +1002,7 @@ MonoBehaviour:
   controllerHand: 0
   steerAxis: 1
   maxSteerAngle: 45
+  invertSteering: 1
   calibrateOnEnable: 1
   inputActions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   actionMapName: Driving
@@ -1663,7 +1703,6 @@ GameObject:
   - component: {fileID: 1275486790224548027}
   - component: {fileID: 7408620066749954185}
   - component: {fileID: 3480366746208792039}
-  - component: {fileID: 5209865468004066042}
   m_Layer: 0
   m_Name: Body
   m_TagString: Untagged
@@ -1748,24 +1787,3 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!65 &5209865468004066042
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8960393244687606299}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 0.12536694, y: 0.57288575, z: 1.1838899}
-  m_Center: {x: 0, y: 0.43991238, z: -0.72204566}
