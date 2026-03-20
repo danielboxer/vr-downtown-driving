@@ -17,6 +17,9 @@ public class CollisionDetector : MonoBehaviour
     [Tooltip("Force multiplier applied to NPC vehicles on collision.")]
     public float impactForceMultiplier = 1.5f;
 
+    [Tooltip("Maximum impulse magnitude (Ns) to prevent NPCs from flying away.")]
+    public float maxImpulseMagnitude = 5000f;
+
     /// <summary>Raised when the ego vehicle collides with something above the speed threshold.</summary>
     public static event System.Action<CollisionDetector, Collision> OnEgoCollision;
 
@@ -40,10 +43,26 @@ public class CollisionDetector : MonoBehaviour
         VehicleController npc = collision.gameObject.GetComponentInParent<VehicleController>();
         if (npc != null && !npc.IsDetached)
         {
-            Vector3 egoVelocity = _egoRb != null ? _egoRb.linearVelocity : Vector3.zero;
-            float mass = _egoRb != null ? _egoRb.mass : 1f;
-            Vector3 impulse = egoVelocity * mass * impactForceMultiplier;
-            npc.Detach(impulse);
+            // Use relative velocity for realistic momentum transfer
+            Vector3 relVel = collision.relativeVelocity;
+            float egoMass = _egoRb != null ? _egoRb.mass : 1f;
+            Rigidbody npcRb = npc.GetComponent<Rigidbody>();
+            float npcMass = npcRb != null ? npcRb.mass : 1f;
+
+            // Scale by mass ratio so heavier NPCs move less
+            float massRatio = egoMass / (egoMass + npcMass);
+            Vector3 impulse = relVel * egoMass * massRatio * impactForceMultiplier;
+
+            // Cap impulse to prevent launch-into-orbit
+            if (impulse.magnitude > maxImpulseMagnitude)
+                impulse = impulse.normalized * maxImpulseMagnitude;
+
+            // Apply at collision contact point for realistic spin
+            Vector3 contactPoint = collision.contacts.Length > 0
+                ? collision.contacts[0].point
+                : npc.transform.position;
+
+            npc.Detach(impulse, contactPoint);
         }
     }
 }
