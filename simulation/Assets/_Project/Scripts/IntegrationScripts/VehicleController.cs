@@ -33,7 +33,6 @@ public class VehicleController : MonoBehaviour
         if (IsDetached) return;
         IsDetached = true;
 
-        rb.useGravity = true;
         rb.linearDamping = 2f;
         rb.angularDamping = 1f;
         rb.AddForce(impactImpulse, ForceMode.Impulse);
