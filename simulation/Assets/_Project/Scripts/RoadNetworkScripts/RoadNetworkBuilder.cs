@@ -56,6 +56,10 @@ public class RoadNetworkBuilder : MonoBehaviour
     [Tooltip("Material for sidewalk curb walls. Falls back to terrain material if null.")]
     public Material sidewalkWallMaterial;
 
+    [Header("Lane Markings")]
+    [Tooltip("Skip lane markings on the outer road edges where curbs are.")]
+    public bool skipOuterEdgeMarkings = true;
+
 
     private GameObject roadNetworkRoot;
 
@@ -287,7 +291,12 @@ public class RoadNetworkBuilder : MonoBehaviour
         int laneCounter = 0;
         foreach (var edgeData in edgeRecords.Values)
         {
-            foreach (var laneData in edgeData.GetLaneDataList())
+            var lanes = edgeData.GetLaneDataList();
+            int maxLaneIndex = 0;
+            foreach (var ld in lanes)
+                if (ld.laneIndex > maxLaneIndex) maxLaneIndex = ld.laneIndex;
+
+            foreach (var laneData in lanes)
             {
                 var lanePoints = new Vector3[laneData.shapePoints.Count];
                 for (int i = 0; i < laneData.shapePoints.Count; i++)
@@ -306,9 +315,20 @@ public class RoadNetworkBuilder : MonoBehaviour
                 mf.sharedMesh = laneMesh;
                 mr.sharedMaterial = roadSurfaceMaterial ?? GetFallbackMaterial();
 
-                // swapped names
-                SpawnMarkingDecals(ExtractLeftSideVertices(laneMesh), "LaneMarking_Right", laneObj.transform);
-                SpawnMarkingDecals(ExtractRightSideVertices(laneMesh), "LaneMarking_Left", laneObj.transform);
+                // Skip lane markings on the outer road edges (where curbs are)
+                bool isLeftmost = laneData.laneIndex == maxLaneIndex;
+                bool isRightmost = laneData.laneIndex == 0;
+
+                // Left side marking: skip only if this is the leftmost lane AND there's no
+                // opposite-direction edge (i.e., it's the actual road boundary, not a median)
+                bool skipLeft = skipOuterEdgeMarkings && isLeftmost && !HasOppositeEdge(edgeData);
+                bool skipRight = skipOuterEdgeMarkings && isRightmost;
+
+                if (!skipLeft)
+                    SpawnMarkingDecals(ExtractLeftSideVertices(laneMesh), "LaneMarking_Right", laneObj.transform);
+
+                if (!skipRight)
+                    SpawnMarkingDecals(ExtractRightSideVertices(laneMesh), "LaneMarking_Left", laneObj.transform);
 
                 var ctrl = laneObj.AddComponent<LaneSegmentDecalController>();
                 ctrl.solidDepth = 3f;
