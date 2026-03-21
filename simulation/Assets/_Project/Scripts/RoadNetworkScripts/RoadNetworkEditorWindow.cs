@@ -92,6 +92,7 @@ public class RoadNetworkEditorWindow : EditorWindow
 
     private static string[] scenarioNames;
     private static int selectedScenarioIndex;
+    private bool curbSettingsFoldout = false;
 
     private static string LocateScenariosRoot()
     {
@@ -180,7 +181,12 @@ public class RoadNetworkEditorWindow : EditorWindow
                 RefreshScenarioList();
         }
 
-        GUILayout.Space(15);
+        GUILayout.Space(10);
+
+        // Curb settings foldout (reads/writes fields on the RoadNetworkBuilder component)
+        DrawCurbSettings();
+
+        GUILayout.Space(10);
 
         if (GUILayout.Button("Generate All (Full Rebuild)"))
         {
@@ -199,6 +205,38 @@ public class RoadNetworkEditorWindow : EditorWindow
             if (GUILayout.Button("Traffic Lights"))
                 RunSelectiveRegen(roads: false, trafficLights: true);
         }
+    }
+
+    private void DrawCurbSettings()
+    {
+        curbSettingsFoldout = EditorGUILayout.Foldout(curbSettingsFoldout, "Curb / Sidewalk Settings", true);
+        if (!curbSettingsFoldout) return;
+
+        RoadNetworkBuilder builder = FindFirstObjectByType<RoadNetworkBuilder>();
+        if (builder == null)
+        {
+            EditorGUILayout.HelpBox("No RoadNetworkBuilder in scene. Settings will appear after first generation.", MessageType.Info);
+            return;
+        }
+
+        EditorGUI.indentLevel++;
+        var so = new SerializedObject(builder);
+        so.Update();
+
+        EditorGUILayout.PropertyField(so.FindProperty("generateCurbs"), new GUIContent("Generate Curbs"));
+
+        using (new EditorGUI.DisabledGroupScope(!builder.generateCurbs))
+        {
+            EditorGUILayout.PropertyField(so.FindProperty("sidewalkHeight"), new GUIContent("Height"));
+            EditorGUILayout.PropertyField(so.FindProperty("curbWidth"), new GUIContent("Flat Top Width"));
+            EditorGUILayout.PropertyField(so.FindProperty("innerSlopeWidth"), new GUIContent("Inner Slope Width"));
+            EditorGUILayout.PropertyField(so.FindProperty("outerSlopeWidth"), new GUIContent("Outer Slope Width"));
+            EditorGUILayout.PropertyField(so.FindProperty("curbFilletRadius"), new GUIContent("Fillet Radius"));
+            EditorGUILayout.PropertyField(so.FindProperty("skipOuterEdgeMarkings"), new GUIContent("Skip Outer Edge Markings"));
+        }
+
+        so.ApplyModifiedProperties();
+        EditorGUI.indentLevel--;
     }
 
     private RoadNetworkBuilder GetOrCreateBuilder()

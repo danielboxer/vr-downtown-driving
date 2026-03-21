@@ -43,6 +43,8 @@ public class RoadNetworkBuilder : MonoBehaviour
     private Material polygonFallbackMaterial;
 
     [Header("Sidewalk")]
+    [Tooltip("Enable or disable curb generation entirely.")]
+    public bool generateCurbs = true;
     [Tooltip("Height of raised curb above the road surface. Low values let vehicles drive over.")]
     public float sidewalkHeight = 0.2f;
     [Tooltip("Width of the flat sidewalk top extending outward from the road edge.")]
@@ -389,7 +391,7 @@ public class RoadNetworkBuilder : MonoBehaviour
         SetLayerRecursively(roadNetworkRoot, groundLayer);
 
         // Generate raised curb strips along road edges
-        if (sidewalkHeight > 0.01f)
+        if (generateCurbs && sidewalkHeight > 0.01f)
             GenerateCurbs();
     }
 
