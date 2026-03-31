@@ -317,6 +317,11 @@ public class RoadNetworkBuilder : MonoBehaviour
                 mf.sharedMesh = laneMesh;
                 mr.sharedMaterial = roadSurfaceMaterial ?? GetFallbackMaterial();
 
+                // Physics collider so vehicles don't fall through the road
+                var laneCol = laneObj.AddComponent<MeshCollider>();
+                laneCol.sharedMesh = laneMesh;
+                laneCol.convex = false;
+
                 // Skip lane markings on the outer road edges (where curbs are)
                 bool isLeftmost = laneData.laneIndex == maxLaneIndex;
                 bool isRightmost = laneData.laneIndex == 0;
@@ -385,6 +390,11 @@ public class RoadNetworkBuilder : MonoBehaviour
             var jMr = jObj.AddComponent<MeshRenderer>();
             jMf.mesh = junctionMesh;
             jMr.material = junctionSurfaceMaterial ?? GetFallbackMaterial();
+
+            // Physics collider so vehicles don't fall through the junction
+            var jCol = jObj.AddComponent<MeshCollider>();
+            jCol.sharedMesh = junctionMesh;
+            jCol.convex = false;
         }
 
         // ★ NEW: make sure every child built above is on the Ground layer
