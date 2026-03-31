@@ -18,7 +18,7 @@ public class CollisionDetector : MonoBehaviour
     public float impactForceMultiplier = 1.5f;
 
     [Tooltip("Maximum impulse magnitude (Ns) to prevent NPCs from flying away.")]
-    public float maxImpulseMagnitude = 5000f;
+    public float maxImpulseMagnitude = 2000f;
 
     /// <summary>Raised when the ego vehicle collides with something above the speed threshold.</summary>
     public static event System.Action<CollisionDetector, Collision> OnEgoCollision;

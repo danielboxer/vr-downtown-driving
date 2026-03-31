@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 public class VehicleController : MonoBehaviour
 {
@@ -36,6 +36,14 @@ public class VehicleController : MonoBehaviour
         rb.useGravity = true;
         rb.linearDamping = 0.5f;
         rb.angularDamping = 0.5f;
+
+        // Cap by resulting velocity (not impulse magnitude) to handle
+        // low-mass Rigidbodies that would otherwise reach extreme speeds
+        const float maxPostCollisionSpeed = 8f;
+        float resultingSpeed = impactImpulse.magnitude / Mathf.Max(rb.mass, 0.01f);
+        if (resultingSpeed > maxPostCollisionSpeed)
+            impactImpulse = impactImpulse.normalized * maxPostCollisionSpeed * rb.mass;
+
         rb.AddForceAtPosition(impactImpulse, contactPoint, ForceMode.Impulse);
     }
 
@@ -78,7 +86,7 @@ public class VehicleController : MonoBehaviour
     }
     private void FixedUpdate()
     {
-        // Detached vehicles are pure physics objects — no SUMO control
+        // Detached vehicles are pure physics objects, no SUMO control
         if (IsDetached) return;
 
         float dt = curTime - lastTime;
@@ -92,7 +100,7 @@ public class VehicleController : MonoBehaviour
 
         float headingDelta = Quaternion.Angle(lastRot, curRot);   // degrees
 
-        if (headingDelta < turnThresholdDeg)                      // ─ straight
+        if (headingDelta < turnThresholdDeg)                      // straight
         {
             /* linear vel from local-axis speeds (ultra smooth) */
             Vector3 vLong = curRot * (Vector3.right * curLong);
@@ -100,7 +108,7 @@ public class VehicleController : MonoBehaviour
             Vector3 vUp = Vector3.up * curVert;
             rb.linearVelocity = vLong + vLat + vUp;
 
-            /* ① damp residual spin, don’t kill instantly */
+            /* damp residual spin, don't kill instantly */
             if (residualTimer > 0f)
             {
                 residualTimer -= Time.fixedDeltaTime;
@@ -114,12 +122,12 @@ public class VehicleController : MonoBehaviour
                 rb.MoveRotation(curRot);
             }
         }
-        else                                                      // ─ turning
+        else                                                      // turning
         {
             rb.linearVelocity = (curPos - lastPos) / dt;
-            residualAngularVel = CalcAngularVel(lastRot, curRot, dt); // ★ store
+            residualAngularVel = CalcAngularVel(lastRot, curRot, dt);
             rb.angularVelocity = residualAngularVel;
-            residualTimer = FadeTime;                          // ★ reset
+            residualTimer = FadeTime;
         }
 
         /* original ultra-smooth positional blend */
