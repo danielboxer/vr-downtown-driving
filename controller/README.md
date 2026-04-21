@@ -1,6 +1,6 @@
 # Tangible Controller
 
-The cradle was scaled by +1.5% to make it fit better when printing at 0.8 nozzle size.
+The cradle was scaled by +1.5% to make the controller fit more easily.
 
 ## Build Instructions
 
