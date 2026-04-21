@@ -163,8 +163,7 @@ MonoBehaviour:
   - {fileID: 3245829768375621924}
   - {fileID: 1809624490582260520}
   wheelRadius: 0.32
-  forwardAxis: {x: 0, y: 0, z: 1}
-  spinAxis: {x: 0, y: 0, z: 1}
+  spinAxis: {x: 1, y: 0, z: 0}
 --- !u!4 &1809624490582260520 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 231307791906999473, guid: da2e992f6554f8e4b941f3b403806c74, type: 3}
