@@ -9,3 +9,13 @@
 LargeAssets/**/*.fbx filter=lfs diff=lfs merge=lfs -text
 LargeAssets/**/*.png filter=lfs diff=lfs merge=lfs -text
 
+Assets/downtown/**/*.fbx filter=lfs diff=lfs merge=lfs -text
+Assets/downtown/**/*.png filter=lfs diff=lfs merge=lfs -text
+Assets/downtown/**/*.jpg filter=lfs diff=lfs merge=lfs -text
+Assets/downtown/**/*.jpeg filter=lfs diff=lfs merge=lfs -text
+Assets/downtown/**/*.tga filter=lfs diff=lfs merge=lfs -text
+Assets/downtown/**/*.psd filter=lfs diff=lfs merge=lfs -text
+Assets/downtown/**/*.exr filter=lfs diff=lfs merge=lfs -text
+Assets/downtown/**/*.tif filter=lfs diff=lfs merge=lfs -text
+Assets/downtown/**/*.tiff filter=lfs diff=lfs merge=lfs -text
+
