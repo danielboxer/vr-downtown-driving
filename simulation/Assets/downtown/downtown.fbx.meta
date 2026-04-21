@@ -1,0 +1,885 @@
+fileFormatVersion: 2
+guid: 046c2beb94a58234a96d4ec1fb48ff9b
+ModelImporter:
+  serializedVersion: 24200
+  internalIDToNameTable: []
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Bricks097_2K-PNG_NORMAL
+    second: {fileID: 2100000, guid: e5f8434f31e6bd14e93fce27daef6f78, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Facade001_glass
+    second: {fileID: 2100000, guid: d23a95d59cb690744ace23ba6bc15425, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Facade006_bordered_glass
+    second: {fileID: 2100000, guid: dc51dc858caaf1744a2f0ed02c2e24b1, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Facade018A_bordered_brick
+    second: {fileID: 2100000, guid: cbc722a60f644c24fb876416602aa7e9, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Facade019A_bordered_horizontal
+    second: {fileID: 2100000, guid: ad72b57270f5b9f4a8611e3ad685ec95, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Facade020A_bordered_vertical
+    second: {fileID: 2100000, guid: 44c8d67e3e1c616478aa05911dc99269, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Material
+    second: {fileID: 2100000, guid: 34057368b2f762a4cadeaaa6b5d2a4ae, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: billboard black
+    second: {fileID: 2100000, guid: c4ce0ab5f5b16114684324654bef49ae, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: billboard bsdf.001
+    second: {fileID: 2100000, guid: afd9911e5af03ca4f97d87b18198294e, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: billboard bsdf.002
+    second: {fileID: 2100000, guid: 0f0cf05459306d74495616965cd56aaa, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: billboard bsdf.003
+    second: {fileID: 2100000, guid: 598faeacb629644419c1497f21d867e5, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: billboard bsdf.004
+    second: {fileID: 2100000, guid: 87ca269451c3e5c429798e23f6a2d8e2, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: billboard bsdf.005
+    second: {fileID: 2100000, guid: 02c86ed25e5f1f94aaa5ba19f0f273b2, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: billboard bsdf.006
+    second: {fileID: 2100000, guid: 17f38bce97be00b49a051b5e44f7a603, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: billboard bsdf.007
+    second: {fileID: 2100000, guid: c08e4a5dde5731b4f8f8eea2df698c79, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: billboard bsdf.008
+    second: {fileID: 2100000, guid: 8c03eac9e856f3c4db6fcde822856f8f, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: billboard bsdf.009
+    second: {fileID: 2100000, guid: b52282920e445234cb51ae57ccd909f7, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: canada_computers
+    second: {fileID: 2100000, guid: 968b4065a4323084cba5639ff760b231, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: cola billboard
+    second: {fileID: 2100000, guid: 3796cc61613c3c34ca88d9471af07178, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: concrete_tile_facade
+    second: {fileID: 2100000, guid: ac7a15e8b768dbc44aa8483aa4ac8257, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: daves
+    second: {fileID: 2100000, guid: 6c8a7470f2370e54589366d23afd0f4e, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: eaton_front
+    second: {fileID: 2100000, guid: 962800bad3e87754c82dcacd2a576704, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: footlocker
+    second: {fileID: 2100000, guid: 9fc97efda3810da44a49b86df1147796, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: footlocker_roof
+    second: {fileID: 2100000, guid: 1f3fc56deb2fc724fb797724d36a07a1, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: healthy planet front
+    second: {fileID: 2100000, guid: d3bfb1043cb9f12438ddcf41b27b4241, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: healthy planet side
+    second: {fileID: 2100000, guid: ab1e6ed08570e6c45b6050b8adb2b271, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: hm_front
+    second: {fileID: 2100000, guid: 6c2310fbe6f57a942b955f9d4011e76e, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: hm_side_left
+    second: {fileID: 2100000, guid: ba7f93186e16d854ca635ae1cf335304, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: hm_side_right
+    second: {fileID: 2100000, guid: 1c486cd324fc86e4489a982d2e11ee65, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: hmart
+    second: {fileID: 2100000, guid: 120f829c16d551d4ba272ca2aa1de086, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: jack sign
+    second: {fileID: 2100000, guid: 18e95cfd25660be46bbfb8cb37b1aadd, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: jolibee
+    second: {fileID: 2100000, guid: a1610a91e8862fb48937aee4628b86e1, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: metal_plate_02
+    second: {fileID: 2100000, guid: 8fa91701bcce26a4f8ac792ef0f52702, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: ohyo
+    second: {fileID: 2100000, guid: 20fb61764bae20940b294c943769f6c0, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: rogers_front
+    second: {fileID: 2100000, guid: 4ccb51019ebbb464183d3e579ee06641, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: rogers_left
+    second: {fileID: 2100000, guid: a373e90da95f9484bb08683c6eba7ef1, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: rogers_right
+    second: {fileID: 2100000, guid: 3c963ff2ef4aca54fae283a29feeecf8, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: roundbout
+    second: {fileID: 2100000, guid: dc5f632a98f41fd419dd49d9cc4a8fdd, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: sam record man
+    second: {fileID: 2100000, guid: 26dedc396154d13488c070f7dec3e2a5, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: sankofa_square_pot
+    second: {fileID: 2100000, guid: 8e636b06a06315447ae37dd3e5b00485, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: slc bottom
+    second: {fileID: 2100000, guid: 4d0220f3dc058ac46a3332136e007f61, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: slc front
+    second: {fileID: 2100000, guid: ba5bdc1aedce75642a4245bddfcee97c, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: slc triangle
+    second: {fileID: 2100000, guid: f15931f3ec36ca64fa8d639b0d182ab7, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: slc_side_left
+    second: {fileID: 2100000, guid: f24f5629ef86b1243bf9301ded91d74f, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: slc_side_right
+    second: {fileID: 2100000, guid: d611212cd52fa394bac8ff8a36bdbbf0, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: street_warehouse
+    second: {fileID: 2100000, guid: 478a1e742fa32cf44b14d3f2f43d97e3, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: tenor_far_right
+    second: {fileID: 2100000, guid: 20c31a98776a3c942b6e31d55a34d3ba, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: tenor_front_cylinder
+    second: {fileID: 2100000, guid: 16c08eaa446e2a04ca203d237f0e73a9, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: tenor_front_entrance
+    second: {fileID: 2100000, guid: 89fe93d2126903043894b6c22f8aaac5, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: tenor_front_far_right
+    second: {fileID: 2100000, guid: 6a482f708430d9c4d9e0957406d62b49, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: tenor_front_shakeshack_right
+    second: {fileID: 2100000, guid: 4634d77d5897ac84b97f4f28659dec63, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: tenor_front_top
+    second: {fileID: 2100000, guid: b6d21bb6b3b06574e91698c21424ba62, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: tenor_left_little_canada_to_grill
+    second: {fileID: 2100000, guid: 3ee4938079a822a40a00c3a2986ab7cb, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: tenor_left_rolltation_top
+    second: {fileID: 2100000, guid: aaa5c794608767643af7b06ba6e68dbf, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: tenor_left_shakeshack
+    second: {fileID: 2100000, guid: a9d65c89a7881ab41a22100d4ba249a3, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: tenor_left_shakeshack_far_left
+    second: {fileID: 2100000, guid: 3b7bbf1dca8c0294cb616846f5b46ade, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: tenor_left_winners
+    second: {fileID: 2100000, guid: 6a96343e479365e418e28c2919e6c386, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: tenor_right_be_great
+    second: {fileID: 2100000, guid: 18876b4610a527540ade0ae82bcb8e52, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: tenor_right_front
+    second: {fileID: 2100000, guid: 6018cb612e94e6c4fbf4bdf7582889a0, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: theatrics
+    second: {fileID: 2100000, guid: 56974f976c32f7042b6b843cea50965b, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: ttc_back
+    second: {fileID: 2100000, guid: 9e79ca8acc551384a91656e5fb074cfe, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: ttc_front
+    second: {fileID: 2100000, guid: 157565282663caa4cac4b6f66a174222, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: ttc_side
+    second: {fileID: 2100000, guid: bf8bd22562820c147b1c85b15412a181, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: uniqlo_side
+    second: {fileID: 2100000, guid: 000cb3a2af03cfd4bb8d40e53f175285, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: west49 front
+    second: {fileID: 2100000, guid: 8c9c75f6e62e17a43acb0006cb2aac94, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: west49 side
+    second: {fileID: 2100000, guid: a720b568a65884a4fa518ef5defefff3, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: west49 top
+    second: {fileID: 2100000, guid: 6b17aac1632f87c4cb6983dc7f038c04, type: 2}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Bricks097_2K-PNG_Color
+    second: {fileID: 2800000, guid: 5f254ec9659b4424aaf9a9bfee6d3a2b, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Bricks097_2K-PNG_NormalGL
+    second: {fileID: 2800000, guid: 57d5a7bfc6aacac429d77dfba3c40d6a, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Bricks097_2K-PNG_Roughness
+    second: {fileID: 2800000, guid: 6ffc4ec1c9597be4d8c2bfa88ef43d6f, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Facade001_2K-PNG_Color
+    second: {fileID: 2800000, guid: ef69ba2c741f70b428a7c88f17bfc878, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Facade001_2K-PNG_Metalness
+    second: {fileID: 2800000, guid: 4c3525b9f97113149aaf396993b87a10, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Facade001_2K-PNG_NormalGL
+    second: {fileID: 2800000, guid: 3e108a4a91e1f3749aaf4ecb19ed49c9, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Facade001_2K-PNG_Roughness
+    second: {fileID: 2800000, guid: ccbe9a48a6782d94a8b61306f8779acd, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Facade006_2K-PNG_Color
+    second: {fileID: 2800000, guid: 5163cfabd5e9f7b488cd1a37ab1a50ac, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Facade006_2K-PNG_Metalness
+    second: {fileID: 2800000, guid: 4433fd0defe8e0f46959e42361f61364, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Facade006_2K-PNG_NormalGL
+    second: {fileID: 2800000, guid: 613cf0824d4e9e54997a9462ecdd2fd3, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Facade006_2K-PNG_Roughness
+    second: {fileID: 2800000, guid: da09f5e974b3d8643aac26a6906a0b23, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Facade018A_2K-PNG_Color
+    second: {fileID: 2800000, guid: dafc452af868ca04083cc534aa5d595b, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Facade018A_2K-PNG_Metalness
+    second: {fileID: 2800000, guid: ce247953aa119584d8cb579e49cd5ca3, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Facade018A_2K-PNG_NormalGL
+    second: {fileID: 2800000, guid: 390e0f5967d5a4345bc884cd9b9802f8, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Facade018A_2K-PNG_Roughness
+    second: {fileID: 2800000, guid: 5a49b568352bfc2479eae69dc1658cd3, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Facade019A_2K-PNG_Color
+    second: {fileID: 2800000, guid: ebe4d740610455548a5d3d9379c8c0ec, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Facade019A_2K-PNG_Metalness
+    second: {fileID: 2800000, guid: 576756cde5749a644b1a9ab7214f6a9d, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Facade019A_2K-PNG_NormalGL
+    second: {fileID: 2800000, guid: ac41ace0aa37554458f1332f26a99ea0, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Facade019A_2K-PNG_Roughness
+    second: {fileID: 2800000, guid: 480e7a435007aee479f00c9e5aee795a, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Facade020A_2K-PNG_Color
+    second: {fileID: 2800000, guid: 732832d904f893341b9a638a0609252d, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Facade020A_2K-PNG_Metalness
+    second: {fileID: 2800000, guid: c12299a8cefcea048a6978b9ef077f02, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Facade020A_2K-PNG_NormalGL
+    second: {fileID: 2800000, guid: 4fdbde7298d20d64088d58e3ab81c5d8, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Facade020A_2K-PNG_Roughness
+    second: {fileID: 2800000, guid: 8af15a6756c88694caa00b2aa0ef581a, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: bmw ad
+    second: {fileID: 2800000, guid: ce739395535895440a5e1f3b157e964d, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: canada_computers
+    second: {fileID: 2800000, guid: 378e6e9c8a3e00645b56cd5349c99715, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: coca cola ad
+    second: {fileID: 2800000, guid: 0071401c51632774a924b91277bd42c8, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: concrete_tile_facade_diff_2k
+    second: {fileID: 2800000, guid: cf0af27b861fb834d983002219288235, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: concrete_tile_facade_nor_gl_2k
+    second: {fileID: 2800000, guid: db2c0765c0dba2c4e82d8c9debe9b7de, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: concrete_tile_facade_rough_2k
+    second: {fileID: 2800000, guid: fa1454cc33892494686e16f643e3af28, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: daves
+    second: {fileID: 2800000, guid: b6609c9d835207a49916919a29b74a0a, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: eaton_front
+    second: {fileID: 2800000, guid: 8db9321baccfb284d978f87426f4451c, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: footlocker
+    second: {fileID: 2800000, guid: 503a62e6e3d9ce24c9e861b6d7217a7a, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: footlocker_roof
+    second: {fileID: 2800000, guid: d7891a52b24aa674cbb00c8f0b1b5b43, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: healthy_planet_front
+    second: {fileID: 2800000, guid: 737ecd46f2547114e8cdf3dd661105dc, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: healthy_planet_side
+    second: {fileID: 2800000, guid: 8c73b5fcdd1c8eb43948ee83105339d1, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: heinz_ketchup_2
+    second: {fileID: 2800000, guid: 10ecd7fe551cb80439a08047ad759c21, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: hm_front
+    second: {fileID: 2800000, guid: 56e3c76a22a3bdd4eb0d8cb0bd48fe1e, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: hm_side_left
+    second: {fileID: 2800000, guid: 80c79b5ab5104fe48a6b2488184774d4, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: hm_side_right
+    second: {fileID: 2800000, guid: 6db76505ba245ab4892e8aa306bde6c9, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: hmart
+    second: {fileID: 2800000, guid: 565c5b5790285e24b8b779fb3b13eef4, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: iphone ad 2
+    second: {fileID: 2800000, guid: ca8d1c26186d3e8428cae817c921aa34, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: iphone ad 3
+    second: {fileID: 2800000, guid: cecf20dc6ed59a94a8e5572c412f07ac, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: iphone ad sign
+    second: {fileID: 2800000, guid: c40ffd1785bbc9740a6742f2a3d3692a, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: jacks sign
+    second: {fileID: 2800000, guid: 65736ac015b816a46bb2d562b7b366e5, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: jolibee
+    second: {fileID: 2800000, guid: 37d5e2e8861bb8e4b96afac46e328a61, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: metal_plate_02_diff_2k
+    second: {fileID: 2800000, guid: 4b44873008d56dd4fb59dcfbc43c3185, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: metal_plate_02_metal_2k
+    second: {fileID: 2800000, guid: 3a620f2c6cf621f499a7fe0cc58a4f68, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: metal_plate_02_nor_gl_2k
+    second: {fileID: 2800000, guid: ebcfe07d5306e804bb8698243f36bfea, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: metal_plate_02_rough_2k
+    second: {fileID: 2800000, guid: 8ac1b1ab1dbfe844b9cff5392e7f3b54, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: nike ad
+    second: {fileID: 2800000, guid: 01e5eb283bd2c7342bacddc31bcbd9f9, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: ohyo
+    second: {fileID: 2800000, guid: e3dba82d0acfe64459d8cbc3f768e2b3, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: pepsi ad
+    second: {fileID: 2800000, guid: 39b319d0f1ebb0549a78d5e6b7d650b8, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: pizza hut ad
+    second: {fileID: 2800000, guid: e443ed6fbe0b3724ab0636497a7efd02, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: rogers logo
+    second: {fileID: 2800000, guid: c3856d64290ee0b40a948b05c725ab8b, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: rogers_front_new
+    second: {fileID: 2800000, guid: 064e99ca2717c74479d8b3f8733c3420, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: rogers_new_left
+    second: {fileID: 2800000, guid: 61d3afaff7e58a344a2d3bf607d00c29, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: rogers_new_right
+    second: {fileID: 2800000, guid: d31682d64a7f77e4f8e440eaf170d8c7, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: roundbout
+    second: {fileID: 2800000, guid: be017e3e533dd394281232c9657190f4, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: sam record man
+    second: {fileID: 2800000, guid: cc69b16793222f74699d1c820f2c708e, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: sankofa_square_pot
+    second: {fileID: 2800000, guid: 91544be6afe34e54ab84209913c168c1, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: slc_bottom
+    second: {fileID: 2800000, guid: e6958bf88e0a9af4baf14fc6f9da3024, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: slc_front
+    second: {fileID: 2800000, guid: c5c4978a325471842857dbf745654e4b, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: slc_left_triangle
+    second: {fileID: 2800000, guid: ec3c1e592188c1940937301e9ccae4e7, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: slc_side left
+    second: {fileID: 2800000, guid: fb621b5d895f7ec4e803bf7588853a13, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: slc_side right
+    second: {fileID: 2800000, guid: 385c7a9cc9e2b4542a2b2a168ab7d285, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: street_warehouse
+    second: {fileID: 2800000, guid: 3efa7b7c47b5c1d46a602efffaa6e0ea, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: tenor rolltation and chipotle grill right
+    second: {fileID: 2800000, guid: 768e4a1812f742f4f8a8dcdbfad4936e, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: tenor_front_cylinder
+    second: {fileID: 2800000, guid: 661fcf39b44974547aa82f8121ddc681, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: tenor_front_entrance
+    second: {fileID: 2800000, guid: 283950ec22fa04c42a712f4a668c8f72, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: tenor_front_far_right
+    second: {fileID: 2800000, guid: f226fabfcc06eb94db86e58b7d5f94aa, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: tenor_front_shake_shack_right
+    second: {fileID: 2800000, guid: 3714c3a82142aa343a80bd167f5a0552, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: tenor_front_top
+    second: {fileID: 2800000, guid: 6f2e9cad3c99ae4419bd18ede1eb0646, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: tenor_left_above_rolltation
+    second: {fileID: 2800000, guid: b8f315dce28b6504398373df094d61ff, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: tenor_left_shake_shack_far_left
+    second: {fileID: 2800000, guid: 6c60f1d860b424d44abfdadb29e0558c, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: tenor_left_winners
+    second: {fileID: 2800000, guid: 58bc4bc18631454429bc469c326edf4c, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: tenor_right_be_great
+    second: {fileID: 2800000, guid: 528bfa1558edd17479a24530440ffe53, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: tenor_right_front
+    second: {fileID: 2800000, guid: 3f1eb8047698240409b4201cbe84660f, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: tenor_right_side
+    second: {fileID: 2800000, guid: 4b322b58fa2748e46973f5288d073c88, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: tenor_shake_shack_left
+    second: {fileID: 2800000, guid: a9f50fa9b632ce04bafdc73cbab6c67c, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: theatrics
+    second: {fileID: 2800000, guid: b855e9fa71b96d24aa637fddfa9406c4, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: ttc_back
+    second: {fileID: 2800000, guid: ed1e068ab2a79cb40a30e2e567ad2749, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: ttc_front
+    second: {fileID: 2800000, guid: b94488e8e42db154a982c8b51f5e837b, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: ttc_side
+    second: {fileID: 2800000, guid: d5bb3f66f09e8fb4da36dba150af0aeb, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: uniqlo_front
+    second: {fileID: 2800000, guid: 9ebd3d922acf9ab448af945227af93f0, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: uniqlo_side
+    second: {fileID: 2800000, guid: 9116552c750bdda418dbf2aa54a4d9ec, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: west49_front
+    second: {fileID: 2800000, guid: 0b7fdece15141864fae949863eebbb93, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: west49_side
+    second: {fileID: 2800000, guid: 2e9bb16b62c36d5459c4f2d185ebd957, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: west49_top
+    second: {fileID: 2800000, guid: dd4856bc355750549be3f54d721ebffe, type: 3}
+  materials:
+    materialImportMode: 2
+    materialName: 0
+    materialSearch: 1
+    materialLocation: 1
+  animations:
+    legacyGenerateAnimations: 4
+    bakeSimulation: 0
+    resampleCurves: 1
+    optimizeGameObjects: 0
+    removeConstantScaleCurves: 0
+    motionNodeName: 
+    animationImportErrors: 
+    animationImportWarnings: 
+    animationRetargetingWarnings: 
+    animationDoRetargetingWarnings: 0
+    importAnimatedCustomProperties: 0
+    importConstraints: 0
+    animationCompression: 1
+    animationRotationError: 0.5
+    animationPositionError: 0.5
+    animationScaleError: 0.5
+    animationWrapMode: 0
+    extraExposedTransformPaths: []
+    extraUserProperties: []
+    clipAnimations: []
+    isReadable: 0
+  meshes:
+    lODScreenPercentages: []
+    globalScale: 1
+    meshCompression: 0
+    addColliders: 0
+    useSRGBMaterialColor: 1
+    sortHierarchyByName: 1
+    importPhysicalCameras: 1
+    importVisibility: 1
+    importBlendShapes: 1
+    importCameras: 1
+    importLights: 1
+    nodeNameCollisionStrategy: 1
+    fileIdsGeneration: 2
+    swapUVChannels: 0
+    generateSecondaryUV: 0
+    useFileUnits: 1
+    keepQuads: 0
+    weldVertices: 1
+    bakeAxisConversion: 0
+    preserveHierarchy: 0
+    skinWeightsMode: 0
+    maxBonesPerVertex: 4
+    minBoneWeight: 0.001
+    optimizeBones: 1
+    generateMeshLods: 0
+    meshLodGenerationFlags: 0
+    maximumMeshLod: -1
+    meshOptimizationFlags: -1
+    indexFormat: 0
+    secondaryUVAngleDistortion: 8
+    secondaryUVAreaDistortion: 15.000001
+    secondaryUVHardAngle: 88
+    secondaryUVMarginMethod: 1
+    secondaryUVMinLightmapResolution: 40
+    secondaryUVMinObjectScale: 1
+    secondaryUVPackMargin: 4
+    useFileScale: 1
+    strictVertexDataChecks: 0
+  tangentSpace:
+    normalSmoothAngle: 60
+    normalImportMode: 0
+    tangentImportMode: 3
+    normalCalculationMode: 4
+    legacyComputeAllNormalsFromSmoothingGroupsWhenMeshHasBlendShapes: 0
+    blendShapeNormalImportMode: 1
+    normalSmoothingSource: 0
+  referencedClips: []
+  importAnimation: 1
+  humanDescription:
+    serializedVersion: 3
+    human: []
+    skeleton: []
+    armTwist: 0.5
+    foreArmTwist: 0.5
+    upperLegTwist: 0.5
+    legTwist: 0.5
+    armStretch: 0.05
+    legStretch: 0.05
+    feetSpacing: 0
+    globalScale: 1
+    rootMotionBoneName: 
+    hasTranslationDoF: 0
+    hasExtraRoot: 0
+    skeletonHasParents: 1
+  lastHumanDescriptionAvatarSource: {instanceID: 0}
+  autoGenerateAvatarMappingIfUnspecified: 1
+  animationType: 2
+  humanoidOversampling: 1
+  avatarSetup: 0
+  addHumanoidExtraRootOnlyWhenUsingAvatar: 1
+  importBlendShapeDeformPercent: 1
+  remapMaterialsIfMaterialImportModeIsNone: 0
+  additionalBone: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
