@@ -390,11 +390,6 @@ public class RoadNetworkBuilder : MonoBehaviour
             var jMr = jObj.AddComponent<MeshRenderer>();
             jMf.mesh = junctionMesh;
             jMr.material = junctionSurfaceMaterial ?? GetFallbackMaterial();
-
-            // Physics collider so vehicles don't fall through the junction
-            var jCol = jObj.AddComponent<MeshCollider>();
-            jCol.sharedMesh = junctionMesh;
-            jCol.convex = false;
         }
 
         // ★ NEW: make sure every child built above is on the Ground layer
