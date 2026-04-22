@@ -188,11 +188,6 @@ public class ScenarioManager : MonoBehaviour
             // Start driving evaluation for this scenario
             if (drivingEvaluator != null)
                 drivingEvaluator.BeginEvaluation(activeEgo, scenario);
-
-            // Update the dashboard HUD instruction text
-            var dashboardUI = activeEgo.GetComponentInChildren<DashboardUI>();
-            if (dashboardUI != null)
-                dashboardUI.SetScenario(scenario);
         }
     }
 }
