@@ -48,10 +48,22 @@ public class DrivingEvaluator : MonoBehaviour
     [Tooltip("Seconds between speeding violation log entries (prevents per-frame spam).")]
     public float speedingLogCooldown = 5f;
 
+    [Header("Audio Feedback")]
+    [Tooltip("Play a warning sound when the evaluator records a notable event.")]
+    [SerializeField] private bool playWarningSounds = true;
+
+    [Tooltip("Master volume for evaluator warning sounds.")]
+    [Range(0f, 1f)]
+    [SerializeField] private float warningVolume = 1f;
+
+    [Tooltip("Optional clip played for evaluator warning events.")]
+    [SerializeField] private AudioClip warningClip;
+
     // Auto-resolved references (no Inspector assignment needed)
     private SimulationController simController;
     private CarUserControl carUserControl;
     private Rigidbody _egoRb;
+    private AudioSource _warningAudioSource;
 
     [Header("Runtime State")]
     [ReadOnly, SerializeField] private ScenarioId _activeScenario;
@@ -107,6 +119,8 @@ public class DrivingEvaluator : MonoBehaviour
             simController = GetComponent<SimulationController>();
         if (simController == null)
             simController = FindFirstObjectByType<SimulationController>();
+
+        EnsureWarningAudioSource();
     }
 
     /// <summary>
@@ -197,6 +211,7 @@ public class DrivingEvaluator : MonoBehaviour
                 _speedingEventCount++;
                 _lastSpeedingLogTime = Time.time;
                 LogEvent("", "Speeding", $"speed={currentSpeedKmh:F1};limit={speedLimitKmh:F0}");
+                PlayWarningCue();
                 Debug.LogWarning($"[DrivingEvaluator] SPEEDING: {currentSpeedKmh:F1} km/h (limit {speedLimitKmh:F0})");
             }
         }
@@ -221,6 +236,7 @@ public class DrivingEvaluator : MonoBehaviour
                 {
                     _ranRedLight = true;
                     LogEvent(trigger.junctionId, "RedLightViolation", $"light={c}");
+                    PlayWarningCue();
                     Debug.LogWarning($"[DrivingEvaluator] RED LIGHT VIOLATION at junction {trigger.junctionId}");
                 }
                 else
@@ -255,6 +271,7 @@ public class DrivingEvaluator : MonoBehaviour
         {
             _usedTurnSignal = false;
             LogEvent(trigger.junctionId, "TurnSignalMissing", $"direction={rule.direction}");
+            PlayWarningCue();
             Debug.LogWarning($"[DrivingEvaluator] MISSING TURN SIGNAL at junction {trigger.junctionId} ({rule.direction})!");
         }
     }
@@ -272,9 +289,34 @@ public class DrivingEvaluator : MonoBehaviour
 
         LogEvent("", "Collision",
             $"other={otherName};tag={otherTag};impact_speed={impactSpeed:F1}");
+        PlayWarningCue();
 
         Debug.LogWarning($"[DrivingEvaluator] COLLISION with '{otherName}' " +
                          $"(tag={otherTag}) at {impactSpeed:F1} m/s");
+    }
+
+    private void EnsureWarningAudioSource()
+    {
+        if (_warningAudioSource != null)
+            return;
+
+        _warningAudioSource = GetComponent<AudioSource>();
+        if (_warningAudioSource == null)
+            _warningAudioSource = gameObject.AddComponent<AudioSource>();
+
+        _warningAudioSource.playOnAwake = false;
+        _warningAudioSource.loop = false;
+        _warningAudioSource.spatialBlend = 0f;
+    }
+
+    private void PlayWarningCue()
+    {
+        if (!playWarningSounds || warningVolume <= 0f || warningClip == null)
+            return;
+
+        EnsureWarningAudioSource();
+
+        _warningAudioSource.PlayOneShot(warningClip, warningVolume);
     }
 
     private void LogEvent(string junctionId, string eventType, string detail)
