@@ -857,6 +857,7 @@ MonoBehaviour:
   minImpactSpeed: 1
   cooldown: 2
   impactForceMultiplier: 1.5
+  maxImpulseMagnitude: 5000
 --- !u!114 &7420378212224668341
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -889,7 +890,7 @@ MonoBehaviour:
   m_MaxHandbrakeTorque: 100000000
   m_Downforce: 100
   m_SpeedType: 1
-  m_Topspeed: 60
+  m_Topspeed: 70
   m_RevRangeBoundary: 1
   m_SlipLimit: 0.1
   m_BrakeTorque: 2000
