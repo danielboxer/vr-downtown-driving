@@ -273927,9 +273927,26 @@ MonoBehaviour:
   speedingLogCooldown: 5
   playWarningSounds: 1
   warningVolume: 1
-  warningClip: {fileID: 0}
-  collisionWarningClip: {fileID: 0}
-  curbWarningClip: {fileID: 0}
+  collisionVolume: 0.75
+  curbVolume: 1
+  minImpactVolumeMultiplier: 0.35
+  impactSpeedForMaxVolume: 12
+  playVoicePrompts: 1
+  voiceVolume: 1
+  warningToVoiceDelay: 0.1
+  warningPitchMin: 0.651
+  warningPitchMax: 1.34
+  voicePitchMin: 0.675
+  voicePitchMax: 1.316
+  speedingVoiceClip: {fileID: 8300000, guid: 1b3fefd757a71644b891fcbca9030763, type: 3}
+  stopLineVoiceClip: {fileID: 8300000, guid: 71712105972f7234b9987b46ad62565c, type: 3}
+  turnSignalVoiceClip: {fileID: 8300000, guid: 802f807c0caf7c04b9c7baa78e50c88b, type: 3}
+  warningClip: {fileID: 8300000, guid: b545f356c067bac418de28d26de581e6, type: 3}
+  collisionWarningClips:
+  - {fileID: 8300000, guid: 3bd3ca072e8e86644b05727b4a6b8bc4, type: 3}
+  - {fileID: 8300000, guid: 6ba0c9c9e1e34dc4c95f7db42d0774c0, type: 3}
+  - {fileID: 8300000, guid: ae61690cf3484eb41b05cfb672b4a275, type: 3}
+  curbWarningClip: {fileID: 8300000, guid: dcae612ee94748141b68b2eae4e2fc51, type: 3}
   _activeScenario: 0
   _vehicleMode: 0
   _evaluationEnabled: 0
