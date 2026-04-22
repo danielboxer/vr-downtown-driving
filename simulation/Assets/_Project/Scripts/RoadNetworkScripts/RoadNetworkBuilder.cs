@@ -1034,10 +1034,23 @@ public class RoadNetworkBuilder : MonoBehaviour
         mf.sharedMesh = polyMesh;
         mr.sharedMaterial = GetPolygonMaterial(polygonType);
 
-        // Physics collider so vehicles don't fall through
-        var mc = polyGO.AddComponent<MeshCollider>();
-        mc.sharedMesh = polyMesh;
-        mc.convex = false;
+        // Physics collider so vehicles don't fall through.
+        // Large flat polygons (bounding box > 500 units) would trigger a PhysX
+        // large-triangle warning with a MeshCollider, so use a thin BoxCollider instead.
+        Bounds polyBounds = polyMesh.bounds;
+        bool isLargePoly = polyBounds.size.x > 500f || polyBounds.size.z > 500f;
+        if (isLargePoly)
+        {
+            var bc = polyGO.AddComponent<BoxCollider>();
+            bc.center = polyBounds.center;
+            bc.size = new Vector3(polyBounds.size.x, Mathf.Max(polyBounds.size.y, 0.1f), polyBounds.size.z);
+        }
+        else if (indices.Length >= 3)
+        {
+            var mc = polyGO.AddComponent<MeshCollider>();
+            mc.sharedMesh = polyMesh;
+            mc.convex = false;
+        }
     }
 
     private void FlipTriangleWinding(Mesh mesh)
