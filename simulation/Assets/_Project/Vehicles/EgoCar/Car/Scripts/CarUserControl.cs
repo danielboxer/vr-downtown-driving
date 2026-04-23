@@ -46,6 +46,17 @@ namespace UnityStandardAssets.Vehicles.Car
         private InputAction _rightSignalAction;
         private InputAction _cancelSignalAction;
         private InputAction _hornAction;
+        private InputAction _gearChangeAction;
+        private InputAction _gearDriveAction;   // XR: right thumbstick up → Drive
+        private InputAction _gearReverseAction; // XR: right thumbstick down → Reverse
+
+        // Whether the car is currently in reverse gear (toggled by GearChange action)
+        private bool _isReverse;
+
+        [Header("Gear Change Audio")]
+        [Tooltip("Optional clip played when toggling between drive and reverse.")]
+        [SerializeField] private AudioClip gearChangeClip;
+        private AudioSource _gearAudioSource;
 
         // Cached input values (read in Update, used in FixedUpdate)
         private float _steerInput;
@@ -57,6 +68,9 @@ namespace UnityStandardAssets.Vehicles.Car
         public bool IsLeftSignalOn => isLeftSignalOn;
         /// <summary>Whether the right turn signal is currently active.</summary>
         public bool IsRightSignalOn => isRightSignalOn;
+
+        /// <summary>Whether the car is currently in reverse gear.</summary>
+        public bool IsReverse => _isReverse;
 
         private void Awake()
         {
@@ -80,8 +94,17 @@ namespace UnityStandardAssets.Vehicles.Car
                     _rightSignalAction = map.FindAction("RightSignal", false);
                     _cancelSignalAction = map.FindAction("CancelSignal", false);
                     _hornAction = map.FindAction("Horn", false);
+                    _gearChangeAction = map.FindAction("GearChange", false);
+                    _gearDriveAction = map.FindAction("GearDrive", false);
+                    _gearReverseAction = map.FindAction("GearReverse", false);
                 }
             }
+
+            // Dedicated audio source for gear-change sounds
+            _gearAudioSource = gameObject.AddComponent<AudioSource>();
+            _gearAudioSource.playOnAwake = false;
+            _gearAudioSource.loop = false;
+            _gearAudioSource.spatialBlend = 0f;
         }
 
         private void OnEnable()
@@ -94,6 +117,9 @@ namespace UnityStandardAssets.Vehicles.Car
             _rightSignalAction?.Enable();
             _cancelSignalAction?.Enable();
             _hornAction?.Enable();
+            _gearChangeAction?.Enable();
+            _gearDriveAction?.Enable();
+            _gearReverseAction?.Enable();
         }
 
         private void OnDisable()
@@ -106,6 +132,9 @@ namespace UnityStandardAssets.Vehicles.Car
             _rightSignalAction?.Disable();
             _cancelSignalAction?.Disable();
             _hornAction?.Disable();
+            _gearChangeAction?.Disable();
+            _gearDriveAction?.Disable();
+            _gearReverseAction?.Disable();
         }
 
         private void Update()
@@ -140,6 +169,37 @@ namespace UnityStandardAssets.Vehicles.Car
             // H key / right thumbstick click = player horn
             if (_hornAction != null && _hornAction.WasPressedThisFrame())
                 m_CarAudio?.PlayHorn();
+
+            // G key / Y button = toggle drive/reverse gear
+            if (_gearChangeAction != null && _gearChangeAction.WasPressedThisFrame())
+            {
+                _isReverse = !_isReverse;
+                if (gearChangeClip != null)
+                    _gearAudioSource.PlayOneShot(gearChangeClip);
+                Debug.Log($"[CarUserControl] Gear: {(_isReverse ? "Reverse" : "Drive")}");
+            }
+
+            // Right thumbstick up/down = direct gear selection (XR)
+            if (_gearDriveAction != null && _gearDriveAction.WasPressedThisFrame())
+            {
+                if (_isReverse)
+                {
+                    _isReverse = false;
+                    if (gearChangeClip != null)
+                        _gearAudioSource.PlayOneShot(gearChangeClip);
+                    Debug.Log("[CarUserControl] Gear: Drive");
+                }
+            }
+            if (_gearReverseAction != null && _gearReverseAction.WasPressedThisFrame())
+            {
+                if (!_isReverse)
+                {
+                    _isReverse = true;
+                    if (gearChangeClip != null)
+                        _gearAudioSource.PlayOneShot(gearChangeClip);
+                    Debug.Log("[CarUserControl] Gear: Reverse");
+                }
+            }
         }
 
         private void FixedUpdate()
@@ -177,8 +237,7 @@ namespace UnityStandardAssets.Vehicles.Car
 
             // Pass accel and brake separately to CarController
             // CarController.Move clamps accel to [0,1] and footbrake to [-1,0]
-            m_Car.Move(steeringInput, accel, -brake, handbrake);
-
+            m_Car.Move(steeringInput, accel, -brake, handbrake, _isReverse);
 
         }
 

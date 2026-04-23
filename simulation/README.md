@@ -6,19 +6,20 @@ The simulation uses the Sumo2Unity project. See their documentation [here](https
 
 Car:
 
-Steer - A/D keys, right thumbstick X
+Steer - A/D keys (tilt in VR)
 Accelerate - W key, right trigger
 Brake - S key, left trigger
 Handbrake - Space
-Left signal - 1 key, X button (left hand)
-Right signal - 2 key, B button (right hand)
-Cancel signal - 3 key, A button (right hand)
-Calibrate steering - C key (hold), Y button (left hand) (hold)
+Left signal - 1 key, left thumbstick left
+Right signal - 2 key, left thumbstick right
+Cancel signal - 3 key, left thumbstick down
+Calibrate steering - C key (hold)
+Gear change (drive/reverse) - G key (toggle), right thumbstick up (Drive) / down (Reverse)
 Horn - H key, right thumbstick click
 
 Bike:
 
-Steer - A/D keys, right thumbstick X
+Steer - A/D keys (tilt in VR)
 Brake - S key, both triggers (analog, progressive)
 Reverse - R key, X button (left hand)
 Calibrate - C key (hold), Y button (hold)

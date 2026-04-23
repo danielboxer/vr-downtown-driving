@@ -1085,6 +1085,33 @@
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
+                },
+                {
+                    "name": "GearChange",
+                    "type": "Button",
+                    "id": "e6f7a8b9-0001-4000-8000-000000000030",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "GearDrive",
+                    "type": "Button",
+                    "id": "e6f7a8b9-0004-4000-8000-000000000033",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "GearReverse",
+                    "type": "Button",
+                    "id": "e6f7a8b9-0005-4000-8000-000000000034",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
                 }
             ],
             "bindings": [
@@ -1120,17 +1147,6 @@
                     "action": "Steer",
                     "isComposite": false,
                     "isPartOfComposite": true
-                },
-                {
-                    "name": "",
-                    "id": "634ba020-10b2-4f74-bf1f-28d864022c43",
-                    "path": "<XRController>{RightHand}/thumbstick/x",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": ";XR",
-                    "action": "Steer",
-                    "isComposite": false,
-                    "isPartOfComposite": false
                 },
                 {
                     "name": "",
@@ -1190,7 +1206,7 @@
                 {
                     "name": "",
                     "id": "2fd6739e-9cb7-444d-b80a-a4b280c32df8",
-                    "path": "<XRController>{LeftHand}/primaryButton",
+                    "path": "<XRController>{LeftHand}/thumbstick/left",
                     "interactions": "",
                     "processors": "",
                     "groups": ";XR",
@@ -1212,7 +1228,7 @@
                 {
                     "name": "",
                     "id": "19747714-31e7-4a2e-8f53-352eb2b2b55d",
-                    "path": "<XRController>{RightHand}/secondaryButton",
+                    "path": "<XRController>{LeftHand}/thumbstick/right",
                     "interactions": "",
                     "processors": "",
                     "groups": ";XR",
@@ -1234,7 +1250,7 @@
                 {
                     "name": "",
                     "id": "a4f48623-3dc0-4f16-bdd5-498d05531124",
-                    "path": "<XRController>{RightHand}/primaryButton",
+                    "path": "<XRController>{LeftHand}/thumbstick/down",
                     "interactions": "",
                     "processors": "",
                     "groups": ";XR",
@@ -1260,17 +1276,6 @@
                     "interactions": "",
                     "processors": "",
                     "groups": ";Keyboard&Mouse",
-                    "action": "Calibrate",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
-                    "id": "a1b2c3d4-0003-4000-8000-000000000003",
-                    "path": "<XRController>{LeftHand}/secondaryButton",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": ";XR",
                     "action": "Calibrate",
                     "isComposite": false,
                     "isPartOfComposite": false
@@ -1316,6 +1321,39 @@
                     "processors": "",
                     "groups": ";XR",
                     "action": "BikeReverse",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "e6f7a8b9-0002-4000-8000-000000000031",
+                    "path": "<Keyboard>/g",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": ";Keyboard&Mouse",
+                    "action": "GearChange",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "e6f7a8b9-0006-4000-8000-000000000035",
+                    "path": "<XRController>{RightHand}/thumbstick/up",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": ";XR",
+                    "action": "GearDrive",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "e6f7a8b9-0007-4000-8000-000000000036",
+                    "path": "<XRController>{RightHand}/thumbstick/down",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": ";XR",
+                    "action": "GearReverse",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }
