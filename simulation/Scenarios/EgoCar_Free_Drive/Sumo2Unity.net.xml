@@ -1,14 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on 2026-02-11 21:22:11 by Eclipse SUMO netedit Version 1.22.0
+<!-- generated on 2026-04-23 17:38:57 by Eclipse SUMO netedit Version 1.22.0
 <neteditConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/neteditConfiguration.xsd">
 
     <input>
-        <sumo-net-file value="C:\Users\dleeb\Desktop\thesis\vr-downtown-driving\simulation\Scenario1\Sumo2Unity.net.xml"/>
+        <sumocfg-file value="C:\Users\dleeb\Desktop\thesis\vr-downtown-driving\simulation\Scenarios\EgoCar_Free_Drive\Sumo2Unity.sumocfg"/>
+        <additional-files value="C:\Users\dleeb\Desktop\thesis\vr-downtown-driving\simulation\Scenarios\EgoCar_Free_Drive\Sumo2Unity.Poly.xml"/>
+        <route-files value="C:\Users\dleeb\Desktop\thesis\vr-downtown-driving\simulation\Scenarios\EgoCar_Free_Drive\Sumo2Unity.rou.xml"/>
+        <sumo-net-file value="C:\Users\dleeb\Desktop\thesis\vr-downtown-driving\simulation\Scenarios\EgoCar_Free_Drive\Sumo2Unity.net.xml"/>
     </input>
 
     <output>
-        <output-file value="C:\Users\dleeb\Desktop\thesis\vr-downtown-driving\simulation\Scenario1\Sumo2Unity.net.xml"/>
+        <output-file value="C:\Users\dleeb\Desktop\thesis\vr-downtown-driving\simulation\Scenarios\EgoCar_Free_Drive\Sumo2Unity.net.xml"/>
         <output.street-names value="true"/>
     </output>
 
