@@ -930,12 +930,36 @@ public class RoadNetworkBuilder : MonoBehaviour
                 slBox.isTrigger = true;
                 slBox.size = new Vector3(totalRoadWidth, 2f, 3f);
                 // Shift center left (into the road) so the box covers the lanes rather than the curb.
-                // Offset backward so it triggers just before the stop line.
-                slBox.center = new Vector3(-(totalRoadWidth * 0.5f - laneW * 0.5f), 0f, -1.5f);
+                // Positive Z offset places the trigger past the stop line so it fires on crossing.
+                slBox.center = new Vector3(-(totalRoadWidth * 0.5f - laneW * 0.5f), 0f, 4.5f);
 
                 var slTrigger = stopLineGO.AddComponent<StopLineTrigger>();
                 slTrigger.junctionId = jId;
                 slTrigger.linkIndex = primaryLink;
+
+                // ── Turn-direction trigger: one per approach, right-side entry ──
+                // Exactly like the stop-line trigger (same position, size, and center offset)
+                // but rotated 90° so it faces rightDir. This makes it cover the right-side
+                // lanes in the junction exit direction. Cars turning right pass through it;
+                // each approach provides one right-exit trigger so all turns are covered.
+                Vector3 tdRightDir = new Vector3(approachDir.z, 0f, -approachDir.x);
+
+                GameObject tdGO = new GameObject($"TurnTrigger_{jId}_E{edgeId}");
+                tdGO.transform.SetParent(junctionGO.transform);
+                tdGO.transform.position = stopLinePos;
+                tdGO.transform.rotation = Quaternion.LookRotation(tdRightDir, Vector3.up);
+
+                var tdBox = tdGO.AddComponent<BoxCollider>();
+                tdBox.isTrigger = true;
+                tdBox.size = new Vector3(totalRoadWidth, 2f, 3f);
+                // With LookRotation(tdRightDir), local -X → world +approachDir.
+                // center.x places it forward into the junction; center.z = 3.0 shifts it
+                // toward the right curb to cover the right-turn exit lane.
+                tdBox.center = new Vector3(-(totalRoadWidth * 1.125f), 0f, 3.0f);
+
+                var tdTrigger = tdGO.AddComponent<TurnDirectionTrigger>();
+                tdTrigger.junctionId = jId;
+                tdTrigger.direction = DrivingEvaluator.SignalDirection.Right;
 
                 // Secondary Heads: invisible stubs with green_light/yellow_light/red_light children
                 for (int i = 1; i < linkIndices.Count; i++)

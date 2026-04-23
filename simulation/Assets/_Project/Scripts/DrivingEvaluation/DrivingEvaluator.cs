@@ -18,28 +18,6 @@ public class DrivingEvaluator : MonoBehaviour
     public enum VehicleMode { Car, Bike }
     public enum SignalDirection { Left, Right }
 
-    // ── Per-scenario configuration (set in Inspector) ──
-
-    [System.Serializable]
-    public class TurnSignalRule
-    {
-        [Tooltip("SUMO junction ID where a turn signal is expected.")]
-        public string junctionId;
-        public SignalDirection direction;
-    }
-
-    [System.Serializable]
-    public class ScenarioEvalConfig
-    {
-        public ScenarioId scenario;
-        [Tooltip("Junctions where a turn signal must be active before the stop line.")]
-        public List<TurnSignalRule> turnSignalChecks = new();
-    }
-
-    [Header("Scenario Rules")]
-    [Tooltip("Configure turn-signal rules per scenario. Scenarios not listed here skip signal checks.")]
-    [SerializeField] private List<ScenarioEvalConfig> scenarioRules = new();
-
 
     [Header("Speed Limit")]
     [Tooltip("Speed limit in km/h. Set to 0 to disable speed monitoring.")]
@@ -160,8 +138,6 @@ public class DrivingEvaluator : MonoBehaviour
     /// <summary>Highest speed recorded during this scenario (km/h).</summary>
     public float TopSpeedKmh => _topSpeedKmh;
 
-    private ScenarioEvalConfig _activeConfig;
-
     // ── Event log for CSV export ──
 
     private struct EvalEvent
@@ -219,9 +195,6 @@ public class DrivingEvaluator : MonoBehaviour
 
         _evaluationEnabled = true;
 
-        // Look up turn-signal rules for this scenario (red lights are always checked)
-        _activeConfig = scenarioRules.Find(r => r.scenario == scenario);
-
         carUserControl = (_vehicleMode == VehicleMode.Car)
             ? egoVehicle.GetComponent<CarUserControl>()
             : null;
@@ -253,12 +226,14 @@ public class DrivingEvaluator : MonoBehaviour
     private void OnEnable()
     {
         StopLineTrigger.OnEgoCrossedStopLine += HandleStopLineCrossing;
+        TurnDirectionTrigger.OnEgoCrossedTurnTrigger += HandleTurnDirectionCrossing;
         CollisionDetector.OnEgoCollision += HandleCollision;
     }
 
     private void OnDisable()
     {
         StopLineTrigger.OnEgoCrossedStopLine -= HandleStopLineCrossing;
+        TurnDirectionTrigger.OnEgoCrossedTurnTrigger -= HandleTurnDirectionCrossing;
         CollisionDetector.OnEgoCollision -= HandleCollision;
 
         if (_voicePromptCoroutine != null)
@@ -337,34 +312,30 @@ public class DrivingEvaluator : MonoBehaviour
                 }
             }
         }
+    }
 
-        // ── 2. Turn signal check (only if a rule exists for this junction) ──
-        if (_activeConfig == null || _vehicleMode == VehicleMode.Bike || carUserControl == null) return;
+    private void HandleTurnDirectionCrossing(TurnDirectionTrigger trigger, Collider ego)
+    {
+        if (!_evaluationEnabled) return;
+        if (_vehicleMode == VehicleMode.Bike || carUserControl == null) return;
 
-        TurnSignalRule rule = _activeConfig.turnSignalChecks.Find(
-            r => r.junctionId == trigger.junctionId);
-        if (rule == null) return;
+        bool signalOn = trigger.direction == SignalDirection.Right
+            ? carUserControl.IsRightSignalOn
+            : carUserControl.IsLeftSignalOn;
 
-        bool signalCorrect = rule.direction switch
-        {
-            SignalDirection.Right => carUserControl.IsRightSignalOn,
-            SignalDirection.Left => carUserControl.IsLeftSignalOn,
-            _ => true
-        };
-
-        if (signalCorrect)
+        if (signalOn)
         {
             _usedTurnSignal = true;
-            LogEvent(trigger.junctionId, "TurnSignalOK", $"direction={rule.direction}");
-            Debug.Log($"[DrivingEvaluator] Turn signal was ON at junction {trigger.junctionId} ({rule.direction}) ✓");
+            LogEvent(trigger.junctionId, "TurnSignalOK", $"direction={trigger.direction}");
+            Debug.Log($"[DrivingEvaluator] Turn signal ON at junction {trigger.junctionId} ({trigger.direction}) ✓");
         }
         else
         {
             _usedTurnSignal = false;
-            LogEvent(trigger.junctionId, "TurnSignalMissing", $"direction={rule.direction}");
+            LogEvent(trigger.junctionId, "TurnSignalMissing", $"direction={trigger.direction}");
             PlayWarningCue();
             QueueVoicePrompt(turnSignalVoiceClip);
-            Debug.LogWarning($"[DrivingEvaluator] MISSING TURN SIGNAL at junction {trigger.junctionId} ({rule.direction})!");
+            Debug.LogWarning($"[DrivingEvaluator] MISSING TURN SIGNAL at junction {trigger.junctionId} ({trigger.direction})!");
         }
     }
 
