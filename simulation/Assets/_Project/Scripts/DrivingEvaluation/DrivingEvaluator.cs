@@ -32,17 +32,13 @@ public class DrivingEvaluator : MonoBehaviour
     public class ScenarioEvalConfig
     {
         public ScenarioId scenario;
-        [Tooltip("Check for red-light violations at every stop line.")]
-        public bool checkRedLights = true;
         [Tooltip("Junctions where a turn signal must be active before the stop line.")]
         public List<TurnSignalRule> turnSignalChecks = new();
     }
 
     [Header("Scenario Rules")]
-    [Tooltip("Configure stop-line and turn-signal rules per scenario. Scenarios not listed here skip those rule checks.")]
+    [Tooltip("Configure turn-signal rules per scenario. Scenarios not listed here skip signal checks.")]
     [SerializeField] private List<ScenarioEvalConfig> scenarioRules = new();
-    [Tooltip("If this list is not empty, evaluation only runs in the selected scenarios.")]
-    [SerializeField] private List<ScenarioId> enabledScenarios = new();
 
 
     [Header("Speed Limit")]
@@ -221,12 +217,10 @@ public class DrivingEvaluator : MonoBehaviour
         _eventLog.Clear();
         _evalStartTime = Time.time;
 
-        _evaluationEnabled = enabledScenarios.Count == 0 || enabledScenarios.Contains(scenario);
+        _evaluationEnabled = true;
 
-        // Look up rules for this scenario
-        _activeConfig = _evaluationEnabled
-            ? scenarioRules.Find(r => r.scenario == scenario)
-            : null;
+        // Look up turn-signal rules for this scenario (red lights are always checked)
+        _activeConfig = scenarioRules.Find(r => r.scenario == scenario);
 
         carUserControl = (_vehicleMode == VehicleMode.Car)
             ? egoVehicle.GetComponent<CarUserControl>()
@@ -234,16 +228,7 @@ public class DrivingEvaluator : MonoBehaviour
 
         _egoRb = egoVehicle.GetComponent<Rigidbody>();
 
-        if (!_evaluationEnabled)
-        {
-            Debug.Log($"[DrivingEvaluator] Evaluation disabled for scenario: {scenario}");
-            return;
-        }
-
-        if (_activeConfig != null)
-            Debug.Log($"[DrivingEvaluator] Evaluation started — scenario: {scenario}, mode: {_vehicleMode}");
-        else
-            Debug.Log($"[DrivingEvaluator] Evaluation started for '{scenario}' with no scenario-specific stop-line rules.");
+        Debug.Log($"[DrivingEvaluator] Evaluation started — scenario: {scenario}, mode: {_vehicleMode}");
     }
 
     /// <summary>
@@ -327,11 +312,8 @@ public class DrivingEvaluator : MonoBehaviour
     {
         if (!_evaluationEnabled) return;
 
-        // No rules for the active scenario — skip all checks
-        if (_activeConfig == null) return;
-
-        // ── 1. Red light check ──
-        if (_activeConfig.checkRedLights && simController != null)
+        // ── 1. Red light check (always performed) ──
+        if (simController != null)
         {
             string state = simController.GetTrafficLightState(trigger.junctionId);
             if (!string.IsNullOrEmpty(state))
@@ -357,7 +339,7 @@ public class DrivingEvaluator : MonoBehaviour
         }
 
         // ── 2. Turn signal check (only if a rule exists for this junction) ──
-        if (_vehicleMode == VehicleMode.Bike || carUserControl == null) return;
+        if (_activeConfig == null || _vehicleMode == VehicleMode.Bike || carUserControl == null) return;
 
         TurnSignalRule rule = _activeConfig.turnSignalChecks.Find(
             r => r.junctionId == trigger.junctionId);
