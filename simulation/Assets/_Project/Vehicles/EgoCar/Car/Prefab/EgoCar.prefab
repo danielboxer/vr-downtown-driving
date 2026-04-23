@@ -893,6 +893,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   TrafficObject: {fileID: 2471852994914885337}
   updateInterval: 0.1
+  carUserControl: {fileID: 7558851046672289916}
 --- !u!114 &4782113893452823864
 MonoBehaviour:
   m_ObjectHideFlags: 0
