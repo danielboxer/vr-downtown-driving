@@ -35,6 +35,8 @@ namespace UnityStandardAssets.Bike
         [SerializeField] private float m_Topspeed = 200;
         [SerializeField] private float m_SlipLimit;
         [SerializeField] public float m_BrakeTorque;
+        [Tooltip("Extra velocity damping per second at full brake (0 = WheelCollider only, 3-5 = very aggressive stop).")]
+        [SerializeField] public float m_SlamBrakeStrength = 4f;
 
         private Quaternion[] m_WheelMeshLocalRotations;
         private Vector3 m_Prevpos, m_Pos;
@@ -51,6 +53,11 @@ namespace UnityStandardAssets.Bike
         public float MaxSpeed { get { return m_Topspeed; } }
         public float AccelInput { get; private set; }
 
+        private void Awake()
+        {
+            m_Rigidbody = GetComponent<Rigidbody>();
+        }
+
         private void Start()
         {
             m_WheelMeshLocalRotations = new Quaternion[4];
@@ -61,14 +68,13 @@ namespace UnityStandardAssets.Bike
             m_WheelColliders[0].attachedRigidbody.centerOfMass = m_CentreOfMassOffset;
 
             m_MaxHandbrakeTorque = float.MaxValue;
-            m_Rigidbody = GetComponent<Rigidbody>();
             m_CurrentTorque = m_FullTorqueOverAllWheels - (m_TractionControl * m_FullTorqueOverAllWheels);
         }
 
         // ────────────────────────────────────────────────────────────────
         //  BikeController.Move - updated to offset wheel meshes in X
         // ────────────────────────────────────────────────────────────────
-        public void Move(float steering, float accel, float footbrake, float handbrake)
+        public void Move(float steering, float accel, float footbrake, float handbrake, bool reverse = false)
         {
             const float meshOffsetX = +0.17f;               // ← change sign/size as needed
 
@@ -99,8 +105,12 @@ namespace UnityStandardAssets.Bike
 
             // 4) Core vehicle helpers
             SteerHelper();
-            ApplyDrive(accel, footbrake);
+            ApplyDrive(accel, footbrake, reverse);
             CapSpeed();
+
+            // Direct velocity damping at high brake input for immediate slam-brake feel
+            if (footbrake > 0.05f)
+                m_Rigidbody.linearVelocity *= 1f - (footbrake * footbrake * m_SlamBrakeStrength * Time.fixedDeltaTime);
 
             // 5) Handbrake logic (rear wheels)
             if (handbrake > 0f)
@@ -141,7 +151,7 @@ namespace UnityStandardAssets.Bike
             }
         }
 
-        private void ApplyDrive(float accel, float footbrake)
+        private void ApplyDrive(float accel, float footbrake, bool reverse)
         {
             float thrustTorque;
             switch (m_BikeDriveType)
@@ -165,14 +175,21 @@ namespace UnityStandardAssets.Bike
 
             for (int i = 0; i < 4; i++)
             {
-                if (CurrentSpeed > 5 && Vector3.Angle(transform.forward, m_Rigidbody.linearVelocity) < 50f)
+                if (footbrake > 0)
                 {
-                    m_WheelColliders[i].brakeTorque = m_BrakeTorque * footbrake;
+                    // Square the input: full trigger stops much faster than half trigger
+                    m_WheelColliders[i].brakeTorque = m_BrakeTorque * (footbrake * footbrake);
+                    m_WheelColliders[i].motorTorque = 0f;
                 }
-                else if (footbrake > 0)
+                else if (reverse)
+                {
+                    // Reverse button held: drive backward, release all brake
+                    m_WheelColliders[i].brakeTorque = 0f;
+                    m_WheelColliders[i].motorTorque = -m_ReverseTorque;
+                }
+                else
                 {
                     m_WheelColliders[i].brakeTorque = 0f;
-                    m_WheelColliders[i].motorTorque = -m_ReverseTorque * footbrake;
                 }
             }
         }
