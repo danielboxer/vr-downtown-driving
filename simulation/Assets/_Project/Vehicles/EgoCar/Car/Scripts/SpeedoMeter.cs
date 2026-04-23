@@ -1,12 +1,15 @@
 using UnityEngine;
-
 using UnityEngine.UI; // Required for working with Unity UI Text
+using UnityStandardAssets.Vehicles.Car;
 
 
 public class Speedometer : MonoBehaviour
 {
     public GameObject TrafficObject;           // Assign via Inspector.
     public float updateInterval = 0.1f;          // Interval in seconds at which to update speed.
+
+    [Tooltip("Optional: assign CarUserControl to show 'R' instead of speed when in reverse.")]
+    public CarUserControl carUserControl;
 
     private Rigidbody rb;
     private Text m_text;
@@ -38,8 +41,16 @@ public class Speedometer : MonoBehaviour
             // Update the text if reference is available
             if (m_text != null)
             {
-                // Format to always show two digits, e.g. "05", "10"
-                m_text.text = string.Format("{0:00} km/h", m_Speed);
+                // Show "R" when in reverse, otherwise format speed
+                if (carUserControl != null && carUserControl.IsReverse)
+                {
+                    m_text.text = "R";
+                }
+                else
+                {
+                    // Format to always show two digits, e.g. "05", "10"
+                    m_text.text = string.Format("{0:00} km/h", m_Speed);
+                }
             }
 
             // Reset the timer
