@@ -51,7 +51,7 @@ public class SimulationController : MonoBehaviour
 
     // ‑‑‑‑ NEW: traffic‑light handling ‑‑‑‑
     [Header("Add all Junction GameObjects")]
-    public GameObject junctions;           // drag ‘Junctions’ root here
+    public GameObject junctions;           // drag 'Junctions' root here, or leave empty to auto-find
     private readonly Dictionary<string, GameObject> junctionCache = new();
 
     [Serializable]
@@ -153,6 +153,16 @@ public class SimulationController : MonoBehaviour
         if (_ExchangeData == null)
         {
             _ExchangeData = gameObject.AddComponent<ExchangeData>();
+        }
+
+        // Auto-find the Junctions root if not assigned in the Inspector
+        if (junctions == null)
+        {
+            var found = GameObject.Find("Junctions");
+            if (found != null)
+                junctions = found;
+            else
+                Debug.LogWarning("[SimulationController] 'Junctions' GameObject not found in scene. Traffic lights will not update.");
         }
         //StartCoroutine(FindGameObjectAfterDelay(1.0f));
 
@@ -453,6 +463,8 @@ public class SimulationController : MonoBehaviour
 
     private void ChangeTrafficStatus(string junctionID, string state)
     {
+        if (junctions == null) return;
+
         // find & cache the J4 GameObject exactly as before
         if (!junctionCache.TryGetValue(junctionID, out GameObject junctionGO))
         {
