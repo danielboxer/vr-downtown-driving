@@ -48,54 +48,47 @@ _SCENARIOS_ROOT = os.path.abspath(
     os.path.join(os.path.dirname(__file__), "..", "Scenarios")
 )
 
-
-def _discover_scenarios():
-    """Return {display_name: full_path} for subfolders containing any *.rou.xml."""
-    found = {}
-    if os.path.isdir(_SCENARIOS_ROOT):
-        for name in sorted(os.listdir(_SCENARIOS_ROOT)):
-            candidate = os.path.join(_SCENARIOS_ROOT, name)
-            if os.path.isdir(candidate) and any(
-                f.endswith(".rou.xml") for f in os.listdir(candidate)
-            ):
-                found[name] = candidate
-    return found
-
-
-_scenario_map = _discover_scenarios()  # {name: path}
-_scenario_names = list(_scenario_map.keys())
-
-scenario_display_var = tk.StringVar(value=_scenario_names[0] if _scenario_names else "")
-
-ttk.Label(root, text="Scenario").grid(row=1, column=0, sticky="e", padx=6, pady=3)
-scenario_combo = ttk.Combobox(
-    root, textvariable=scenario_display_var, values=_scenario_names, state="readonly"
+# Default to the first scenario subfolder found, so the field is immediately usable
+_default_scenario = next(
+    (
+        os.path.join(_SCENARIOS_ROOT, name)
+        for name in sorted(os.listdir(_SCENARIOS_ROOT))
+        if os.path.isdir(os.path.join(_SCENARIOS_ROOT, name))
+        and any(
+            f.endswith(".rou.xml")
+            for f in os.listdir(os.path.join(_SCENARIOS_ROOT, name))
+        )
+    ),
+    _SCENARIOS_ROOT,
 )
-scenario_combo.grid(row=1, column=1, sticky="we", padx=6, pady=3)
 
+scenario_dir_var = tk.StringVar(value=_default_scenario)
 
-def _get_scenario_dir() -> str:
-    """Resolve display name to full path, or return raw value if browsed."""
-    val = scenario_display_var.get().strip()
-    return _scenario_map.get(val, val)
+ttk.Label(root, text="Scenario folder").grid(
+    row=1, column=0, sticky="e", padx=6, pady=3
+)
+ttk.Entry(root, textvariable=scenario_dir_var).grid(
+    row=1, column=1, sticky="we", padx=6, pady=3
+)
 
 
 def browse_scenario():
     d = filedialog.askdirectory(
-        initialdir=_SCENARIOS_ROOT, title="Select scenario folder"
+        initialdir=_SCENARIOS_ROOT,
+        title="Select scenario folder",
     )
     if d:
-        name = os.path.basename(d)
-        if name not in _scenario_map:
-            _scenario_map[name] = d
-            _scenario_names.append(name)
-            scenario_combo["values"] = _scenario_names
-        scenario_display_var.set(name)
+        scenario_dir_var.set(d)
 
 
 ttk.Button(root, text="Browse…", command=browse_scenario).grid(
     row=1, column=2, padx=6, pady=3
 )
+
+
+def _get_scenario_dir() -> str:
+    return scenario_dir_var.get().strip()
+
 
 entries, row = {}, 2
 for k, v in DEFAULTS.items():
@@ -175,13 +168,14 @@ def run_sim(cfg: dict, stop_event=None):
     # Discover shared files in the Scenarios root (any matching name)
     def _glob_one(directory, pattern):
         import glob
+
         matches = glob.glob(os.path.join(directory, pattern))
         return matches[0] if matches else None
 
-    net_file    = _glob_one(parent_dir, "*.net.xml")
-    poly_file   = _glob_one(parent_dir, "*.poly.xml")
+    net_file = _glob_one(parent_dir, "*.net.xml")
+    poly_file = _glob_one(parent_dir, "*.poly.xml")
     vtypes_file = _glob_one(parent_dir, "vtypes.rou.xml")
-    route_file  = _glob_one(scenario_dir, "*.rou.xml")
+    route_file = _glob_one(scenario_dir, "*.rou.xml")
 
     if not net_file:
         logger.error("No *.net.xml found in %s", parent_dir)
@@ -196,10 +190,14 @@ def run_sim(cfg: dict, stop_event=None):
     sumo_bin = "sumo-gui" if use_gui else "sumo"
     sumo_cmd = [
         sumo_bin,
-        "-n", net_file,
-        "-r", route_files,
-        "--step-length", str(steplength),
-        "--lateral-resolution", str(lateral_resolution),
+        "-n",
+        net_file,
+        "-r",
+        route_files,
+        "--step-length",
+        str(steplength),
+        "--lateral-resolution",
+        str(lateral_resolution),
     ]
     if poly_file:
         sumo_cmd += ["-a", poly_file]
