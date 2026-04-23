@@ -7,6 +7,7 @@ using Assets.Scripts.SUMOImporter.NetFileComponents;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Xml.Serialization;
 using UnityEditor;
 using UnityEngine;
@@ -182,8 +183,15 @@ public class RoadNetworkBuilder : MonoBehaviour
             SceneVisibilityManager.instance.DisablePicking(roadNetworkRoot, true);
         }
 
-        var netFilePath = Path.Combine(sumoXmlFolderPath, "Sumo2Unity.net.xml");
-        var polyFilePath = Path.Combine(sumoXmlFolderPath, "Sumo2Unity.poly.xml");
+        // Auto-detect the net and poly files by extension so the filenames are not hardcoded
+        var netFilePath = Directory.GetFiles(sumoXmlFolderPath, "*.net.xml").FirstOrDefault();
+        var polyFilePath = Directory.GetFiles(sumoXmlFolderPath, "*.poly.xml").FirstOrDefault();
+
+        if (netFilePath == null)
+        {
+            Debug.LogError($"[RoadNetworkBuilder] No *.net.xml found in '{sumoXmlFolderPath}'.");
+            return;
+        }
 
         laneRecords = new();
         edgeRecords = new();
