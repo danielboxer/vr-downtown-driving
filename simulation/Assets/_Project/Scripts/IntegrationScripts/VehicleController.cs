@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 public class VehicleController : MonoBehaviour
 {
@@ -23,6 +24,20 @@ public class VehicleController : MonoBehaviour
 
     /// <summary>True after a collision detaches this vehicle from SUMO control.</summary>
     public bool IsDetached { get; private set; }
+
+    // ── Horn audio ──
+    [HideInInspector] public List<AudioClip> hornClips = new List<AudioClip>();
+    [HideInInspector] public float hornVolume = 1f;
+    [HideInInspector] public float hornTriggerDelay = 3f;   // seconds stopped before honking
+    [HideInInspector] public float hornCooldown = 5f;       // min seconds between honks
+    [HideInInspector] public float hornTriggerDistance = 18f; // max metres to ego car
+    [HideInInspector] public float hornHonkChance = 0.4f;   // probability per cooldown window
+    [HideInInspector] public float hornAmbientChance = 0.1f; // probability when ego not nearby
+
+    private AudioSource _hornSource;
+    private float _stoppedTimer;
+    private float _lastHornTime = -99f;
+    private Transform _egoTransform;
 
     /// <summary>
     /// Detach this NPC from SUMO control and apply a collision impulse.
@@ -60,6 +75,14 @@ public class VehicleController : MonoBehaviour
         curPos = lastPos = transform.position;
         curRot = lastRot = transform.rotation;
         lastTime = curTime = Time.time;
+
+        // Dedicated audio source for the horn
+        _hornSource = gameObject.AddComponent<AudioSource>();
+        _hornSource.playOnAwake = false;
+        _hornSource.loop = false;
+        _hornSource.spatialBlend = 1f;
+        _hornSource.rolloffMode = AudioRolloffMode.Linear;
+        _hornSource.maxDistance = 50f;
     }
 
     public void UpdateTarget(Vector3 pos, Quaternion rot,
@@ -83,6 +106,10 @@ public class VehicleController : MonoBehaviour
 
         stepLen = sim.unityStepLength;                 // ← value set in Inspector
         turnThresholdDeg = Mathf.Clamp(stepLen * 40f, 0.25f, 10f);
+
+        // Cache ego vehicle for proximity checks (available after RegisterEgoVehicle is called)
+        if (sim.egoVehicle != null)
+            _egoTransform = sim.egoVehicle.transform;
     }
     private void FixedUpdate()
     {
@@ -133,6 +160,56 @@ public class VehicleController : MonoBehaviour
         /* original ultra-smooth positional blend */
         transform.localPosition =
             Vector3.Lerp(transform.localPosition, curPos, 0.02f);
+
+        CheckHorn();
+    }
+
+    private void CheckHorn()
+    {
+        if (hornClips == null || hornClips.Count == 0 || _hornSource == null) return;
+
+        // Lazily resolve ego transform in case RegisterEgoVehicle ran after Awake
+        if (_egoTransform == null)
+        {
+            SimulationController sim = FindFirstObjectByType<SimulationController>();
+            if (sim != null && sim.egoVehicle != null)
+                _egoTransform = sim.egoVehicle.transform;
+        }
+
+        // Ego not found yet — still allow ambient honking
+        // Track consecutive stopped time from SUMO commanded speed
+        const float stoppedThreshold = 0.5f;
+        if (curLong < stoppedThreshold)
+            _stoppedTimer += Time.fixedDeltaTime;
+        else
+            _stoppedTimer = 0f;
+
+        if (_stoppedTimer < hornTriggerDelay) return;
+        if (Time.time - _lastHornTime < hornCooldown) return;
+
+        // Only honk at ego-proximity chance; otherwise try the lower ambient chance
+        Vector3 toEgo = _egoTransform != null
+            ? _egoTransform.position - transform.position
+            : Vector3.one * float.MaxValue;
+        float dist = toEgo.magnitude;
+        bool egoInFront = dist <= hornTriggerDistance
+            && Vector3.Dot(transform.forward, toEgo.normalized) >= 0.3f;
+
+        float roll = Random.value;
+        if (egoInFront)
+        {
+            if (roll > hornHonkChance) return;
+        }
+        else
+        {
+            // General traffic impatience honk, less frequent
+            if (roll > hornAmbientChance) return;
+        }
+
+        AudioClip clip = hornClips[Random.Range(0, hornClips.Count)];
+        if (clip != null)
+            _hornSource.PlayOneShot(clip, hornVolume);
+        _lastHornTime = Time.time;
     }
 
     private static Vector3 CalcAngularVel(Quaternion from, Quaternion to, float dt)

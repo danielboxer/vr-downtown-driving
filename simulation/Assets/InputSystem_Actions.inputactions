@@ -1067,6 +1067,15 @@
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
+                },
+                {
+                    "name": "Horn",
+                    "type": "Button",
+                    "id": "50426b2d-d8b3-442d-8db1-5501567a1b8a",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
                 }
             ],
             "bindings": [
@@ -1254,6 +1263,28 @@
                     "processors": "",
                     "groups": ";XR",
                     "action": "Calibrate",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "496808a8-77a5-4473-b28c-41d0bbe0cef5",
+                    "path": "<Keyboard>/h",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Horn",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "b4e21f9c-aa12-4f03-9d17-6c7e8a3b2d41",
+                    "path": "<XRController>{RightHand}/thumbstickClicked",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": ";XR",
+                    "action": "Horn",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }
