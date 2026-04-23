@@ -905,7 +905,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 20fa55eb64c5cea4aa3c71ae19c434bf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  masterVolume: 1
+  engineVolume: 0.4
+  turnSignalVolume: 1.5
   engineSoundStyle: 1
   lowAccelClip: {fileID: 8300000, guid: c4d8928c75c21af43998193f0f038429, type: 3}
   lowDecelClip: {fileID: 8300000, guid: c4d8928c75c21af43998193f0f038429, type: 3}

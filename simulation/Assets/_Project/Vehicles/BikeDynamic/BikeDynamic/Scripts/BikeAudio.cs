@@ -8,7 +8,7 @@ namespace UnityStandardAssets.Bike
     {
         /* ───────────── NEW FIELD ───────────── */
         [Header("Master Volume (per-bike)")]
-        [Range(0f, 1f)] public float masterVolume = 0.02f;   // 0 = silent
+        [Range(0f, 2f)] public float masterVolume = 0.02f;   // 0 = silent
 
         [Header("Engine Clip")]
         [Tooltip("Single audio clip for the engine sound.")]

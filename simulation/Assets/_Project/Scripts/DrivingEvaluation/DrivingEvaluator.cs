@@ -57,23 +57,23 @@ public class DrivingEvaluator : MonoBehaviour
     [SerializeField] private bool playWarningSounds = true;
 
     [Tooltip("Master volume for evaluator warning sounds.")]
-    [Min(0f)]
+    [Range(0f, 2f)]
     [SerializeField] private float warningVolume = 1f;
 
     [Tooltip("Base volume for non-curb collision sounds before impact scaling.")]
-    [Min(0f)]
+    [Range(0f, 2f)]
     [SerializeField] private float collisionVolume = 1f;
 
     [Tooltip("Base volume for curb bump sounds before impact scaling.")]
-    [Min(0f)]
+    [Range(0f, 2f)]
     [SerializeField] private float curbVolume = 0.75f;
 
     [Tooltip("Lowest volume multiplier used for a qualifying collision.")]
     [Range(0f, 1f)]
     [SerializeField] private float minImpactVolumeMultiplier = 0.35f;
 
-    [Tooltip("Impact speed in m/s that reaches full collision volume.")]
-    [SerializeField] private float impactSpeedForMaxVolume = 12f;
+    [Tooltip("Impact speed in km/h that reaches full collision volume.")]
+    [SerializeField] private float impactSpeedForMaxVolume = 25f;
 
     [Tooltip("Minimum pitch used for collision and curb sounds.")]
     [Range(0.5f, 1.5f)]
@@ -88,7 +88,7 @@ public class DrivingEvaluator : MonoBehaviour
     [SerializeField] private bool playVoicePrompts = true;
 
     [Tooltip("Playback volume for voice prompts.")]
-    [Min(0f)]
+    [Range(0f, 2f)]
     [SerializeField] private float voiceVolume = 1f;
 
     [Tooltip("Extra delay after the warning sound before the voice prompt starts.")]
@@ -530,7 +530,8 @@ public class DrivingEvaluator : MonoBehaviour
         if (baseVolume <= 0f)
             return 0f;
 
-        float maxImpactSpeed = Mathf.Max(impactSpeedForMaxVolume, 0.01f);
+        // Convert km/h threshold to m/s to match relativeVelocity units
+        float maxImpactSpeed = Mathf.Max(impactSpeedForMaxVolume / 3.6f, 0.01f);
         float normalizedImpact = Mathf.Clamp01(collision.relativeVelocity.magnitude / maxImpactSpeed);
         float impactMultiplier = Mathf.Lerp(minImpactVolumeMultiplier, 1f, normalizedImpact);
 
