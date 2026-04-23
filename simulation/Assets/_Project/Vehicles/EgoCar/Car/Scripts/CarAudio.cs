@@ -36,6 +36,11 @@ namespace UnityStandardAssets.Vehicles.Car
         public List<AudioClip> hornClips = new List<AudioClip>();
         [Range(0f, 2f)] public float hornVolume = 1f;
 
+        [Header("Gear Change Sound")]
+        [Tooltip("Clip played when the driver toggles between drive and reverse gear.")]
+        public AudioClip gearChangeClip;
+        [Range(0f, 2f)] public float gearChangeVolume = 1f;
+
         [Header("Turn Signal Sounds")]
         public AudioClip turnSignalToggleSound;
         public AudioClip turnSignalLoopSound;
@@ -44,6 +49,7 @@ namespace UnityStandardAssets.Vehicles.Car
 
         private AudioSource m_LowAccel, m_LowDecel, m_HighAccel, m_HighDecel;
         private AudioSource m_HornSource;
+        private AudioSource m_GearChangeSource;
         private AudioSource m_TurnSignalToggleSource;
         private AudioSource m_TurnSignalLoopSource;
         private Coroutine m_LoopStartCoroutine;
@@ -154,6 +160,12 @@ namespace UnityStandardAssets.Vehicles.Car
             m_HornSource.loop = false;
             m_HornSource.spatialBlend = 1f;
 
+            // Dedicated one-shot source for gear change
+            m_GearChangeSource = gameObject.AddComponent<AudioSource>();
+            m_GearChangeSource.playOnAwake = false;
+            m_GearChangeSource.loop = false;
+            m_GearChangeSource.spatialBlend = 1f;
+
             // Dedicated one-shot source for the toggle click (activate/deactivate)
             m_TurnSignalToggleSource = gameObject.AddComponent<AudioSource>();
             m_TurnSignalToggleSource.playOnAwake = false;
@@ -174,6 +186,12 @@ namespace UnityStandardAssets.Vehicles.Car
             AudioClip clip = hornClips[Random.Range(0, hornClips.Count)];
             if (clip != null)
                 m_HornSource.PlayOneShot(clip, hornVolume);
+        }
+
+        public void PlayGearChange()
+        {
+            if (gearChangeClip != null)
+                m_GearChangeSource.PlayOneShot(gearChangeClip, gearChangeVolume);
         }
 
         private void PlayTurnSignalToggle()
