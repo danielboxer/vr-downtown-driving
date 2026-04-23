@@ -201,9 +201,11 @@ public class RoadNetworkEditorWindow : EditorWindow
         using (new GUILayout.HorizontalScope())
         {
             if (GUILayout.Button("Roads & Junctions"))
-                RunSelectiveRegen(roads: true, trafficLights: false);
+                RunSelectiveRegen(roads: true, trafficLights: false, roadSigns: false);
             if (GUILayout.Button("Traffic Lights"))
-                RunSelectiveRegen(roads: false, trafficLights: true);
+                RunSelectiveRegen(roads: false, trafficLights: true, roadSigns: false);
+            if (GUILayout.Button("Road Signs"))
+                RunSelectiveRegen(roads: false, trafficLights: false, roadSigns: true);
         }
     }
 
@@ -273,10 +275,13 @@ public class RoadNetworkEditorWindow : EditorWindow
         EditorUtility.DisplayProgressBar("Generation Progress", "Generating Traffic Lights", 0.6f);
         builder.GenerateTrafficLights();
 
+        EditorUtility.DisplayProgressBar("Generation Progress", "Generating Road Signs", 0.85f);
+        builder.GenerateRoadSigns();
+
         EditorUtility.ClearProgressBar();
     }
 
-    private void RunSelectiveRegen(bool roads, bool trafficLights)
+    private void RunSelectiveRegen(bool roads, bool trafficLights, bool roadSigns)
     {
         RoadNetworkBuilder builder = GetOrCreateBuilder();
 
@@ -297,6 +302,14 @@ public class RoadNetworkEditorWindow : EditorWindow
             builder.DeleteTrafficLightObjects();
             EditorUtility.DisplayProgressBar("Regeneration", "Generating Traffic Lights", 0.7f);
             builder.GenerateTrafficLights();
+        }
+
+        if (roadSigns)
+        {
+            EditorUtility.DisplayProgressBar("Regeneration", "Deleting old road signs...", 0.75f);
+            builder.DeleteRoadSignObjects();
+            EditorUtility.DisplayProgressBar("Regeneration", "Generating Road Signs", 0.9f);
+            builder.GenerateRoadSigns();
         }
 
         EditorUtility.ClearProgressBar();

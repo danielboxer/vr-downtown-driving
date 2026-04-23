@@ -30,6 +30,12 @@ public class RoadNetworkBuilder : MonoBehaviour
         if (Singleton == this) Singleton = null;
     }
 
+    [Header("Road Signs")]
+    [Tooltip("Stop sign prefab placed at minor approaches of priority and allway-stop junctions.")]
+    public GameObject stopSignPrefab;
+    [Tooltip("Height offset above road surface for sign base placement.")]
+    public float signHeightOffset = 0f;
+
     [Header("Materials (Road, Junction, Decals)")]
     public Material roadSurfaceMaterial;
     public Material junctionSurfaceMaterial;
@@ -978,6 +984,113 @@ public class RoadNetworkBuilder : MonoBehaviour
             }
         }
         Debug.Log($"[Sumo2Unity] Generated traffic lights for {tlJunctionIds.Count} junctions under 'Junctions' root.");
+    }
+
+    /// <summary>Deletes road sign GameObjects (under the RoadSignsRoot scene object).</summary>
+    public void DeleteRoadSignObjects()
+    {
+        var signsRoot = GameObject.Find("RoadSignsRoot");
+        if (signsRoot != null)
+            DestroyImmediate(signsRoot);
+    }
+
+    /// <summary>
+    /// Places stop sign prefabs at junction approaches based on SUMO junction type:
+    ///   - AllwayStop: signs on every incoming edge.
+    ///   - Priority / PriorityStop: signs only on incoming edges whose edge priority
+    ///     is strictly below the maximum priority found among all incoming edges.
+    /// </summary>
+    public void GenerateRoadSigns()
+    {
+        if (_netFile == null) { Debug.LogError("Net file not loaded."); return; }
+
+        if (stopSignPrefab == null)
+        {
+            // Fall back to Resources lookup if not assigned in Inspector
+            stopSignPrefab = Resources.Load<GameObject>("Signs/StopSign");
+        }
+
+        if (stopSignPrefab == null)
+        {
+            Debug.LogError("[RoadNetworkBuilder] stopSignPrefab is not assigned and 'Signs/StopSign' was not found in Resources.");
+            return;
+        }
+
+        // Group edges by destination junction for efficient lookup
+        var edgesByToJunction = new Dictionary<string, List<RoadEdgeData>>();
+        foreach (var edgeData in edgeRecords.Values)
+        {
+            var toJ = edgeData.GetToJunction();
+            if (toJ == null) continue;
+
+            if (!edgesByToJunction.TryGetValue(toJ.junctionId, out var list))
+            {
+                list = new List<RoadEdgeData>();
+                edgesByToJunction[toJ.junctionId] = list;
+            }
+            list.Add(edgeData);
+        }
+
+        GameObject signsRoot = new GameObject("RoadSignsRoot");
+        int placedCount = 0;
+
+        foreach (var jData in junctionRecords.Values)
+        {
+            bool isAllwayStop = jData.junctionType == JunctionTypeType.AllwayStop;
+            bool isPriority = jData.junctionType == JunctionTypeType.Priority
+                             || jData.junctionType == JunctionTypeType.PriorityStop;
+
+            if (!isAllwayStop && !isPriority) continue;
+            if (!edgesByToJunction.TryGetValue(jData.junctionId, out var incomingEdges)) continue;
+            if (incomingEdges.Count == 0) continue;
+
+            // For priority junctions, determine the maximum incoming edge priority.
+            // Approaches with a lower priority value than the maximum are minor roads (stop sign needed).
+            int maxPriority = int.MinValue;
+            if (isPriority)
+            {
+                foreach (var edge in incomingEdges)
+                    if (edge.GetEdgePriority() > maxPriority)
+                        maxPriority = edge.GetEdgePriority();
+            }
+
+            Vector3 junctionCenter = ToUnity(jData.xPos, jData.yPos);
+
+            foreach (var edge in incomingEdges)
+            {
+                // Skip if this is a major-road approach at a priority junction
+                if (isPriority && edge.GetEdgePriority() >= maxPriority) continue;
+
+                var lanes = edge.GetLaneDataList();
+                if (lanes == null || lanes.Count == 0) continue;
+
+                // Use the rightmost lane (index 0 in SUMO) to find the approach endpoint
+                var rightLane = lanes[0];
+                if (rightLane.shapePoints == null || rightLane.shapePoints.Count < 2) continue;
+
+                int last = rightLane.shapePoints.Count - 1;
+                Vector3 laneEnd = ToUnity(rightLane.shapePoints[last][0], rightLane.shapePoints[last][1]);
+                Vector3 prevPt = ToUnity(rightLane.shapePoints[last - 1][0], rightLane.shapePoints[last - 1][1]);
+                Vector3 approachDir = (laneEnd - prevPt).normalized;
+
+                // Place sign on the right curb (same convention as traffic lights)
+                Vector3 rightDir = new Vector3(approachDir.z, 0f, -approachDir.x);
+                float laneW = (float)rightLane.laneWidth;
+                if (laneW <= 0f) laneW = 3.2f;
+                float curbOffset = 0.5f;
+                Vector3 signPos = laneEnd + rightDir * (laneW * 0.5f + curbOffset);
+                signPos.y += signHeightOffset;
+
+                GameObject sign = (GameObject)PrefabUtility.InstantiatePrefab(stopSignPrefab);
+                sign.name = $"StopSign_{jData.junctionId}_E{edge.GetEdgeId()}";
+                sign.transform.SetParent(signsRoot.transform);
+                sign.transform.position = signPos;
+                // Face the sign toward oncoming traffic (same as the traffic light heads)
+                sign.transform.rotation = Quaternion.LookRotation(-approachDir, Vector3.up);
+                placedCount++;
+            }
+        }
+        Debug.Log($"[Sumo2Unity] Placed {placedCount} stop signs under 'RoadSignsRoot'.");
     }
 
     private Vector3 ToUnity(double x, double y) => new((float)(x - originX), 0f, (float)(y - originY));
