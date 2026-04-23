@@ -134,7 +134,7 @@ namespace UnityStandardAssets.Vehicles.Car
         }
 
 
-        public void Move(float steering, float accel, float footbrake, float handbrake)
+        public void Move(float steering, float accel, float footbrake, float handbrake, bool reverse = false)
         {
             for (int i = 0; i < 4; i++)
             {
@@ -158,7 +158,7 @@ namespace UnityStandardAssets.Vehicles.Car
             m_WheelColliders[1].steerAngle = m_SteerAngle;
 
             SteerHelper();
-            ApplyDrive(accel, footbrake);
+            ApplyDrive(accel, footbrake, reverse);
             CapSpeed();
 
             //Set the handbrake.
@@ -212,8 +212,26 @@ namespace UnityStandardAssets.Vehicles.Car
         }
 
 
-        private void ApplyDrive(float accel, float footbrake)
+        private void ApplyDrive(float accel, float footbrake, bool reverse)
         {
+            if (reverse)
+            {
+                // Reverse gear: accel drives backward; brake stops the car
+                for (int i = 0; i < 4; i++)
+                {
+                    if (footbrake > 0)
+                    {
+                        m_WheelColliders[i].brakeTorque = m_BrakeTorque * footbrake;
+                        m_WheelColliders[i].motorTorque = 0f;
+                    }
+                    else
+                    {
+                        m_WheelColliders[i].brakeTorque = 0f;
+                        m_WheelColliders[i].motorTorque = -m_ReverseTorque * accel;
+                    }
+                }
+                return;
+            }
 
             float thrustTorque;
             switch (m_CarDriveType)
@@ -238,17 +256,15 @@ namespace UnityStandardAssets.Vehicles.Car
 
             }
 
+            // Braking: apply proportional brake torque, or release if not braking.
+            // The old auto-reverse behavior (applying reverse torque at low speed)
+            // is removed; reversing is now handled by the dedicated GearChange toggle.
             for (int i = 0; i < 4; i++)
             {
-                if (CurrentSpeed > 5 && Vector3.Angle(transform.forward, m_Rigidbody.linearVelocity) < 50f)
-                {
+                if (footbrake > 0)
                     m_WheelColliders[i].brakeTorque = m_BrakeTorque * footbrake;
-                }
-                else if (footbrake > 0)
-                {
+                else
                     m_WheelColliders[i].brakeTorque = 0f;
-                    m_WheelColliders[i].motorTorque = -m_ReverseTorque * footbrake;
-                }
             }
         }
 
