@@ -90,8 +90,6 @@ public class RoadNetworkEditorWindow : EditorWindow
     private double lastSlideSwap;
     private const float slideInterval = 3f;
 
-    private static string[] scenarioNames;
-    private static int selectedScenarioIndex;
     private bool curbSettingsFoldout = false;
 
     private static string LocateScenariosRoot()
@@ -102,35 +100,15 @@ public class RoadNetworkEditorWindow : EditorWindow
         return null;
     }
 
-    private static void RefreshScenarioList()
-    {
-        string root = LocateScenariosRoot();
-        if (root == null) { scenarioNames = null; return; }
-
-        var dirs = Directory.GetDirectories(root)
-            .Where(d => !Path.GetFileName(d).Equals("Results", StringComparison.OrdinalIgnoreCase))
-            .OrderBy(d => d)
-            .ToArray();
-
-        scenarioNames = new string[dirs.Length];
-        for (int i = 0; i < dirs.Length; i++)
-            scenarioNames[i] = Path.GetFileName(dirs[i]);
-
-        // Try to keep previous selection
-        if (selectedScenarioIndex >= scenarioNames.Length)
-            selectedScenarioIndex = 0;
-
-        if (scenarioNames.Length > 0)
-            sumoXmlFolderPath = Path.Combine(root, scenarioNames[selectedScenarioIndex]);
-    }
-
     [MenuItem("Sumo2Unity/1. Create Road Network")]
     public static void OpenWindow()
     {
         RoadNetworkEditorWindow w = GetWindow<RoadNetworkEditorWindow>("Sumo2Unity - Road Network");
         w.minSize = new Vector2(Sumo2UnityGuiConsts.WindowWidth, Sumo2UnityGuiConsts.WindowHeight);
         w.maxSize = w.minSize;
-        RefreshScenarioList();
+        // Default to the Scenarios root, which is where net.xml and poly.xml live
+        if (string.IsNullOrEmpty(sumoXmlFolderPath))
+            sumoXmlFolderPath = LocateScenariosRoot() ?? sumoXmlFolderPath;
     }
 
     private void OnEnable()
@@ -152,33 +130,15 @@ public class RoadNetworkEditorWindow : EditorWindow
         GUILayout.Label("Import Sumo Files and Generate Network", EditorStyles.boldLabel);
         GUILayout.Space(5);
 
-        // Scenario dropdown (auto-detected from Scenarios/ folder)
-        if (scenarioNames != null && scenarioNames.Length > 0)
-        {
-            int newIndex = EditorGUILayout.Popup("Scenario", selectedScenarioIndex, scenarioNames);
-            if (newIndex != selectedScenarioIndex)
-            {
-                selectedScenarioIndex = newIndex;
-                string root = LocateScenariosRoot();
-                if (root != null)
-                    sumoXmlFolderPath = Path.Combine(root, scenarioNames[selectedScenarioIndex]);
-            }
-        }
-
         sumoXmlFolderPath = EditorGUILayout.TextField(
-            new GUIContent("Sumo Files Folder",
-            "Directory containing Sumo .xml files (e.g., map.net.xml)."),
+            new GUIContent("Scenarios Folder",
+            "Root Scenarios directory containing the .net.xml and .poly.xml files."),
             sumoXmlFolderPath);
 
-        using (new GUILayout.HorizontalScope())
+        if (GUILayout.Button("Select Folder"))
         {
-            if (GUILayout.Button("Select Folder"))
-            {
-                string chosen = EditorUtility.OpenFolderPanel("Choose the folder", sumoXmlFolderPath, "");
-                if (!string.IsNullOrEmpty(chosen)) sumoXmlFolderPath = chosen;
-            }
-            if (GUILayout.Button("Refresh Scenarios"))
-                RefreshScenarioList();
+            string chosen = EditorUtility.OpenFolderPanel("Choose Scenarios folder", sumoXmlFolderPath, "");
+            if (!string.IsNullOrEmpty(chosen)) sumoXmlFolderPath = chosen;
         }
 
         GUILayout.Space(10);
@@ -358,17 +318,17 @@ public class Sumo2UnityIntegrationWindow : EditorWindow
     private static string LocateScenarioFolder()
     {
         string projectRoot = Directory.GetParent(Application.dataPath).FullName;
+        // Walk up until we find the Scenarios root that contains Sumo2UnityTool.exe
         DirectoryInfo dir = new DirectoryInfo(projectRoot);
-
         while (dir != null)
         {
-            string candidate = Path.Combine(dir.FullName, "Scenario1");
+            string candidate = Path.Combine(dir.FullName, "Scenarios");
             if (Directory.Exists(candidate) &&
                 File.Exists(Path.Combine(candidate, "Sumo2UnityTool.exe")))
                 return candidate;
             dir = dir.Parent;
         }
-        return Path.Combine(projectRoot, "Scenario1");
+        return Path.Combine(projectRoot, "Scenarios");
     }
 
     private static bool IsToolRunning()
