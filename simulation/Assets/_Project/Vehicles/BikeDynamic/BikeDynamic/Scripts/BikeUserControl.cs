@@ -20,19 +20,21 @@ namespace UnityStandardAssets.Bike
 
         // Resolved actions (looked up by name from the asset)
         private InputAction _steerAction;
-        private InputAction _accelAction;
+        private InputAction _accelAction; // right trigger, also used as second brake on bike
         private InputAction _brakeAction;
-        private InputAction _handbrakeAction;
 
         // Cached input values (read in Update, used in FixedUpdate)
         private float _steerInput;
         private float _accelInput;
         private float _brakeInput;
-        private float _handbrakeInput;
         private float _smoothedSteer; // Smoothed keyboard steering value
 
         [Tooltip("Smoothing speed for keyboard steering (higher = snappier).")]
         public float steerSmoothing = 5f; // Mimics old Input.GetAxis smoothing
+
+        [Header("Auto Speed")]
+        [Tooltip("How fast (0-1 per second) the bike ramps to full throttle when both triggers are released.")]
+        public float autoAccelRamp = 0.4f;
 
         private void Awake()
         {
@@ -49,7 +51,6 @@ namespace UnityStandardAssets.Bike
                     _steerAction = map.FindAction("Steer", false);
                     _accelAction = map.FindAction("Accelerate", false);
                     _brakeAction = map.FindAction("Brake", false);
-                    _handbrakeAction = map.FindAction("HandBrake", false);
                 }
             }
         }
@@ -59,7 +60,6 @@ namespace UnityStandardAssets.Bike
             _steerAction?.Enable();
             _accelAction?.Enable();
             _brakeAction?.Enable();
-            _handbrakeAction?.Enable();
         }
 
         private void OnDisable()
@@ -67,7 +67,6 @@ namespace UnityStandardAssets.Bike
             _steerAction?.Disable();
             _accelAction?.Disable();
             _brakeAction?.Disable();
-            _handbrakeAction?.Disable();
         }
 
         private void Update()
@@ -86,9 +85,13 @@ namespace UnityStandardAssets.Bike
             {
                 _steerInput = actionSteer;
             }
-            _accelInput = _accelAction?.ReadValue<float>() ?? 0f;
-            _brakeInput = _brakeAction?.ReadValue<float>() ?? 0f;
-            _handbrakeInput = _handbrakeAction?.ReadValue<float>() ?? 0f;
+            // Both triggers act as brakes — take whichever is pressed more
+            _brakeInput = Mathf.Max(
+                _brakeAction?.ReadValue<float>() ?? 0f,
+                _accelAction?.ReadValue<float>() ?? 0f
+            );
+            float targetAccel = _brakeInput < 0.05f ? 1f : 0f;
+            _accelInput = Mathf.MoveTowards(_accelInput, targetAccel, autoAccelRamp * Time.deltaTime);
         }
 
         private void FixedUpdate()
@@ -96,7 +99,6 @@ namespace UnityStandardAssets.Bike
             float h = _steerInput;
             float accel = _accelInput;
             float brake = _brakeInput;
-            float handbrake = _handbrakeInput;
 
             // Determine the target steering angle based on input
             float targetAngle = h * m_Bike.m_MaximumSteerAngle;
@@ -105,7 +107,7 @@ namespace UnityStandardAssets.Bike
             m_Wheel.transform.localRotation = Quaternion.Euler(0f, targetAngle, 0f);
 
             // Pass the input to the bike controller
-            m_Bike.Move(h, accel, -brake, handbrake);
+            m_Bike.Move(h, accel, -brake, 0f);
         }
     }
 }
