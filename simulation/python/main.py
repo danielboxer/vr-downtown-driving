@@ -23,7 +23,7 @@ import zmq  # pip install pyzmq
 DEFAULTS = {
     "IntegrationStartTime": 540,
     "ExperimentStartTime": 600,
-    "ExperimentEndTime": 720,
+    "ExperimentEndTime": 0,  # 0 = no time limit; set to a positive value (seconds) to stop after that sim time
     "steplength": 0.1,
     "lateral_resolution": 0.3,
     "zoom": 150.0,  # (bigger value → closer)
@@ -303,7 +303,9 @@ def run_sim(cfg: dict, stop_event=None):
 
         while (
             traci.simulation.getMinExpectedNumber() > 0
-            and traci.simulation.getTime() < ExperimentEndTime
+            and (
+                ExperimentEndTime <= 0 or traci.simulation.getTime() < ExperimentEndTime
+            )
             and not stop_event.is_set()
         ):
             loop_t0 = time.perf_counter()
