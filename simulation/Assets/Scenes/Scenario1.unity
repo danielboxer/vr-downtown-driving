@@ -76863,8 +76863,8 @@ Transform:
   m_GameObject: {fileID: 458998255}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0.5849577, z: 0, w: 0.8110638}
-  m_LocalPosition: {x: -9.9, y: 0, z: 182.9}
-  m_LocalScale: {x: 169.1, y: 5, z: 37.9}
+  m_LocalPosition: {x: -5.5, y: 0, z: 169.9}
+  m_LocalScale: {x: 140.1, y: 5, z: 37.9}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 580738290}
@@ -98185,6 +98185,7 @@ Transform:
   - {fileID: 1523446694}
   - {fileID: 197975645}
   - {fileID: 458998256}
+  - {fileID: 1838058016}
   - {fileID: 1449560308}
   - {fileID: 1840749821}
   - {fileID: 2090697540}
@@ -275196,6 +275197,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   egoVehicle: {fileID: 2471852994914885337, guid: 3964cd274d2587648aa2f630736264d0, type: 3}
   unityStepLength: 0.1
+  npcHornClips:
+  - {fileID: 8300000, guid: a011fd7d609996049bc63be79c3615b0, type: 3}
+  - {fileID: 8300000, guid: 7e4a718e9e64ed940acd9a7de45cbdfa, type: 3}
+  - {fileID: 8300000, guid: 6da9300cb5149334f8500883ed474745, type: 3}
+  npcHornVolume: 1
+  npcHornTriggerDelay: 3
+  npcHornCooldown: 5
+  npcHornTriggerDistance: 18
   junctions: {fileID: 0}
   carModelsList:
   - sumoVehicleType: 301
@@ -275291,6 +275300,7 @@ MonoBehaviour:
     turnSignalChecks: []
   enabledScenarios: 
   speedLimitKmh: 40
+  speedingToleranceKmh: 5
   speedingLogCooldown: 15
   playWarningSounds: 1
   warningVolume: 1
@@ -319851,6 +319861,59 @@ MonoBehaviour:
   m_FadeFactor: 1
   version: 1
   m_DecalLayerMask: 1
+--- !u!1 &1838058015
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1838058016}
+  - component: {fileID: 1838058017}
+  m_Layer: 0
+  m_Name: Cube (19)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1838058016
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1838058015}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0.5849577, z: 0, w: 0.8110638}
+  m_LocalPosition: {x: -31.9, y: 0, z: 250}
+  m_LocalScale: {x: 27.1, y: 5, z: 28.7}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 580738290}
+  m_LocalEulerAnglesHint: {x: 0, y: 71.6, z: 0}
+--- !u!65 &1838058017
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1838058015}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &1838155046
 GameObject:
   m_ObjectHideFlags: 0
