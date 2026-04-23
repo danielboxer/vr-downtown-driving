@@ -162,6 +162,7 @@ public class DrivingEvaluator : MonoBehaviour
     // determine whether the car turned right, left, or took the wrong road.
     private string _lastStopLineJunctionId;
     private Vector3 _lastStopLineApproachDir;
+    private Vector3 _lastStopLinePosition;
 
     private struct QueuedVoicePrompt
     {
@@ -203,6 +204,10 @@ public class DrivingEvaluator : MonoBehaviour
         _evalStartTime = Time.time;
 
         _evaluationEnabled = true;
+
+        _lastStopLineJunctionId = null;
+        _lastStopLineApproachDir = Vector3.zero;
+        _lastStopLinePosition = Vector3.zero;
 
         carUserControl = (_vehicleMode == VehicleMode.Car)
             ? egoVehicle.GetComponent<CarUserControl>()
@@ -296,11 +301,40 @@ public class DrivingEvaluator : MonoBehaviour
     {
         if (!_evaluationEnabled) return;
 
-        // Record approach info for subsequent turn-trigger classification
-        _lastStopLineJunctionId = trigger.junctionId;
-        _lastStopLineApproachDir = trigger.transform.forward;
+        // ── 1. Wrong-way detection via stop lines ──
+        // If this stop line is at the same junction as the last one crossed but its
+        // approach direction is perpendicular (|dot| < 0.3), the car has drifted into
+        // an adjacent road's lane rather than going straight or turning correctly.
+        if (_lastStopLineJunctionId == trigger.junctionId &&
+            _lastStopLineApproachDir != Vector3.zero)
+        {
+            float parallelism = Mathf.Abs(
+                Vector3.Dot(trigger.transform.forward, _lastStopLineApproachDir));
+            if (parallelism < 0.3f)
+            {
+                LogEvent(trigger.junctionId, "WrongWayEntry", "");
+                PlayWarningCue();
+                QueueVoicePrompt(wrongWayVoiceClip);
+                Debug.LogWarning(
+                    $"[DrivingEvaluator] WRONG WAY at junction {trigger.junctionId}!");
+                return; // this stop line belongs to cross-traffic; skip red-light check
+            }
+        }
 
-        // ── 1. Red light check (always performed) ──
+        // ── 2. Update approach tracking ──
+        // Only update when velocity is aligned with this stop line's direction so a
+        // mid-intersection clip from an adjacent road does not overwrite the true approach.
+        bool velocityAligned = _egoRb == null ||
+            Vector3.Dot(_egoRb.linearVelocity.normalized, trigger.transform.forward) > 0.3f;
+
+        if (velocityAligned)
+        {
+            _lastStopLineJunctionId = trigger.junctionId;
+            _lastStopLineApproachDir = trigger.transform.forward;
+            _lastStopLinePosition = trigger.transform.position;
+        }
+
+        // ── 3. Red light check (always performed) ──
         if (simController != null)
         {
             string state = simController.GetTrafficLightState(trigger.junctionId);
@@ -332,64 +366,43 @@ public class DrivingEvaluator : MonoBehaviour
         if (!_evaluationEnabled) return;
         if (_vehicleMode == VehicleMode.Bike || carUserControl == null) return;
 
-        // Only evaluate turn triggers that belong to the junction last crossed.
-        // Triggers from other junctions (e.g. adjacent roads) are ignored.
+        // Only evaluate triggers that belong to the junction last crossed.
         if (_lastStopLineJunctionId == null ||
             trigger.junctionId != _lastStopLineJunctionId)
             return;
 
-        // Classify the turn by comparing the trigger's road approach direction against
-        // the approach direction recorded when the stop line was crossed:
-        //   dot ~  1 → car is exiting the same approach → RIGHT turn
-        //   dot ~ -1 → car is exiting the opposing approach → LEFT turn
-        //   dot ~  0 → car is exiting a perpendicular road → WRONG WAY
+        // Compare this trigger's approach direction against the direction recorded at the
+        // stop line. This classifies the turn without needing per-trigger type fields:
+        //   dot ~  1 → same approach → RIGHT turn (car exiting same road it approached on)
+        //   dot ~ -1 → opposite approach → LEFT turn
+        //   dot ~  0 → perpendicular road → ignore (car grazes adjacent trigger mid-turn)
         float d = Vector3.Dot(_lastStopLineApproachDir, trigger.approachDir);
 
-        if (d > 0.5f)
+        bool isRight = d > 0.5f;
+        bool isLeft = d < -0.5f;
+
+        if (!isRight && !isLeft)
+            return; // perpendicular trigger hit during a turn, skip it
+
+        bool signalOn = isRight
+            ? carUserControl.IsRightSignalOn
+            : carUserControl.IsLeftSignalOn;
+
+        string dirLabel = isRight ? "Right" : "Left";
+
+        if (signalOn)
         {
-            // Right turn
-            bool signalOn = carUserControl.IsRightSignalOn;
-            if (signalOn)
-            {
-                _usedTurnSignal = true;
-                LogEvent(trigger.junctionId, "TurnSignalOK", "direction=Right");
-                Debug.Log($"[DrivingEvaluator] Turn signal ON at junction {trigger.junctionId} (Right) ✓");
-            }
-            else
-            {
-                _usedTurnSignal = false;
-                LogEvent(trigger.junctionId, "TurnSignalMissing", "direction=Right");
-                PlayWarningCue();
-                QueueVoicePrompt(turnSignalVoiceClip);
-                Debug.LogWarning($"[DrivingEvaluator] MISSING TURN SIGNAL at junction {trigger.junctionId} (Right)!");
-            }
-        }
-        else if (d < -0.5f)
-        {
-            // Left turn
-            bool signalOn = carUserControl.IsLeftSignalOn;
-            if (signalOn)
-            {
-                _usedTurnSignal = true;
-                LogEvent(trigger.junctionId, "TurnSignalOK", "direction=Left");
-                Debug.Log($"[DrivingEvaluator] Turn signal ON at junction {trigger.junctionId} (Left) ✓");
-            }
-            else
-            {
-                _usedTurnSignal = false;
-                LogEvent(trigger.junctionId, "TurnSignalMissing", "direction=Left");
-                PlayWarningCue();
-                QueueVoicePrompt(turnSignalVoiceClip);
-                Debug.LogWarning($"[DrivingEvaluator] MISSING TURN SIGNAL at junction {trigger.junctionId} (Left)!");
-            }
+            _usedTurnSignal = true;
+            LogEvent(trigger.junctionId, "TurnSignalOK", $"direction={dirLabel}");
+            Debug.Log($"[DrivingEvaluator] Turn signal ON at junction {trigger.junctionId} ({dirLabel}) ✓");
         }
         else
         {
-            // Wrong-way exit (perpendicular to approach)
-            LogEvent(trigger.junctionId, "WrongWayExit", $"dot={d:F2}");
+            _usedTurnSignal = false;
+            LogEvent(trigger.junctionId, "TurnSignalMissing", $"direction={dirLabel}");
             PlayWarningCue();
-            QueueVoicePrompt(wrongWayVoiceClip);
-            Debug.LogWarning($"[DrivingEvaluator] WRONG WAY EXIT at junction {trigger.junctionId}!");
+            QueueVoicePrompt(turnSignalVoiceClip);
+            Debug.LogWarning($"[DrivingEvaluator] MISSING TURN SIGNAL at junction {trigger.junctionId} ({dirLabel})!");
         }
     }
 
