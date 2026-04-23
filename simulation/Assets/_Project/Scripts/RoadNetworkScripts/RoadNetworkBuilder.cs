@@ -854,6 +854,7 @@ public class RoadNetworkBuilder : MonoBehaviour
                 Vector3 approachDir = Vector3.forward;
                 Vector3 stopLinePos = junctionCenter;
                 float totalRoadWidth = 0f;
+                float laneW = 3.2f; // width of rightmost lane, used to center the stop-line trigger
 
                 if (edgeRecords.TryGetValue(edgeId, out RoadEdgeData edgeData))
                 {
@@ -882,13 +883,14 @@ public class RoadNetworkBuilder : MonoBehaviour
                             float forwardDist = Vector3.Dot(junctionCenter - laneEnd, approachDir);
                             Vector3 farSideBase = laneEnd + approachDir * (2f * forwardDist);
 
-                            float laneW = (float)lane.laneWidth;
-                            if (laneW <= 0f) laneW = 3.2f;
+                            float laneW_inner = (float)lane.laneWidth;
+                            if (laneW_inner <= 0f) laneW_inner = 3.2f;
+                            laneW = laneW_inner;
                             Vector3 rightDir = new Vector3(approachDir.z, 0f, -approachDir.x);
                             float curbOffset = 0.5f;
 
                             // Primary: right of rightmost lane edge
-                            laneEndPos = farSideBase + rightDir * (laneW * 0.5f + curbOffset);
+                            laneEndPos = farSideBase + rightDir * (laneW_inner * 0.5f + curbOffset);
                         }
                     }
                 }
@@ -927,8 +929,9 @@ public class RoadNetworkBuilder : MonoBehaviour
                 var slBox = stopLineGO.AddComponent<BoxCollider>();
                 slBox.isTrigger = true;
                 slBox.size = new Vector3(totalRoadWidth, 2f, 3f);
-                // Offset backward so it triggers before the stop line
-                slBox.center = new Vector3(0f, 0f, -1.5f);
+                // Shift center left (into the road) so the box covers the lanes rather than the curb.
+                // Offset backward so it triggers just before the stop line.
+                slBox.center = new Vector3(-(totalRoadWidth * 0.5f - laneW * 0.5f), 0f, -1.5f);
 
                 var slTrigger = stopLineGO.AddComponent<StopLineTrigger>();
                 slTrigger.junctionId = jId;
