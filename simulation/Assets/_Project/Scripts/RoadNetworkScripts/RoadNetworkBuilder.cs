@@ -1035,10 +1035,12 @@ public class RoadNetworkBuilder : MonoBehaviour
         mr.sharedMaterial = GetPolygonMaterial(polygonType);
 
         // Physics collider so vehicles don't fall through.
-        // Large flat polygons (bounding box > 500 units) would trigger a PhysX
-        // large-triangle warning with a MeshCollider, so use a thin BoxCollider instead.
+        // Large flat polygons can trigger a PhysX large-triangle warning with a MeshCollider
+        // if any two vertices are more than 500 units apart. Check the bounding diagonal
+        // (not just one axis) to catch roughly-square large polygons.
         Bounds polyBounds = polyMesh.bounds;
-        bool isLargePoly = polyBounds.size.x > 500f || polyBounds.size.z > 500f;
+        float polyDiag = Mathf.Sqrt(polyBounds.size.x * polyBounds.size.x + polyBounds.size.z * polyBounds.size.z);
+        bool isLargePoly = polyDiag > 500f;
         if (isLargePoly)
         {
             var bc = polyGO.AddComponent<BoxCollider>();
