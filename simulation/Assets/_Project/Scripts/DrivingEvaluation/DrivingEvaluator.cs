@@ -422,7 +422,6 @@ public class DrivingEvaluator : MonoBehaviour
         LogEvent("", "Collision",
             $"other={otherName};tag={otherTag};impact_speed={impactSpeed:F1}");
         PlayCollisionCue(collision);
-        PlayWarningCue();
 
         Debug.LogWarning($"[DrivingEvaluator] COLLISION with '{otherName}' " +
                          $"(tag={otherTag}) at {impactSpeed:F1} m/s");
