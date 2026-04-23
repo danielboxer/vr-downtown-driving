@@ -924,6 +924,8 @@ MonoBehaviour:
   - {fileID: 8300000, guid: 7e4a718e9e64ed940acd9a7de45cbdfa, type: 3}
   - {fileID: 8300000, guid: 6da9300cb5149334f8500883ed474745, type: 3}
   hornVolume: 1
+  gearChangeClip: {fileID: 8300000, guid: 3c48a124a153e03448b6f0ec6a62d620, type: 3}
+  gearChangeVolume: 2
   turnSignalToggleSound: {fileID: 8300000, guid: c881502a731060a438bff28e6d6de2d6, type: 3}
   turnSignalLoopSound: {fileID: 8300000, guid: 9d0b2cb548cbaeb469ba726d71bd375e, type: 3}
   turnSignalLoopDelay: 0.05

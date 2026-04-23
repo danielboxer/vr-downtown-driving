@@ -271131,7 +271131,7 @@ MonoBehaviour:
   warningClip: {fileID: 8300000, guid: b545f356c067bac418de28d26de581e6, type: 3}
   collisionWarningClips:
   - {fileID: 8300000, guid: 3bd3ca072e8e86644b05727b4a6b8bc4, type: 3}
-  - {fileID: 8300000, guid: 6ba0c9c9e1e34dc4c95f7db42d0774c0, type: 3}
+  - {fileID: 8300000, guid: 0d2358588ad78ab479a105e925d0985c, type: 3}
   - {fileID: 8300000, guid: ae61690cf3484eb41b05cfb672b4a275, type: 3}
   curbWarningClip: {fileID: 8300000, guid: dcae612ee94748141b68b2eae4e2fc51, type: 3}
   _activeScenario: 0
