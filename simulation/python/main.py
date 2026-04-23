@@ -50,13 +50,13 @@ _SCENARIOS_ROOT = os.path.abspath(
 
 
 def _discover_scenarios():
-    """Return {display_name: full_path} for subfolders containing Sumo2Unity.sumocfg."""
+    """Return {display_name: full_path} for subfolders containing any *.rou.xml."""
     found = {}
     if os.path.isdir(_SCENARIOS_ROOT):
         for name in sorted(os.listdir(_SCENARIOS_ROOT)):
             candidate = os.path.join(_SCENARIOS_ROOT, name)
-            if os.path.isdir(candidate) and os.path.isfile(
-                os.path.join(candidate, "Sumo2Unity.sumocfg")
+            if os.path.isdir(candidate) and any(
+                f.endswith(".rou.xml") for f in os.listdir(candidate)
             ):
                 found[name] = candidate
     return found
@@ -170,17 +170,39 @@ def run_sim(cfg: dict, stop_event=None):
     sys.path.append(os.path.join(os.environ["SUMO_HOME"], "tools"))
 
     scenario_dir = cfg["scenario_dir"]
-    sumo_cfg = os.path.join(scenario_dir, "Sumo2Unity.sumocfg")
+    parent_dir = os.path.abspath(os.path.join(scenario_dir, os.pardir))
+
+    # Discover shared files in the Scenarios root (any matching name)
+    def _glob_one(directory, pattern):
+        import glob
+        matches = glob.glob(os.path.join(directory, pattern))
+        return matches[0] if matches else None
+
+    net_file    = _glob_one(parent_dir, "*.net.xml")
+    poly_file   = _glob_one(parent_dir, "*.poly.xml")
+    vtypes_file = _glob_one(parent_dir, "vtypes.rou.xml")
+    route_file  = _glob_one(scenario_dir, "*.rou.xml")
+
+    if not net_file:
+        logger.error("No *.net.xml found in %s", parent_dir)
+        return
+    if not route_file:
+        logger.error("No *.rou.xml found in %s", scenario_dir)
+        return
+
+    # Build route list: vtypes first (if present), then scenario routes
+    route_files = ",".join(filter(None, [vtypes_file, route_file]))
+
     sumo_bin = "sumo-gui" if use_gui else "sumo"
     sumo_cmd = [
         sumo_bin,
-        "-c",
-        sumo_cfg,
-        "--step-length",
-        str(steplength),
-        "--lateral-resolution",
-        str(lateral_resolution),
+        "-n", net_file,
+        "-r", route_files,
+        "--step-length", str(steplength),
+        "--lateral-resolution", str(lateral_resolution),
     ]
+    if poly_file:
+        sumo_cmd += ["-a", poly_file]
     if use_gui:
         sumo_cmd += ["--delay", "0"]  # keep 0-delay only when GUI present
 

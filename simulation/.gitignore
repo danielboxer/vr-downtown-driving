@@ -12,6 +12,8 @@ Results/
 
 # python
 .venv/
+__pycache__
+
 
 # --------------------------- Unity gitignore below ----------------------------------------
 
