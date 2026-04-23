@@ -251437,7 +251437,7 @@ MonoBehaviour:
   loop: 1
   startDelay: 0
   fadeInDuration: 1
-  volume: 0.2
+  volume: 0.5
 --- !u!82 &1447299976
 AudioSource:
   m_ObjectHideFlags: 0
@@ -251451,7 +251451,7 @@ AudioSource:
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 8300000, guid: 8907ba4f0bc320a4eb413d9043dd261f, type: 3}
   m_PlayOnAwake: 0
-  m_Volume: 0.2
+  m_Volume: 0.5
   m_Pitch: 1
   Loop: 1
   Mute: 0
@@ -275294,14 +275294,14 @@ MonoBehaviour:
   speedingLogCooldown: 5
   playWarningSounds: 1
   warningVolume: 1
-  collisionVolume: 0.75
-  curbVolume: 1
-  minImpactVolumeMultiplier: 0.35
-  impactSpeedForMaxVolume: 12
+  collisionVolume: 0.2
+  curbVolume: 2
+  minImpactVolumeMultiplier: 0.1
+  impactSpeedForMaxVolume: 20
   collisionPitchMin: 0.97
   collisionPitchMax: 1.03
   playVoicePrompts: 1
-  voiceVolume: 1
+  voiceVolume: 1.25
   warningToVoiceDelay: 0.1
   voicePitchMin: 0.75
   voicePitchMax: 1.25

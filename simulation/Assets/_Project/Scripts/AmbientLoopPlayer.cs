@@ -23,7 +23,7 @@ public class AmbientLoopPlayer : MonoBehaviour
     [SerializeField] private float fadeInDuration = 0f;
 
     [Tooltip("Playback volume for the ambient track.")]
-    [Min(0f)]
+    [Range(0f, 2f)]
     [SerializeField] private float volume = 0.2f;
 
     private AudioSource _audioSource;

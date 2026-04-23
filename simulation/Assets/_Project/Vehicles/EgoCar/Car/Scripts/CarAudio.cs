@@ -9,8 +9,9 @@ namespace UnityStandardAssets.Vehicles.Car
     public class CarAudio : MonoBehaviour
     {
         // ────────────────────────  NEW  ────────────────────────
-        [Header("Master Volume (0 = mute, 1 = full)")]
-        [Range(0f, 1f)] public float masterVolume = 0.05f;   // <-- add this
+        [Header("Volume Sliders (0 = mute, 2 = max)")]
+        [Range(0f, 2f)] public float engineVolume = 0.05f;
+        [Range(0f, 2f)] public float turnSignalVolume = 1f;
         // ───────────────────────────────────────────────────────
 
         public enum EngineAudioOptions { Simple, FourChannel }
@@ -86,7 +87,7 @@ namespace UnityStandardAssets.Vehicles.Car
             {
                 m_HighAccel.pitch = pitch * pitchMultiplier * highPitchMultiplier;
                 m_HighAccel.dopplerLevel = useDoppler ? dopplerLevel : 0;
-                m_HighAccel.volume = 1f * masterVolume;                 // <-- scaled
+                m_HighAccel.volume = 1f * engineVolume;
             }
             else
             {
@@ -106,11 +107,10 @@ namespace UnityStandardAssets.Vehicles.Car
                 m_HighAccel.pitch = pitch * highPitchMultiplier * pitchMultiplier;
                 m_HighDecel.pitch = pitch * highPitchMultiplier * pitchMultiplier;
 
-                // Volumes multiplied by masterVolume  ─────────────
-                m_LowAccel.volume = lowFade * accFade * masterVolume;
-                m_LowDecel.volume = lowFade * decFade * masterVolume;
-                m_HighAccel.volume = highFade * accFade * masterVolume;
-                m_HighDecel.volume = highFade * decFade * masterVolume;
+                m_LowAccel.volume = lowFade * accFade * engineVolume;
+                m_LowDecel.volume = lowFade * decFade * engineVolume;
+                m_HighAccel.volume = highFade * accFade * engineVolume;
+                m_HighDecel.volume = highFade * decFade * engineVolume;
 
                 float dop = useDoppler ? dopplerLevel : 0;
                 m_LowAccel.dopplerLevel = dop;
@@ -159,7 +159,7 @@ namespace UnityStandardAssets.Vehicles.Car
         {
             if (turnSignalToggleSound != null)
             {
-                m_TurnSignalToggleSource.PlayOneShot(turnSignalToggleSound, masterVolume);
+                m_TurnSignalToggleSource.PlayOneShot(turnSignalToggleSound, turnSignalVolume);
             }
         }
 
@@ -186,7 +186,7 @@ namespace UnityStandardAssets.Vehicles.Car
         {
             if (m_TurnSignalLoopSource != null && turnSignalLoopSound != null && !m_TurnSignalLoopSource.isPlaying)
             {
-                m_TurnSignalLoopSource.volume = masterVolume;
+                m_TurnSignalLoopSource.volume = turnSignalVolume;
                 m_TurnSignalLoopSource.Play();
             }
         }
