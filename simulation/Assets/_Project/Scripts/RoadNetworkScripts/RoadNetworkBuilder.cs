@@ -36,6 +36,24 @@ public class RoadNetworkBuilder : MonoBehaviour
     [Tooltip("Height offset above road surface for sign base placement.")]
     public float signHeightOffset = 0f;
 
+    [Header("Lane Arrow Decals")]
+    [Tooltip("Decal material for straight-ahead only lanes.")]
+    public Material throughDecalMaterial;
+    [Tooltip("Decal material for left-turn lanes (left + forward arrow combined).")]
+    public Material leftTurnDecalMaterial;
+    [Tooltip("Decal material for right-turn-only lanes.")]
+    public Material rightTurnDecalMaterial;
+    [Tooltip("Decal material for right-turn + straight lanes.")]
+    public Material rightTurnAndThroughDecalMaterial;
+    [Tooltip("Decal material for lanes with forward, left, and right arrows.")]
+    public Material throughRightLeftDecalMaterial;
+    [Tooltip("Decal material for the stop line painted on the road at each junction approach.")]
+    public Material stopLineDecalMaterial;
+    [Tooltip("Length of the arrow decal along the lane (meters).")]
+    public float arrowDecalLength = 3f;
+    [Tooltip("How far back from the junction endpoint to center the arrow decal (meters).")]
+    public float arrowSetbackFromJunction = 5f;
+
     [Header("Materials (Road, Junction, Decals)")]
     public Material roadSurfaceMaterial;
     public Material junctionSurfaceMaterial;
@@ -117,6 +135,17 @@ public class RoadNetworkBuilder : MonoBehaviour
         if (oldJunctions != null)
             DestroyImmediate(oldJunctions);
 
+        // Destroy orphaned road signs and lane decals from an older generation
+        // (new layout nests these under Junctions/RoadSigns and RoadNetworkRoot/LaneDecals,
+        //  so they are cleaned up automatically when those parents are destroyed above)
+        var oldSigns = GameObject.Find("RoadSignsRoot");
+        if (oldSigns != null)
+            DestroyImmediate(oldSigns);
+
+        var oldDecals = GameObject.Find("LaneDecalsRoot");
+        if (oldDecals != null)
+            DestroyImmediate(oldDecals);
+
         ParseSumoXmlFiles(sumoFilesFolder);
     }
 
@@ -149,6 +178,8 @@ public class RoadNetworkBuilder : MonoBehaviour
         {
             roadNetworkRoot = new GameObject("RoadNetworkRoot");
             if (groundLayer >= 0) roadNetworkRoot.layer = groundLayer;
+            // Make the root non-selectable in the Scene view so it doesn't interfere with editing
+            SceneVisibilityManager.instance.DisablePicking(roadNetworkRoot, true);
         }
 
         var netFilePath = Path.Combine(sumoXmlFolderPath, "Sumo2Unity.net.xml");
@@ -823,6 +854,8 @@ public class RoadNetworkBuilder : MonoBehaviour
 
         // Create "Junctions" root (separate from road network, for SimulationController)
         GameObject junctionsRoot = new GameObject("Junctions");
+        // Make the root non-selectable in the Scene view
+        SceneVisibilityManager.instance.DisablePicking(junctionsRoot, true);
 
         foreach (string jId in tlJunctionIds)
         {
@@ -986,12 +1019,20 @@ public class RoadNetworkBuilder : MonoBehaviour
         Debug.Log($"[Sumo2Unity] Generated traffic lights for {tlJunctionIds.Count} junctions under 'Junctions' root.");
     }
 
-    /// <summary>Deletes road sign GameObjects (under the RoadSignsRoot scene object).</summary>
+    /// <summary>Deletes road sign GameObjects (under the RoadSigns child of Junctions).</summary>
     public void DeleteRoadSignObjects()
     {
-        var signsRoot = GameObject.Find("RoadSignsRoot");
-        if (signsRoot != null)
-            DestroyImmediate(signsRoot);
+        var junctions = GameObject.Find("Junctions");
+        if (junctions != null)
+        {
+            var signsChild = junctions.transform.Find("RoadSigns");
+            if (signsChild != null)
+                DestroyImmediate(signsChild.gameObject);
+        }
+        // Also clean up any legacy scene-root from an older generation run
+        var legacyRoot = GameObject.Find("RoadSignsRoot");
+        if (legacyRoot != null)
+            DestroyImmediate(legacyRoot);
     }
 
     /// <summary>
@@ -1031,7 +1072,12 @@ public class RoadNetworkBuilder : MonoBehaviour
             list.Add(edgeData);
         }
 
-        GameObject signsRoot = new GameObject("RoadSignsRoot");
+        // Find (or create) the Junctions scene root so signs sit alongside traffic lights
+        GameObject junctionsRoot = GameObject.Find("Junctions") ?? new GameObject("Junctions");
+
+        // Signs go in a dedicated child so they can be deleted independently of TL heads
+        GameObject signsRoot = new GameObject("RoadSigns");
+        signsRoot.transform.SetParent(junctionsRoot.transform);
         int placedCount = 0;
 
         foreach (var jData in junctionRecords.Values)
@@ -1090,7 +1136,170 @@ public class RoadNetworkBuilder : MonoBehaviour
                 placedCount++;
             }
         }
-        Debug.Log($"[Sumo2Unity] Placed {placedCount} stop signs under 'RoadSignsRoot'.");
+        Debug.Log($"[Sumo2Unity] Placed {placedCount} stop signs under 'Junctions/RoadSigns'.");
+    }
+
+    /// <summary>Deletes lane arrow decal GameObjects (under the LaneDecals child of RoadNetworkRoot).</summary>
+    public void DeleteLaneDecalObjects()
+    {
+        DestroyChildByName("LaneDecals");
+        // Also clean up any legacy scene-root from an older generation run
+        var legacyRoot = GameObject.Find("LaneDecalsRoot");
+        if (legacyRoot != null)
+            DestroyImmediate(legacyRoot);
+    }
+
+    /// <summary>
+    /// Places lane-direction arrow decals on the road surface before each junction approach,
+    /// using SUMO connection direction data to pick the correct material.
+    ///
+    /// Direction → material mapping:
+    ///   Straight only (s)         → throughDecalMaterial
+    ///   Left only (l/L)           → leftTurnDecalMaterial
+    ///   Right only (r/R)          → rightTurnDecalMaterial
+    ///   Any other combination     → throughRightLeftDecalMaterial
+    /// </summary>
+    public void GenerateLaneDecals()
+    {
+        if (_netFile == null) { Debug.LogError("Net file not loaded."); return; }
+
+        // Collect which materials are available; skip silently if none are assigned
+        bool anyMaterial = throughDecalMaterial != null
+                        || leftTurnDecalMaterial != null
+                        || rightTurnDecalMaterial != null
+                        || rightTurnAndThroughDecalMaterial != null
+                        || throughRightLeftDecalMaterial != null;
+        if (!anyMaterial)
+        {
+            Debug.LogWarning("[RoadNetworkBuilder] No lane arrow decal materials assigned. Skipping GenerateLaneDecals().");
+            return;
+        }
+
+        // Group connection directions by (fromEdge, fromLaneIndex)
+        var laneDirections = new Dictionary<(string edge, int lane), HashSet<ConnectionTypeDir>>();
+        foreach (ConnectionType conn in _netFile.Connection)
+        {
+            if (string.IsNullOrEmpty(conn.From) || string.IsNullOrEmpty(conn.FromLane)) continue;
+            if (!int.TryParse(conn.FromLane, out int fromLaneIdx)) continue;
+
+            var key = (conn.From, fromLaneIdx);
+            if (!laneDirections.TryGetValue(key, out var dirSet))
+            {
+                dirSet = new HashSet<ConnectionTypeDir>();
+                laneDirections[key] = dirSet;
+            }
+            dirSet.Add(conn.Dir);
+        }
+
+        if (roadNetworkRoot == null)
+        {
+            Debug.LogError("[RoadNetworkBuilder] roadNetworkRoot is null. Generate roads first.");
+            return;
+        }
+
+        // Parent decals under roadNetworkRoot so they're grouped with the rest of the road network
+        DestroyChildByName("LaneDecals");
+        GameObject decalsRoot = new GameObject("LaneDecals");
+        decalsRoot.transform.SetParent(roadNetworkRoot.transform);
+        int placedCount = 0;
+
+        foreach (var kvp in laneDirections)
+        {
+            string edgeId = kvp.Key.edge;
+            int laneIdx = kvp.Key.lane;
+            var dirs = kvp.Value;
+
+            if (!edgeRecords.TryGetValue(edgeId, out RoadEdgeData edgeData)) continue;
+
+            // Find the specific lane by its index
+            RoadLaneData lane = null;
+            foreach (var l in edgeData.GetLaneDataList())
+            {
+                if (l.laneIndex == laneIdx) { lane = l; break; }
+            }
+            if (lane == null || lane.shapePoints == null || lane.shapePoints.Count < 2) continue;
+
+            // Pick decal material based on direction set
+            Material mat = PickArrowMaterial(dirs);
+            if (mat == null) continue;
+
+            // Compute endpoint and approach direction from the last two shape points
+            int last = lane.shapePoints.Count - 1;
+            Vector3 laneEnd = ToUnity(lane.shapePoints[last][0], lane.shapePoints[last][1]);
+            Vector3 prevPt = ToUnity(lane.shapePoints[last - 1][0], lane.shapePoints[last - 1][1]);
+            Vector3 approachDir = (laneEnd - prevPt).normalized;
+
+            // Center the arrow setback from the junction, at lane center height
+            Vector3 decalPos = laneEnd - approachDir * arrowSetbackFromJunction;
+            decalPos.y += 0.01f; // tiny offset above road surface
+
+            float laneW = (float)lane.laneWidth;
+            if (laneW <= 0f) laneW = 3.2f;
+
+            // Arrow decal
+            if (mat != null)
+            {
+                GameObject decalObj = new GameObject($"ArrowDecal_{edgeId}_L{laneIdx}");
+                decalObj.transform.SetParent(decalsRoot.transform);
+                if (groundLayer >= 0) decalObj.layer = groundLayer;
+                decalObj.transform.position = decalPos;
+                // Euler(90, yaw, 0): X=90 pitches the projector to face downward (-Y world),
+                // Y=yaw aligns the texture with the road travel direction.
+                float yaw = Mathf.Atan2(approachDir.x, approachDir.z) * Mathf.Rad2Deg;
+                decalObj.transform.rotation = Quaternion.Euler(90f, yaw, 0f);
+
+                var proj = decalObj.AddComponent<DecalProjector>();
+                proj.material = mat;
+                // size: X = width, Y = height (2.5 m each), Z = arrow length along lane
+                proj.size = new Vector3(2.5f, 2.5f, arrowDecalLength);
+                proj.drawDistance = 250f;
+                placedCount++;
+            }
+
+            // Stop line decal: wide thin stripe across the lane, at the junction endpoint
+            if (stopLineDecalMaterial != null)
+            {
+                GameObject slDecalObj = new GameObject($"StopLineDecal_{edgeId}_L{laneIdx}");
+                slDecalObj.transform.SetParent(decalsRoot.transform);
+                if (groundLayer >= 0) slDecalObj.layer = groundLayer;
+                Vector3 slPos = laneEnd;
+                slPos.y += 0.5f;
+                slDecalObj.transform.position = slPos;
+                // Z+90° rotates the stripe 90° within the horizontal plane so it runs across the lane
+                float slYaw = Mathf.Atan2(approachDir.x, approachDir.z) * Mathf.Rad2Deg + 90f;
+                slDecalObj.transform.rotation = Quaternion.Euler(90f, slYaw, 90f);
+
+                var slProj = slDecalObj.AddComponent<DecalProjector>();
+                slProj.material = stopLineDecalMaterial;
+                // Width spans the lane, Y = projection depth, Z = stripe thickness
+                slProj.size = new Vector3(laneW, 0.5f, 0.4f);
+                slProj.drawDistance = 250f;
+            }
+        }
+        Debug.Log($"[Sumo2Unity] Placed {placedCount} lane arrow decals under 'RoadNetworkRoot/LaneDecals'.");
+    }
+
+    /// <summary>
+    /// Returns the appropriate arrow decal material for a set of SUMO connection directions.
+    ///
+    /// Material assignments (matching the project's decal textures):
+    ///   S only           → throughDecalMaterial               (forward only)
+    ///   R only           → rightTurnDecalMaterial              (right only)
+    ///   R + S            → rightTurnAndThroughDecalMaterial    (right + forward)
+    ///   L only or L + S  → leftTurnDecalMaterial               (left + forward combined texture)
+    ///   Everything else  → throughRightLeftDecalMaterial        (forward + left + right)
+    /// </summary>
+    private Material PickArrowMaterial(HashSet<ConnectionTypeDir> dirs)
+    {
+        bool hasLeft = dirs.Contains(ConnectionTypeDir.L) || dirs.Contains(ConnectionTypeDir.L1);
+        bool hasRight = dirs.Contains(ConnectionTypeDir.R) || dirs.Contains(ConnectionTypeDir.R1);
+        bool hasStraight = dirs.Contains(ConnectionTypeDir.S);
+
+        if (hasStraight && !hasLeft && !hasRight) return throughDecalMaterial;
+        if (hasRight && !hasStraight && !hasLeft) return rightTurnDecalMaterial;
+        if (hasRight && hasStraight && !hasLeft) return rightTurnAndThroughDecalMaterial;
+        if (hasLeft && !hasRight) return leftTurnDecalMaterial; // left-only or left+straight (texture shows both)
+        return throughRightLeftDecalMaterial;
     }
 
     private Vector3 ToUnity(double x, double y) => new((float)(x - originX), 0f, (float)(y - originY));
