@@ -27,14 +27,8 @@ namespace UnityStandardAssets.Vehicles.Car
         private float currentAngle = 0f; // Current angle of the wheel
         private float _smoothedSteer; // Smoothed keyboard steering value
 
-        [Header("Turn Signal Settings")]
-        public Light leftTurnSignal;
-        public Light rightTurnSignal;
-        public float blinkInterval = 0.5f;
-
         private bool isLeftSignalOn = false;
         private bool isRightSignalOn = false;
-        private float signalTimer = 0f;
 
         [Header("Input Actions")]
         [Tooltip("Assign InputSystem_Actions asset with a Driving action map.")]
@@ -177,19 +171,7 @@ namespace UnityStandardAssets.Vehicles.Car
             // CarController.Move clamps accel to [0,1] and footbrake to [-1,0]
             m_Car.Move(steeringInput, accel, -brake, handbrake);
 
-            // Handle turn signal blinking
-            signalTimer += Time.deltaTime;
-            if (isLeftSignalOn && signalTimer >= blinkInterval)
-            {
-                leftTurnSignal.enabled = !leftTurnSignal.enabled;
-                signalTimer = 0f;
-            }
 
-            if (isRightSignalOn && signalTimer >= blinkInterval)
-            {
-                rightTurnSignal.enabled = !rightTurnSignal.enabled;
-                signalTimer = 0f;
-            }
         }
 
         private void ActivateTurnSignal(bool left, bool right)
@@ -197,13 +179,10 @@ namespace UnityStandardAssets.Vehicles.Car
             isLeftSignalOn = left;
             isRightSignalOn = right;
 
-            leftTurnSignal.enabled = left;
-            rightTurnSignal.enabled = right;
-
             if (m_CarAudio != null)
             {
+                // PlayTurnSignalOnSound handles the loop start after the click finishes
                 m_CarAudio.PlayTurnSignalOnSound();
-                m_CarAudio.PlayTurnSignalLoop();
             }
         }
 
@@ -211,9 +190,6 @@ namespace UnityStandardAssets.Vehicles.Car
         {
             isLeftSignalOn = false;
             isRightSignalOn = false;
-
-            leftTurnSignal.enabled = false;
-            rightTurnSignal.enabled = false;
 
             if (m_CarAudio != null)
             {

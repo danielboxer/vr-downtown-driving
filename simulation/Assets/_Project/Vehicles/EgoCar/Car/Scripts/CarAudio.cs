@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -29,11 +30,15 @@ namespace UnityStandardAssets.Vehicles.Car
         public bool useDoppler = true;
 
         [Header("Turn Signal Sounds")]
-        public AudioClip turnSignalOnSound;
+        public AudioClip turnSignalToggleSound;
         public AudioClip turnSignalLoopSound;
+        [Tooltip("Extra seconds to wait after the toggle click before the loop starts")]
+        public float turnSignalLoopDelay = 0.1f;
 
         private AudioSource m_LowAccel, m_LowDecel, m_HighAccel, m_HighDecel;
-        private AudioSource m_TurnSignalSource;
+        private AudioSource m_TurnSignalToggleSource;
+        private AudioSource m_TurnSignalLoopSource;
+        private Coroutine m_LoopStartCoroutine;
         private bool m_StartedSound;
         private CarController m_CarController;
 
@@ -136,38 +141,69 @@ namespace UnityStandardAssets.Vehicles.Car
 
         private void Start()
         {
-            // Initialize the turn signal audio source
-            if (turnSignalLoopSound != null)
+            // Dedicated one-shot source for the toggle click (activate/deactivate)
+            m_TurnSignalToggleSource = gameObject.AddComponent<AudioSource>();
+            m_TurnSignalToggleSource.playOnAwake = false;
+            m_TurnSignalToggleSource.loop = false;
+            m_TurnSignalToggleSource.spatialBlend = 1f;
+
+            // Dedicated looping source for the blinker tick while active
+            m_TurnSignalLoopSource = gameObject.AddComponent<AudioSource>();
+            m_TurnSignalLoopSource.playOnAwake = false;
+            m_TurnSignalLoopSource.loop = true;
+            m_TurnSignalLoopSource.spatialBlend = 1f;
+            m_TurnSignalLoopSource.clip = turnSignalLoopSound;
+        }
+
+        private void PlayTurnSignalToggle()
+        {
+            if (turnSignalToggleSound != null)
             {
-                m_TurnSignalSource = gameObject.AddComponent<AudioSource>();
-                m_TurnSignalSource.clip = turnSignalLoopSound;
-                m_TurnSignalSource.loop = true;
-                m_TurnSignalSource.volume = masterVolume; // Use master volume
+                m_TurnSignalToggleSource.PlayOneShot(turnSignalToggleSound, masterVolume);
             }
         }
 
         public void PlayTurnSignalOnSound()
         {
-            if (turnSignalOnSound != null)
-            {
-                AudioSource.PlayClipAtPoint(turnSignalOnSound, transform.position, masterVolume);
-            }
+            // Stop any running loop so switching signals resets it cleanly
+            if (m_TurnSignalLoopSource != null && m_TurnSignalLoopSource.isPlaying)
+                m_TurnSignalLoopSource.Stop();
+
+            PlayTurnSignalToggle();
+            // Delay loop start until the toggle click finishes (+ configurable extra buffer)
+            if (m_LoopStartCoroutine != null) StopCoroutine(m_LoopStartCoroutine);
+            float delay = (turnSignalToggleSound != null ? turnSignalToggleSound.length : 0f) + turnSignalLoopDelay;
+            m_LoopStartCoroutine = StartCoroutine(StartLoopAfterDelay(delay));
+        }
+
+        private IEnumerator StartLoopAfterDelay(float delay)
+        {
+            if (delay > 0f) yield return new WaitForSeconds(delay);
+            PlayTurnSignalLoop();
         }
 
         public void PlayTurnSignalLoop()
         {
-            if (m_TurnSignalSource != null && !m_TurnSignalSource.isPlaying)
+            if (m_TurnSignalLoopSource != null && turnSignalLoopSound != null && !m_TurnSignalLoopSource.isPlaying)
             {
-                m_TurnSignalSource.Play();
+                m_TurnSignalLoopSource.volume = masterVolume;
+                m_TurnSignalLoopSource.Play();
             }
         }
 
         public void StopTurnSignalLoop()
         {
-            if (m_TurnSignalSource != null && m_TurnSignalSource.isPlaying)
+            // Cancel any pending loop-start coroutine so it doesn't restart after deactivation
+            if (m_LoopStartCoroutine != null)
             {
-                m_TurnSignalSource.Stop();
+                StopCoroutine(m_LoopStartCoroutine);
+                m_LoopStartCoroutine = null;
             }
+
+            if (m_TurnSignalLoopSource != null && m_TurnSignalLoopSource.isPlaying)
+                m_TurnSignalLoopSource.Stop();
+
+            PlayTurnSignalToggle();
         }
     }
 }
