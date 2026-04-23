@@ -275205,6 +275205,8 @@ MonoBehaviour:
   npcHornTriggerDelay: 3
   npcHornCooldown: 5
   npcHornTriggerDistance: 18
+  npcHornHonkChance: 0.4
+  npcHornAmbientChance: 0.1
   junctions: {fileID: 0}
   carModelsList:
   - sumoVehicleType: 301
@@ -275277,7 +275279,7 @@ MonoBehaviour:
   egoBike: {fileID: 1449816493}
   carRightTurnSpline: {fileID: 1451207572}
   bikeRightTurnSpline: {fileID: 0}
-  defaultScenario: 0
+  defaultScenario: 3
   fadeOverlay: {fileID: 0}
   fadeDuration: 0.4
   _activeScenario: 0
@@ -275303,7 +275305,7 @@ MonoBehaviour:
   speedingToleranceKmh: 5
   speedingLogCooldown: 15
   playWarningSounds: 1
-  warningVolume: 1
+  warningVolume: 0.8
   collisionVolume: 0.2
   curbVolume: 2
   minImpactVolumeMultiplier: 0.1

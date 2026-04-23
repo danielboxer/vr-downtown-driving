@@ -22,11 +22,13 @@ namespace UnityStandardAssets.Bike
         private InputAction _steerAction;
         private InputAction _accelAction; // right trigger, also used as second brake on bike
         private InputAction _brakeAction;
+        private InputAction _reverseAction;
 
         // Cached input values (read in Update, used in FixedUpdate)
         private float _steerInput;
         private float _accelInput;
         private float _brakeInput;
+        private bool _reverseInput;
         private float _smoothedSteer; // Smoothed keyboard steering value
 
         [Tooltip("Smoothing speed for keyboard steering (higher = snappier).")]
@@ -51,6 +53,7 @@ namespace UnityStandardAssets.Bike
                     _steerAction = map.FindAction("Steer", false);
                     _accelAction = map.FindAction("Accelerate", false);
                     _brakeAction = map.FindAction("Brake", false);
+                    _reverseAction = map.FindAction("BikeReverse", false);
                 }
             }
         }
@@ -60,6 +63,7 @@ namespace UnityStandardAssets.Bike
             _steerAction?.Enable();
             _accelAction?.Enable();
             _brakeAction?.Enable();
+            _reverseAction?.Enable();
         }
 
         private void OnDisable()
@@ -67,6 +71,7 @@ namespace UnityStandardAssets.Bike
             _steerAction?.Disable();
             _accelAction?.Disable();
             _brakeAction?.Disable();
+            _reverseAction?.Disable();
         }
 
         private void Update()
@@ -92,6 +97,7 @@ namespace UnityStandardAssets.Bike
             );
             float targetAccel = _brakeInput < 0.05f ? 1f : 0f;
             _accelInput = Mathf.MoveTowards(_accelInput, targetAccel, autoAccelRamp * Time.deltaTime);
+            _reverseInput = _reverseAction != null && _reverseAction.IsPressed();
         }
 
         private void FixedUpdate()
@@ -107,7 +113,7 @@ namespace UnityStandardAssets.Bike
             m_Wheel.transform.localRotation = Quaternion.Euler(0f, targetAngle, 0f);
 
             // Pass the input to the bike controller
-            m_Bike.Move(h, accel, -brake, 0f);
+            m_Bike.Move(h, accel, -brake, 0f, _reverseInput);
         }
     }
 }
