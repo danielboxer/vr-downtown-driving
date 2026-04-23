@@ -206,6 +206,8 @@ public class RoadNetworkEditorWindow : EditorWindow
                 RunSelectiveRegen(roads: false, trafficLights: true, roadSigns: false);
             if (GUILayout.Button("Road Signs"))
                 RunSelectiveRegen(roads: false, trafficLights: false, roadSigns: true);
+            if (GUILayout.Button("Lane Decals"))
+                RunSelectiveRegen(roads: false, trafficLights: false, roadSigns: false, laneDecals: true);
         }
     }
 
@@ -278,10 +280,13 @@ public class RoadNetworkEditorWindow : EditorWindow
         EditorUtility.DisplayProgressBar("Generation Progress", "Generating Road Signs", 0.85f);
         builder.GenerateRoadSigns();
 
+        EditorUtility.DisplayProgressBar("Generation Progress", "Generating Lane Decals", 0.95f);
+        builder.GenerateLaneDecals();
+
         EditorUtility.ClearProgressBar();
     }
 
-    private void RunSelectiveRegen(bool roads, bool trafficLights, bool roadSigns)
+    private void RunSelectiveRegen(bool roads, bool trafficLights, bool roadSigns, bool laneDecals = false)
     {
         RoadNetworkBuilder builder = GetOrCreateBuilder();
 
@@ -310,6 +315,14 @@ public class RoadNetworkEditorWindow : EditorWindow
             builder.DeleteRoadSignObjects();
             EditorUtility.DisplayProgressBar("Regeneration", "Generating Road Signs", 0.9f);
             builder.GenerateRoadSigns();
+        }
+
+        if (laneDecals)
+        {
+            EditorUtility.DisplayProgressBar("Regeneration", "Deleting old lane decals...", 0.85f);
+            builder.DeleteLaneDecalObjects();
+            EditorUtility.DisplayProgressBar("Regeneration", "Generating Lane Decals", 0.95f);
+            builder.GenerateLaneDecals();
         }
 
         EditorUtility.ClearProgressBar();
