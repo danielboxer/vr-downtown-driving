@@ -275290,8 +275290,8 @@ MonoBehaviour:
     checkRedLights: 0
     turnSignalChecks: []
   enabledScenarios: 
-  speedLimitKmh: 50
-  speedingLogCooldown: 5
+  speedLimitKmh: 40
+  speedingLogCooldown: 15
   playWarningSounds: 1
   warningVolume: 1
   collisionVolume: 0.2

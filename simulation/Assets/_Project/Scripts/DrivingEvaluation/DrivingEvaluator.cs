@@ -49,6 +49,9 @@ public class DrivingEvaluator : MonoBehaviour
     [Tooltip("Speed limit in km/h. Set to 0 to disable speed monitoring.")]
     public float speedLimitKmh = 50f;
 
+    [Tooltip("How many km/h above the limit before speeding is flagged.")]
+    public float speedingToleranceKmh = 5f;
+
     [Tooltip("Seconds between speeding violation log entries (prevents per-frame spam).")]
     public float speedingLogCooldown = 5f;
 
@@ -299,7 +302,7 @@ public class DrivingEvaluator : MonoBehaviour
         if (currentSpeedKmh > _topSpeedKmh)
             _topSpeedKmh = currentSpeedKmh;
 
-        if (currentSpeedKmh > speedLimitKmh)
+        if (currentSpeedKmh > speedLimitKmh + speedingToleranceKmh)
         {
             _exceededSpeedLimit = true;
 
@@ -312,6 +315,11 @@ public class DrivingEvaluator : MonoBehaviour
                 QueueVoicePrompt(speedingVoiceClip);
                 Debug.LogWarning($"[DrivingEvaluator] SPEEDING: {currentSpeedKmh:F1} km/h (limit {speedLimitKmh:F0})");
             }
+        }
+        else
+        {
+            // Reset the cooldown timer so the warning fires promptly if they speed again
+            _lastSpeedingLogTime = -10f;
         }
     }
 
