@@ -960,6 +960,7 @@ public class RoadNetworkBuilder : MonoBehaviour
                 var tdTrigger = tdGO.AddComponent<TurnDirectionTrigger>();
                 tdTrigger.junctionId = jId;
                 tdTrigger.direction = DrivingEvaluator.SignalDirection.Right;
+                tdTrigger.approachDir = approachDir;
 
                 // Secondary Heads: invisible stubs with green_light/yellow_light/red_light children
                 for (int i = 1; i < linkIndices.Count; i++)
