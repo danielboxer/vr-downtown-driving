@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -30,6 +31,11 @@ namespace UnityStandardAssets.Vehicles.Car
         public float dopplerLevel = 1;
         public bool useDoppler = true;
 
+        [Header("Horn Sound")]
+        [Tooltip("Pool of short horn clips; a random one plays each press.")]
+        public List<AudioClip> hornClips = new List<AudioClip>();
+        [Range(0f, 2f)] public float hornVolume = 1f;
+
         [Header("Turn Signal Sounds")]
         public AudioClip turnSignalToggleSound;
         public AudioClip turnSignalLoopSound;
@@ -37,6 +43,7 @@ namespace UnityStandardAssets.Vehicles.Car
         public float turnSignalLoopDelay = 0.1f;
 
         private AudioSource m_LowAccel, m_LowDecel, m_HighAccel, m_HighDecel;
+        private AudioSource m_HornSource;
         private AudioSource m_TurnSignalToggleSource;
         private AudioSource m_TurnSignalLoopSource;
         private Coroutine m_LoopStartCoroutine;
@@ -141,6 +148,12 @@ namespace UnityStandardAssets.Vehicles.Car
 
         private void Start()
         {
+            // Dedicated one-shot source for the player horn
+            m_HornSource = gameObject.AddComponent<AudioSource>();
+            m_HornSource.playOnAwake = false;
+            m_HornSource.loop = false;
+            m_HornSource.spatialBlend = 1f;
+
             // Dedicated one-shot source for the toggle click (activate/deactivate)
             m_TurnSignalToggleSource = gameObject.AddComponent<AudioSource>();
             m_TurnSignalToggleSource.playOnAwake = false;
@@ -153,6 +166,14 @@ namespace UnityStandardAssets.Vehicles.Car
             m_TurnSignalLoopSource.loop = true;
             m_TurnSignalLoopSource.spatialBlend = 1f;
             m_TurnSignalLoopSource.clip = turnSignalLoopSound;
+        }
+
+        public void PlayHorn()
+        {
+            if (hornClips == null || hornClips.Count == 0) return;
+            AudioClip clip = hornClips[Random.Range(0, hornClips.Count)];
+            if (clip != null)
+                m_HornSource.PlayOneShot(clip, hornVolume);
         }
 
         private void PlayTurnSignalToggle()

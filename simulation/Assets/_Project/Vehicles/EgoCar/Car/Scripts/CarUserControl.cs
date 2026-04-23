@@ -45,6 +45,7 @@ namespace UnityStandardAssets.Vehicles.Car
         private InputAction _leftSignalAction;
         private InputAction _rightSignalAction;
         private InputAction _cancelSignalAction;
+        private InputAction _hornAction;
 
         // Cached input values (read in Update, used in FixedUpdate)
         private float _steerInput;
@@ -78,6 +79,7 @@ namespace UnityStandardAssets.Vehicles.Car
                     _leftSignalAction = map.FindAction("LeftSignal", false);
                     _rightSignalAction = map.FindAction("RightSignal", false);
                     _cancelSignalAction = map.FindAction("CancelSignal", false);
+                    _hornAction = map.FindAction("Horn", false);
                 }
             }
         }
@@ -91,6 +93,7 @@ namespace UnityStandardAssets.Vehicles.Car
             _leftSignalAction?.Enable();
             _rightSignalAction?.Enable();
             _cancelSignalAction?.Enable();
+            _hornAction?.Enable();
         }
 
         private void OnDisable()
@@ -102,6 +105,7 @@ namespace UnityStandardAssets.Vehicles.Car
             _leftSignalAction?.Disable();
             _rightSignalAction?.Disable();
             _cancelSignalAction?.Disable();
+            _hornAction?.Disable();
         }
 
         private void Update()
@@ -132,6 +136,10 @@ namespace UnityStandardAssets.Vehicles.Car
                 ActivateTurnSignal(false, true);
             else if (_cancelSignalAction != null && _cancelSignalAction.WasPressedThisFrame())
                 DeactivateTurnSignals();
+
+            // H key / right thumbstick click = player horn
+            if (_hornAction != null && _hornAction.WasPressedThisFrame())
+                m_CarAudio?.PlayHorn();
         }
 
         private void FixedUpdate()

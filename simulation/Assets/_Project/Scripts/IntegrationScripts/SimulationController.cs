@@ -25,6 +25,24 @@ public class SimulationController : MonoBehaviour
     [Header("Unity Step Length (seconds)")]
     public float unityStepLength = 0.10f;
 
+    [Header("NPC Horn Audio")]
+    [Tooltip("Up to 3 short horn clips; a random one plays each honk.")]
+    public List<AudioClip> npcHornClips = new List<AudioClip>();
+    [Range(0f, 2f)]
+    public float npcHornVolume = 1f;
+    [Tooltip("Seconds an NPC must be stationary before honking.")]
+    public float npcHornTriggerDelay = 3f;
+    [Tooltip("Minimum seconds between honks from the same NPC.")]
+    public float npcHornCooldown = 5f;
+    [Tooltip("Distance in metres within which the ego car triggers honking.")]
+    public float npcHornTriggerDistance = 18f;
+    [Range(0f, 1f)]
+    [Tooltip("Probability (0-1) that a qualifying NPC actually honks each cooldown window.")]
+    public float npcHornHonkChance = 0.4f;
+    [Range(0f, 1f)]
+    [Tooltip("Probability (0-1) that a stopped NPC randomly honks with no ego nearby (general traffic impatience).")]
+    public float npcHornAmbientChance = 0.1f;
+
     private float fixedTimeAccum = 0f; // Accumulator for FixedUpdate logging
 
     // New variables for timestamp offset
@@ -389,6 +407,16 @@ public class SimulationController : MonoBehaviour
                     {
                         vc = newVehicle.AddComponent<VehicleController>();
                     }
+
+                    // Pass horn settings from SimulationController so the clip
+                    // only needs to be assigned in one place (the SimController inspector)
+                    vc.hornClips = npcHornClips;
+                    vc.hornVolume = npcHornVolume;
+                    vc.hornTriggerDelay = npcHornTriggerDelay;
+                    vc.hornCooldown = npcHornCooldown;
+                    vc.hornTriggerDistance = npcHornTriggerDistance;
+                    vc.hornHonkChance = npcHornHonkChance;
+                    vc.hornAmbientChance = npcHornAmbientChance;
 
                     vc.UpdateTarget(newPosition, newRotation, vehicleSpeed, vehiclevertical_speed, vehiclelateral_speed);
                     vehicleObjects.Add(vehicle.vehicle_id, newVehicle);
