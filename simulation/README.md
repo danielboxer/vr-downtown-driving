@@ -2,6 +2,25 @@
 
 The simulation uses the Sumo2Unity project. See their documentation [here](https://github.com/SimuTraffX-Lab/SUMO2Unity/blob/main/README.md). 
 
+## Controls
+
+Car:
+
+Steer: A/D keys, right thumbstick X in VR
+Accelerate: W key, right trigger in VR
+Brake: S key, left trigger in VR
+Handbrake: Space
+Left signal: 1 key, left primary button (X on Quest) in VR
+Right signal: 2 key, right secondary button (B on Quest) in VR
+Cancel signal: 3 key, right primary button (A on Quest) in VR
+Calibrate steering center: C key, left secondary button (Y on Quest) in VR
+Horn: H key, right thumbstick click in VR
+Bike:
+
+Steer: A/D keys, right thumbstick X in VR
+Brake: S key, left trigger in VR (right trigger also if you add second brake)
+Accelerate: automatic, ramps to full throttle when brake released
+Calibrate steering center: C key, left secondary button (Y on Quest) in VR
 
 ## Running the simulation
 
