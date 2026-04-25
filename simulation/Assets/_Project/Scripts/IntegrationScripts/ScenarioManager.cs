@@ -20,14 +20,14 @@ public class ScenarioManager : MonoBehaviour
     public GameObject egoBike;
 
     [Header("Spline Paths (disabled in scene)")]
-    [Tooltip("Spline for EgoCar_Right_Turn scenario")]
+    [Tooltip("Spline for right_turn_car scenario")]
     public GameObject carRightTurnSpline;
-    [Tooltip("Spline for EgoBike_Right_Turn scenario")]
+    [Tooltip("Spline for right_turn_bike scenario")]
     public GameObject bikeRightTurnSpline;
 
     [Header("Default (used when running without SUMO)")]
     [Tooltip("Scenario to activate at Start if no config message arrives")]
-    public ScenarioId defaultScenario = ScenarioId.EgoCar_Calibration;
+    public ScenarioId defaultScenario = ScenarioId.calibration_car;
 
     [Header("Transition")]
     [Tooltip("CanvasGroup on a full-screen black panel (alpha starts at 0)")]
@@ -137,28 +137,28 @@ public class ScenarioManager : MonoBehaviour
 
         switch (scenario)
         {
-            case ScenarioId.EgoCar_Calibration:
+            case ScenarioId.calibration_car:
                 activeEgo = egoCar;
                 break;
 
-            case ScenarioId.EgoCar_Free_Drive:
+            case ScenarioId.busy_downtown_car:
                 activeEgo = egoCar;
                 break;
 
-            case ScenarioId.EgoCar_Right_Turn:
+            case ScenarioId.right_turn_car:
                 activeEgo = egoCar;
                 if (carRightTurnSpline != null) carRightTurnSpline.SetActive(true);
                 break;
 
-            case ScenarioId.EgoBike_Calibration:
+            case ScenarioId.calibration_bike:
                 activeEgo = egoBike;
                 break;
 
-            case ScenarioId.EgoBike_Free_Bike:
+            case ScenarioId.busy_downtown_bike:
                 activeEgo = egoBike;
                 break;
 
-            case ScenarioId.EgoBike_Right_Turn:
+            case ScenarioId.right_turn_bike:
                 activeEgo = egoBike;
                 if (bikeRightTurnSpline != null) bikeRightTurnSpline.SetActive(true);
                 break;

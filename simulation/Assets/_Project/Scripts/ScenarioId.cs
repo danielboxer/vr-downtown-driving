@@ -6,10 +6,10 @@
 /// </summary>
 public enum ScenarioId
 {
-    EgoCar_Calibration,
-    EgoCar_Free_Drive,
-    EgoCar_Right_Turn,
-    EgoBike_Calibration,
-    EgoBike_Free_Bike,
-    EgoBike_Right_Turn
+    calibration_car,
+    busy_downtown_car,
+    right_turn_car,
+    calibration_bike,
+    busy_downtown_bike,
+    right_turn_bike
 }
