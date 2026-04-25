@@ -179,8 +179,6 @@ public class RoadNetworkBuilder : MonoBehaviour
         {
             roadNetworkRoot = new GameObject("RoadNetworkRoot");
             if (groundLayer >= 0) roadNetworkRoot.layer = groundLayer;
-            // Make the root non-selectable in the Scene view so it doesn't interfere with editing
-            SceneVisibilityManager.instance.DisablePicking(roadNetworkRoot, true);
         }
 
         // Auto-detect the net and poly files by extension so the filenames are not hardcoded
@@ -862,8 +860,6 @@ public class RoadNetworkBuilder : MonoBehaviour
 
         // Create "Junctions" root (separate from road network, for SimulationController)
         GameObject junctionsRoot = new GameObject("Junctions");
-        // Make the root non-selectable in the Scene view
-        SceneVisibilityManager.instance.DisablePicking(junctionsRoot, true);
 
         foreach (string jId in tlJunctionIds)
         {
@@ -1024,7 +1020,32 @@ public class RoadNetworkBuilder : MonoBehaviour
                 }
             }
         }
+        // Make only the root non-selectable so children remain individually toggleable
+        // Make only the root non-selectable so children remain individually toggleable.
+        // EnablePicking first clears any stale descendant state from previous runs (which would cause the mixed cube icon).
+        SceneVisibilityManager.instance.EnablePicking(junctionsRoot, true);
+        SceneVisibilityManager.instance.DisablePicking(junctionsRoot, true);
         Debug.Log($"[Sumo2Unity] Generated traffic lights for {tlJunctionIds.Count} junctions under 'Junctions' root.");
+    }
+
+    /// <summary>
+    /// Applies non-selectable picking state to RoadNetworkRoot and Junctions.
+    /// Must be called after ALL generation steps are complete so no pickable children
+    /// are added afterward (which would cause the mixed cube icon on the root).
+    /// </summary>
+    public void ApplyPickingState()
+    {
+        if (roadNetworkRoot != null)
+        {
+            SceneVisibilityManager.instance.EnablePicking(roadNetworkRoot, true);
+            SceneVisibilityManager.instance.DisablePicking(roadNetworkRoot, true);
+        }
+        var junctions = GameObject.Find("Junctions");
+        if (junctions != null)
+        {
+            SceneVisibilityManager.instance.EnablePicking(junctions, true);
+            SceneVisibilityManager.instance.DisablePicking(junctions, true);
+        }
     }
 
     /// <summary>Deletes road sign GameObjects (under the RoadSigns child of Junctions).</summary>
