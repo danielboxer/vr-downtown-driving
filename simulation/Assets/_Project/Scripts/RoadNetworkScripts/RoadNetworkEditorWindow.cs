@@ -243,6 +243,9 @@ public class RoadNetworkEditorWindow : EditorWindow
         EditorUtility.DisplayProgressBar("Generation Progress", "Generating Lane Decals", 0.95f);
         builder.GenerateLaneDecals();
 
+        // Apply picking state last, after all children exist under all roots
+        builder.ApplyPickingState();
+
         EditorUtility.ClearProgressBar();
     }
 
@@ -284,6 +287,9 @@ public class RoadNetworkEditorWindow : EditorWindow
             EditorUtility.DisplayProgressBar("Regeneration", "Generating Lane Decals", 0.95f);
             builder.GenerateLaneDecals();
         }
+
+        // Apply picking state last, after all children exist under all roots
+        builder.ApplyPickingState();
 
         EditorUtility.ClearProgressBar();
     }
