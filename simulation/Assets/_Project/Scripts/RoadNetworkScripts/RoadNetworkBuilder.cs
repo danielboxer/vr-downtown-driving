@@ -50,8 +50,6 @@ public class RoadNetworkBuilder : MonoBehaviour
     public Material throughRightLeftDecalMaterial;
     [Tooltip("Decal material for the stop line painted on the road at each junction approach.")]
     public Material stopLineDecalMaterial;
-    [Tooltip("Length of the arrow decal along the lane (meters).")]
-    public float arrowDecalLength = 3f;
     [Tooltip("How far back from the junction endpoint to center the arrow decal (meters).")]
     public float arrowSetbackFromJunction = 5f;
 
@@ -1260,7 +1258,7 @@ public class RoadNetworkBuilder : MonoBehaviour
 
             // Center the arrow setback from the junction, at lane center height
             Vector3 decalPos = laneEnd - approachDir * arrowSetbackFromJunction;
-            decalPos.y += 0.01f; // tiny offset above road surface
+            decalPos.y += 0.4f;
 
             float laneW = (float)lane.laneWidth;
             if (laneW <= 0f) laneW = 3.2f;
@@ -1279,8 +1277,7 @@ public class RoadNetworkBuilder : MonoBehaviour
 
                 var proj = decalObj.AddComponent<DecalProjector>();
                 proj.material = mat;
-                // size: X = width, Y = height (2.5 m each), Z = arrow length along lane
-                proj.size = new Vector3(2.5f, 2.5f, arrowDecalLength);
+                proj.size = new Vector3(2.5f, 2.5f, 0.4f);
                 proj.drawDistance = 250f;
                 placedCount++;
             }
@@ -1292,7 +1289,7 @@ public class RoadNetworkBuilder : MonoBehaviour
                 slDecalObj.transform.SetParent(decalsRoot.transform);
                 if (groundLayer >= 0) slDecalObj.layer = groundLayer;
                 Vector3 slPos = laneEnd;
-                slPos.y += 0.5f;
+                slPos.y += 0.4f;
                 slDecalObj.transform.position = slPos;
                 // Z+90° rotates the stripe 90° within the horizontal plane so it runs across the lane
                 float slYaw = Mathf.Atan2(approachDir.x, approachDir.z) * Mathf.Rad2Deg + 90f;
