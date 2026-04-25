@@ -188,7 +188,7 @@ public class DrivingEvaluator : MonoBehaviour
     public void BeginEvaluation(GameObject egoVehicle, ScenarioId scenario)
     {
         _activeScenario = scenario;
-        _vehicleMode = scenario.ToString().Contains("Bike")
+        _vehicleMode = scenario.ToString().Contains("bike")
             ? VehicleMode.Bike
             : VehicleMode.Car;
 
