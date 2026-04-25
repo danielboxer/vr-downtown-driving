@@ -121,7 +121,7 @@ for k, v in DEFAULTS.items():
 # ── NEW OPTIONS ────────────────────────────────────────────────
 use_gui_var = tk.BooleanVar(value=True)
 rtf_var = tk.BooleanVar(value=True)
-free_cam_var = tk.BooleanVar(value=False)  # ★ NEW (Free-cam)
+free_cam_var = tk.BooleanVar(value=True)  # ★ NEW (Free-cam)
 
 ttk.Checkbutton(root, text="Run SUMO with GUI", variable=use_gui_var).grid(
     row=row, column=0, columnspan=2, sticky="w", padx=6, pady=3
