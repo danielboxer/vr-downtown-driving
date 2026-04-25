@@ -48,37 +48,49 @@ _SCENARIOS_ROOT = os.path.abspath(
     os.path.join(os.path.dirname(__file__), "..", "Scenarios")
 )
 
-# Default to the first scenario subfolder found, so the field is immediately usable
-_default_scenario = next(
-    (
-        os.path.join(_SCENARIOS_ROOT, name)
-        for name in sorted(os.listdir(_SCENARIOS_ROOT))
-        if os.path.isdir(os.path.join(_SCENARIOS_ROOT, name))
-        and any(
-            f.endswith(".rou.xml")
-            for f in os.listdir(os.path.join(_SCENARIOS_ROOT, name))
-        )
-    ),
-    _SCENARIOS_ROOT,
+# Collect all scenario subfolders that contain a .rou.xml file
+_scenario_names = sorted(
+    name
+    for name in os.listdir(_SCENARIOS_ROOT)
+    if os.path.isdir(os.path.join(_SCENARIOS_ROOT, name))
+    and any(
+        f.endswith(".rou.xml") for f in os.listdir(os.path.join(_SCENARIOS_ROOT, name))
+    )
 )
 
+_default_scenario = (
+    os.path.join(_SCENARIOS_ROOT, _scenario_names[0])
+    if _scenario_names
+    else _SCENARIOS_ROOT
+)
 scenario_dir_var = tk.StringVar(value=_default_scenario)
 
-ttk.Label(root, text="Scenario folder").grid(
-    row=1, column=0, sticky="e", padx=6, pady=3
-)
-ttk.Entry(root, textvariable=scenario_dir_var).grid(
-    row=1, column=1, sticky="we", padx=6, pady=3
-)
+ttk.Label(root, text="Scenario").grid(row=1, column=0, sticky="e", padx=6, pady=3)
+_combo = ttk.Combobox(root, values=_scenario_names, state="readonly")
+_combo.grid(row=1, column=1, sticky="we", padx=6, pady=3)
+if _scenario_names:
+    _combo.set(_scenario_names[0])
+
+
+def _on_combo_select(event=None):
+    scenario_dir_var.set(os.path.join(_SCENARIOS_ROOT, _combo.get()))
+
+
+_combo.bind("<<ComboboxSelected>>", _on_combo_select)
 
 
 def browse_scenario():
     d = filedialog.askdirectory(
-        initialdir=_SCENARIOS_ROOT,
-        title="Select scenario folder",
+        initialdir=_SCENARIOS_ROOT, title="Select scenario folder"
     )
     if d:
         scenario_dir_var.set(d)
+        # update combobox display if it matches a known scenario
+        name = os.path.basename(d)
+        if name in _scenario_names:
+            _combo.set(name)
+        else:
+            _combo.set("")
 
 
 ttk.Button(root, text="Browse…", command=browse_scenario).grid(
@@ -174,7 +186,6 @@ def run_sim(cfg: dict, stop_event=None):
 
     net_file = _glob_one(parent_dir, "*.net.xml")
     poly_file = _glob_one(parent_dir, "*.poly.xml")
-    vtypes_file = _glob_one(parent_dir, "vtypes.rou.xml")
     route_file = _glob_one(scenario_dir, "*.rou.xml")
 
     if not net_file:
@@ -184,8 +195,7 @@ def run_sim(cfg: dict, stop_event=None):
         logger.error("No *.rou.xml found in %s", scenario_dir)
         return
 
-    # Build route list: vtypes first (if present), then scenario routes
-    route_files = ",".join(filter(None, [vtypes_file, route_file]))
+    route_files = route_file
 
     sumo_bin = "sumo-gui" if use_gui else "sumo"
     sumo_cmd = [
