@@ -184,33 +184,49 @@ def run_sim(cfg: dict, stop_event=None):
         matches = glob.glob(os.path.join(directory, pattern))
         return matches[0] if matches else None
 
-    net_file = _glob_one(parent_dir, "*.net.xml")
+    sumocfg_file = _glob_one(scenario_dir, "*.sumocfg")
     poly_file = _glob_one(parent_dir, "*.poly.xml")
-    route_file = _glob_one(scenario_dir, "*.rou.xml")
-
-    if not net_file:
-        logger.error("No *.net.xml found in %s", parent_dir)
-        return
-    if not route_file:
-        logger.error("No *.rou.xml found in %s", scenario_dir)
-        return
-
-    route_files = route_file
 
     sumo_bin = "sumo-gui" if use_gui else "sumo"
-    sumo_cmd = [
-        sumo_bin,
-        "-n",
-        net_file,
-        "-r",
-        route_files,
-        "--step-length",
-        str(steplength),
-        "--lateral-resolution",
-        str(lateral_resolution),
-    ]
-    if poly_file:
-        sumo_cmd += ["-a", poly_file]
+
+    if sumocfg_file:
+        # Use the scenario sumocfg so net/route/additional files are resolved
+        # from the config rather than a fragile glob on the parent directory.
+        sumo_cmd = [
+            sumo_bin,
+            "-c",
+            sumocfg_file,
+            "--step-length",
+            str(steplength),
+            "--lateral-resolution",
+            str(lateral_resolution),
+        ]
+    else:
+        # Fallback: build command from discovered files (legacy behaviour)
+        net_file = _glob_one(parent_dir, "*.net.xml")
+        route_file = _glob_one(scenario_dir, "*.rou.xml")
+
+        if not net_file:
+            logger.error("No *.net.xml found in %s", parent_dir)
+            return
+        if not route_file:
+            logger.error("No *.rou.xml found in %s", scenario_dir)
+            return
+
+        sumo_cmd = [
+            sumo_bin,
+            "-n",
+            net_file,
+            "-r",
+            route_file,
+            "--step-length",
+            str(steplength),
+            "--lateral-resolution",
+            str(lateral_resolution),
+        ]
+        if poly_file:
+            sumo_cmd += ["-a", poly_file]
+
     if use_gui:
         sumo_cmd += ["--delay", "0"]  # keep 0-delay only when GUI present
 

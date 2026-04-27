@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on 2026-04-24 21:53:05 by Eclipse SUMO netedit Version 1.22.0
+<!-- generated on 2026-04-27 10:39:32 by Eclipse SUMO netedit Version 1.22.0
 <neteditConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/neteditConfiguration.xsd">
 
     <input>
-        <additional-files value="C:\Users\dleeb\Desktop\thesis\vr-downtown-driving\simulation\Scenarios\downtown.poly.xml"/>
-        <route-files value="C:\Users\dleeb\Desktop\thesis\vr-downtown-driving\simulation\Scenarios\vtypes.rou.xml"/>
-        <sumo-net-file value="C:\Users\dleeb\Desktop\thesis\vr-downtown-driving\simulation\Scenarios\downtown.net.xml"/>
+        <additional-files value="C:\Users\dleeb\Desktop\thesis\vr-downtown-driving\simulation\Scenarios\right_turn_car\../downtown.poly.xml"/>
+        <route-files value="C:\Users\dleeb\Desktop\thesis\vr-downtown-driving\simulation\Scenarios\right_turn_car\Sumo2Unity.rou.xml"/>
+        <sumo-net-file value="C:\Users\dleeb\Desktop\thesis\vr-downtown-driving\simulation\Scenarios\right_turn_car\../right_turn.net.xml"/>
     </input>
 
     <output>
-        <output-file value="C:\Users\dleeb\Desktop\thesis\vr-downtown-driving\simulation\Scenarios\downtown.net.xml"/>
+        <output-file value="C:\Users\dleeb\Desktop\thesis\vr-downtown-driving\simulation\Scenarios\right_turn_car\../right_turn.net.xml"/>
         <output.street-names value="true"/>
     </output>
 
@@ -1291,11 +1291,8 @@
         <phase duration="3"  state="y"/>
         <phase duration="5"  state="r"/>
     </tlLogic>
-    <tlLogic id="32" type="actuated" programID="0" offset="0">
-        <phase duration="42" state="rrGGGrrGG" minDur="5" maxDur="50"/>
-        <phase duration="3"  state="rryyyrryy"/>
-        <phase duration="42" state="GGrrrGGrr" minDur="5" maxDur="50"/>
-        <phase duration="3"  state="yyrrryyrr"/>
+    <tlLogic id="32" type="static" programID="0" offset="0">
+        <phase duration="999999" state="rrGGGrrGG"/>
     </tlLogic>
     <tlLogic id="33" type="actuated" programID="0" offset="0">
         <phase duration="42" state="rrrrrGGGGgggrrrrrrrGGGGggg" minDur="5" maxDur="50"/>
