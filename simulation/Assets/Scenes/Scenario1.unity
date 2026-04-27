@@ -285467,6 +285467,7 @@ MonoBehaviour:
   stopLineVoiceClip: {fileID: 8300000, guid: 71712105972f7234b9987b46ad62565c, type: 3}
   turnSignalVoiceClip: {fileID: 8300000, guid: 802f807c0caf7c04b9c7baa78e50c88b, type: 3}
   wrongWayVoiceClip: {fileID: 8300000, guid: 2fe322854c30d9f4290bbf62dc79b84f, type: 3}
+  collisionVoiceClip: {fileID: 8300000, guid: 8a45dd7ab3c0a194089cba6dd02f1216, type: 3}
   warningClip: {fileID: 8300000, guid: b545f356c067bac418de28d26de581e6, type: 3}
   collisionWarningClips:
   - {fileID: 8300000, guid: 3bd3ca072e8e86644b05727b4a6b8bc4, type: 3}
