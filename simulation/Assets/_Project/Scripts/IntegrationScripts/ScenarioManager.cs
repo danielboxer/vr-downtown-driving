@@ -141,6 +141,7 @@ public class ScenarioManager : MonoBehaviour
                 activeEgo = egoCar;
                 break;
 
+            case ScenarioId.downtown_car:
             case ScenarioId.busy_downtown_car:
                 activeEgo = egoCar;
                 break;
@@ -154,6 +155,7 @@ public class ScenarioManager : MonoBehaviour
                 activeEgo = egoBike;
                 break;
 
+            case ScenarioId.downtown_bike:
             case ScenarioId.busy_downtown_bike:
                 activeEgo = egoBike;
                 break;
