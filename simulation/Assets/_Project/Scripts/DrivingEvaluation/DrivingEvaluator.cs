@@ -91,6 +91,9 @@ public class DrivingEvaluator : MonoBehaviour
     [Tooltip("Optional voice prompt played when the driver exits the intersection on the wrong road.")]
     [SerializeField] private AudioClip wrongWayVoiceClip;
 
+    [Tooltip("Optional voice prompt played after a non-curb vehicle collision. Plays through the voice queue after the crash sound.")]
+    [SerializeField] private AudioClip collisionVoiceClip;
+
     [Tooltip("Optional clip played for evaluator warning events such as speeding, red lights, or missing signals.")]
     [SerializeField] private AudioClip warningClip;
 
@@ -423,6 +426,10 @@ public class DrivingEvaluator : MonoBehaviour
         LogEvent("", "Collision",
             $"other={otherName};tag={otherTag};impact_speed={impactSpeed:F1}");
         PlayCollisionCue(collision);
+
+        // Queue a voice prompt for vehicle collisions; curb bumps are minor so skip it.
+        if (!IsCurbCollision(collision))
+            QueueWarning(collisionVoiceClip);
 
         Debug.LogWarning($"[DrivingEvaluator] COLLISION with '{otherName}' " +
                          $"(tag={otherTag}) at {impactSpeed:F1} m/s");
