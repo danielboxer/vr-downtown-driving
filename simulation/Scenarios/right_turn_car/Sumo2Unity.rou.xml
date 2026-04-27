@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on 2026-04-27 11:10:25 by Eclipse SUMO netedit Version 1.22.0
+<!-- generated on 2026-04-27 11:41:09 by Eclipse SUMO netedit Version 1.22.0
 -->
 
 <routes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/routes_file.xsd">
@@ -16,10 +16,10 @@
     <vType id="EgoScooter" length="1.09" vClass="scooter"/>
     <vType id="bike" length="1.80" maxSpeed="6.00" vClass="bicycle" width="0.65" height="1.70" color="200,50,50"/>
     <!-- Vehicles, persons and containers (sorted by depart) -->
-    <flow id="f_1_bike" type="bike" begin="0.00" from="79" to="71" number="1800" vehsPerHour="2000"/>
+    <flow id="f_1_bike" type="bike" begin="0.00" from="79" to="71" number="3000" vehsPerHour="3000"/>
     <flow id="f_2" type="301" begin="0.00" from="98" to="23" end="3600.00" vehsPerHour="50"/>
     <flow id="f_3" type="304" begin="0.00" from="90" to="24" via="87" end="3600.00" vehsPerHour="50"/>
     <flow id="f_4" type="305" begin="0.00" from="88" to="12" end="3600.00" vehsPerHour="50"/>
-    <flow id="f_5" type="306" begin="0.00" from="79" to="103" end="3600.00" vehsPerHour="500"/>
+    <flow id="f_5" type="306" begin="0.00" from="79" to="103" end="3600.00" vehsPerHour="1000"/>
     <trip id="f_0.0" type="EgoCar" depart="540.00" from="62" to="78"/>
 </routes>
