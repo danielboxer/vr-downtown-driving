@@ -16,5 +16,5 @@
     <vType id="EgoScooter" length="1.09" vClass="scooter"/>
     <vType id="bike" length="1.80" maxSpeed="6.00" vClass="bicycle" width="0.65" height="1.70" color="200,50,50"/>
     <!-- Vehicles, persons and containers (sorted by depart) -->
-    <trip id="f_0.0" type="EgoBike" depart="540.00" from="62" to="78"/>
+    <trip id="f_0.0" type="EgoBike" depart="540.00" from="62" to="62"/>
 </routes>
