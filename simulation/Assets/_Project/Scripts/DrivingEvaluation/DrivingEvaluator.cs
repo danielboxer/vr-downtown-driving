@@ -18,12 +18,6 @@ public class DrivingEvaluator : MonoBehaviour
     public enum VehicleMode { Car, Bike }
     public enum SignalDirection { Left, Right }
 
-    /// <summary>
-    /// Priority level for a warning notification. Higher values override lower ones when
-    /// two warnings fire at the same time on the same audio channel.
-    /// </summary>
-    public enum WarningPriority { Low = 0, Medium = 1, High = 2, Critical = 3 }
-
 
     [Header("Speed Limit")]
     [Tooltip("Speed limit in km/h. Set to 0 to disable speed monitoring.")]
@@ -106,19 +100,6 @@ public class DrivingEvaluator : MonoBehaviour
     [Tooltip("Optional clip played when colliding with generated curb meshes. Falls back to the warning clip if empty.")]
     [SerializeField] private AudioClip curbWarningClip;
 
-    [Header("Warning Priorities")]
-    [Tooltip("Priority for speeding warnings. A warning only plays (or interrupts) if its priority is strictly higher than the currently active one.")]
-    [SerializeField] private WarningPriority speedingPriority = WarningPriority.Medium;
-
-    [Tooltip("Priority for red-light violation warnings.")]
-    [SerializeField] private WarningPriority redLightPriority = WarningPriority.High;
-
-    [Tooltip("Priority for wrong-way entry warnings.")]
-    [SerializeField] private WarningPriority wrongWayPriority = WarningPriority.High;
-
-    [Tooltip("Priority for missing turn-signal warnings.")]
-    [SerializeField] private WarningPriority turnSignalPriority = WarningPriority.Low;
-
     // Auto-resolved references (no Inspector assignment needed)
     private SimulationController simController;
     private CarUserControl carUserControl;
@@ -171,15 +152,11 @@ public class DrivingEvaluator : MonoBehaviour
     }
 
     private readonly List<EvalEvent> _eventLog = new();
-    private readonly List<QueuedVoicePrompt> _voicePromptQueue = new();
+    // Each entry is a (warning beep, voice clip) pair; processed sequentially by the coroutine.
+    private readonly List<PendingWarning> _warningQueue = new();
     private float _evalStartTime;
-
-    // ── Warning priority tracking ──
-    // Prevents lower-priority warnings from interrupting an active higher-priority one.
-    private WarningPriority _activeWarningPriority;
-    private float _warningBlockedUntil;
     private float _lastSpeedingLogTime = -10f;
-    private Coroutine _voicePromptCoroutine;
+    private Coroutine _warningCoroutine;
 
     // ── Turn-direction tracking ──
     // Set each time the ego crosses a stop line so the following turn trigger can
@@ -188,11 +165,11 @@ public class DrivingEvaluator : MonoBehaviour
     private Vector3 _lastStopLineApproachDir;
     private Vector3 _lastStopLinePosition;
 
-    private struct QueuedVoicePrompt
+    // Bundles the warning tone and optional voice clip for a single evaluator event.
+    private struct PendingWarning
     {
-        public AudioClip clip;
-        public float delay;
-        public WarningPriority priority;
+        public AudioClip warnClip;
+        public AudioClip voiceClip;
     }
 
     private void Awake()
@@ -275,13 +252,16 @@ public class DrivingEvaluator : MonoBehaviour
         TurnDirectionTrigger.OnEgoCrossedTurnTrigger -= HandleTurnDirectionCrossing;
         CollisionDetector.OnEgoCollision -= HandleCollision;
 
-        if (_voicePromptCoroutine != null)
+        if (_warningCoroutine != null)
         {
-            StopCoroutine(_voicePromptCoroutine);
-            _voicePromptCoroutine = null;
+            StopCoroutine(_warningCoroutine);
+            _warningCoroutine = null;
         }
 
-        _voicePromptQueue.Clear();
+        _warningQueue.Clear();
+
+        if (_warningAudioSource != null)
+            _warningAudioSource.Stop();
 
         if (_voiceAudioSource != null)
             _voiceAudioSource.Stop();
@@ -310,8 +290,7 @@ public class DrivingEvaluator : MonoBehaviour
                 _speedingEventCount++;
                 _lastSpeedingLogTime = Time.time;
                 LogEvent("", "Speeding", $"speed={currentSpeedKmh:F1};limit={speedLimitKmh:F0}");
-                PlayWarningCue(speedingPriority);
-                QueueVoicePrompt(speedingVoiceClip, speedingPriority);
+                QueueWarning(speedingVoiceClip);
                 Debug.LogWarning($"[DrivingEvaluator] SPEEDING: {currentSpeedKmh:F1} km/h (limit {speedLimitKmh:F0})");
             }
         }
@@ -338,8 +317,7 @@ public class DrivingEvaluator : MonoBehaviour
             if (parallelism < 0.3f)
             {
                 LogEvent(trigger.junctionId, "WrongWayEntry", "");
-                PlayWarningCue(wrongWayPriority);
-                QueueVoicePrompt(wrongWayVoiceClip, wrongWayPriority);
+                QueueWarning(wrongWayVoiceClip);
                 Debug.LogWarning(
                     $"[DrivingEvaluator] WRONG WAY at junction {trigger.junctionId}!");
                 return; // this stop line belongs to cross-traffic; skip red-light check
@@ -373,8 +351,7 @@ public class DrivingEvaluator : MonoBehaviour
                 {
                     _ranRedLight = true;
                     LogEvent(trigger.junctionId, "RedLightViolation", $"light={c}");
-                    PlayWarningCue(redLightPriority);
-                    QueueVoicePrompt(stopLineVoiceClip, redLightPriority);
+                    QueueWarning(stopLineVoiceClip);
                     Debug.LogWarning($"[DrivingEvaluator] RED LIGHT VIOLATION at junction {trigger.junctionId}");
                 }
                 else
@@ -425,8 +402,7 @@ public class DrivingEvaluator : MonoBehaviour
         {
             _usedTurnSignal = false;
             LogEvent(trigger.junctionId, "TurnSignalMissing", $"direction={dirLabel}");
-            PlayWarningCue(turnSignalPriority);
-            QueueVoicePrompt(turnSignalVoiceClip, turnSignalPriority);
+            QueueWarning(turnSignalVoiceClip);
             Debug.LogWarning($"[DrivingEvaluator] MISSING TURN SIGNAL at junction {trigger.junctionId} ({dirLabel})!");
         }
     }
@@ -488,25 +464,49 @@ public class DrivingEvaluator : MonoBehaviour
         _voiceAudioSource.spatialBlend = 0f;
     }
 
-    private void PlayWarningCue(WarningPriority priority)
+    private void QueueWarning(AudioClip voiceClip)
     {
-        if (!playWarningSounds || warningVolume <= 0f || warningClip == null)
-            return;
+        _warningQueue.Add(new PendingWarning
+        {
+            warnClip = warningClip,
+            voiceClip = voiceClip
+        });
 
-        // Skip if a same-or-higher priority warning is still active on this channel.
-        // A strictly higher priority overrides (interrupts) the current sound.
-        if (priority <= _activeWarningPriority && Time.time < _warningBlockedUntil)
-            return;
+        if (_warningCoroutine == null)
+            _warningCoroutine = StartCoroutine(ProcessWarningQueue());
+    }
 
-        EnsureWarningAudioSource();
+    private IEnumerator ProcessWarningQueue()
+    {
+        while (_warningQueue.Count > 0)
+        {
+            PendingWarning pending = _warningQueue[0];
+            _warningQueue.RemoveAt(0);
 
-        // Stop the previous sound so the higher-priority clip takes over cleanly.
-        _warningAudioSource.Stop();
-        _warningAudioSource.pitch = 1f;
-        _warningAudioSource.PlayOneShot(warningClip, warningVolume);
+            // Play the warning tone and wait for it to finish.
+            if (playWarningSounds && warningVolume > 0f && pending.warnClip != null)
+            {
+                EnsureWarningAudioSource();
+                _warningAudioSource.pitch = 1f;
+                _warningAudioSource.PlayOneShot(pending.warnClip, warningVolume);
 
-        _activeWarningPriority = priority;
-        _warningBlockedUntil = Time.time + warningClip.length;
+                float warnDuration = pending.warnClip.length + warningToVoiceDelay;
+                yield return new WaitForSeconds(warnDuration);
+            }
+
+            // Play the voice clip and wait for it to finish before the next item.
+            if (playVoicePrompts && voiceVolume > 0f && pending.voiceClip != null)
+            {
+                EnsureVoiceAudioSource();
+                _voiceAudioSource.pitch = GetRandomPitch(voicePitchMin, voicePitchMax);
+                _voiceAudioSource.PlayOneShot(pending.voiceClip, voiceVolume);
+
+                float voiceDuration = pending.voiceClip.length / Mathf.Max(_voiceAudioSource.pitch, 0.01f);
+                yield return new WaitForSeconds(voiceDuration);
+            }
+        }
+
+        _warningCoroutine = null;
     }
 
     private void PlayCollisionCue(Collision collision)
@@ -525,71 +525,6 @@ public class DrivingEvaluator : MonoBehaviour
         EnsureCollisionAudioSource();
         _collisionAudioSource.pitch = GetRandomPitch(collisionPitchMin, collisionPitchMax);
         _collisionAudioSource.PlayOneShot(clip, volume);
-    }
-
-    private void QueueVoicePrompt(AudioClip clip, WarningPriority priority)
-    {
-        if (!playVoicePrompts || voiceVolume <= 0f || clip == null)
-            return;
-
-        var prompt = new QueuedVoicePrompt
-        {
-            clip = clip,
-            delay = GetWarningLeadInDuration(),
-            priority = priority
-        };
-
-        // Insert before the first item with a strictly lower priority so that
-        // higher-priority prompts play sooner without clearing the rest of the queue.
-        int insertIdx = _voicePromptQueue.Count;
-        for (int i = 0; i < _voicePromptQueue.Count; i++)
-        {
-            if (priority > _voicePromptQueue[i].priority)
-            {
-                insertIdx = i;
-                break;
-            }
-        }
-        _voicePromptQueue.Insert(insertIdx, prompt);
-
-        if (_voicePromptCoroutine == null)
-            _voicePromptCoroutine = StartCoroutine(ProcessVoicePromptQueue());
-    }
-
-    private IEnumerator ProcessVoicePromptQueue()
-    {
-        while (_voicePromptQueue.Count > 0)
-        {
-            QueuedVoicePrompt prompt = _voicePromptQueue[0];
-            _voicePromptQueue.RemoveAt(0);
-
-            if (prompt.delay > 0f)
-                yield return new WaitForSeconds(prompt.delay);
-
-            if (!playVoicePrompts || voiceVolume <= 0f || prompt.clip == null)
-                continue;
-
-            EnsureVoiceAudioSource();
-            _voiceAudioSource.pitch = GetRandomPitch(voicePitchMin, voicePitchMax);
-            _voiceAudioSource.PlayOneShot(prompt.clip, voiceVolume);
-
-            float clipDuration = prompt.clip.length / Mathf.Max(_voiceAudioSource.pitch, 0.01f);
-            yield return new WaitForSeconds(clipDuration);
-        }
-
-        _voicePromptCoroutine = null;
-    }
-
-    private float GetWarningLeadInDuration()
-    {
-        if (warningClip == null)
-            return warningToVoiceDelay;
-
-        float warningPitch = _warningAudioSource != null
-            ? Mathf.Max(_warningAudioSource.pitch, 0.01f)
-            : 1f;
-
-        return (warningClip.length / warningPitch) + warningToVoiceDelay;
     }
 
     private AudioClip GetCollisionClip(Collision collision)
