@@ -5,18 +5,13 @@ public class MirrorMovement : MonoBehaviour
     public Transform playerTarget;
     public Transform mirror;
 
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
-    {
-        
-    }
-
     // Update is called once per frame
     void Update()
     {
         Vector3 localPlayer = mirror.InverseTransformPoint(playerTarget.position);
-        transform.position = mirror.TransformPoint(new Vector3(localPlayer.x, localPlayer.y, -localPlayer.z));
-
+        // Camera stays anchored at mirror position, only rotation adjusts for player head lean
+        transform.position = mirror.position;
+        // Look toward the reflected player direction (opposite X, same Y, same Z in mirror space)
         Vector3 lookatmirror = mirror.TransformPoint(new Vector3(-localPlayer.x, localPlayer.y, localPlayer.z));
         transform.LookAt(lookatmirror);
     }
