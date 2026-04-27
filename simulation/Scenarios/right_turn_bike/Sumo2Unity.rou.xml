@@ -14,6 +14,6 @@
     <vType id="bike" length="1.80" maxSpeed="6.00" vClass="bicycle" width="0.65" height="1.70" color="200,50,50"/>
     <!-- Vehicles, persons and containers (sorted by depart) -->
     <flow id="f_2" type="301" begin="0.00" from="22" to="23" end="3600.00" vehsPerHour="500"/>
-    <trip id="f_0.0" type="EgoBike" depart="540.00" from="78" to="71"/>
+    <trip id="f_0.0" type="EgoBike" depart="540.00" from="62" to="62"/>
     <trip id="f_1" type="303" depart="540.00" from="78" to="87"/>
 </routes>
