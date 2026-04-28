@@ -308,10 +308,8 @@ public class DrivingEvaluator : MonoBehaviour
     {
         if (!_evaluationEnabled) return;
 
-        // ── 1. Wrong-way detection via stop lines ──
-        // If this stop line is at the same junction as the last one crossed but its
-        // approach direction is perpendicular (|dot| < 0.3), the car has drifted into
-        // an adjacent road's lane rather than going straight or turning correctly.
+        // ── 1. Wrong-way detection via stop lines ── (disabled)
+        /*
         if (_lastStopLineJunctionId == trigger.junctionId &&
             _lastStopLineApproachDir != Vector3.zero)
         {
@@ -326,6 +324,7 @@ public class DrivingEvaluator : MonoBehaviour
                 return; // this stop line belongs to cross-traffic; skip red-light check
             }
         }
+        */
 
         // ── 2. Update approach tracking ──
         // Only update when velocity is aligned with this stop line's direction so a
