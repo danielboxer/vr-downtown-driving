@@ -1,9 +1,6 @@
 # VR Downtown Driving
 
-## Controller
+VR driving simulation set in downtown Toronto (Yonge and Dundas).Navigate downtown intersections as a car or bike driver.
 
-[Controller documentation](controller/README.md)
-
-## Simulation
-
-[Simulation documentation](simulation/README.md)
+- [Simulation](simulation/README.md)
+- [Controller](controller/README.md)
