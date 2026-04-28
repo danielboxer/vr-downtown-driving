@@ -50,12 +50,23 @@ _SCENARIOS_ROOT = os.path.abspath(
 
 # Collect all scenario subfolders that contain a .rou.xml file
 _scenario_names = sorted(
-    name
-    for name in os.listdir(_SCENARIOS_ROOT)
-    if os.path.isdir(os.path.join(_SCENARIOS_ROOT, name))
-    and any(
-        f.endswith(".rou.xml") for f in os.listdir(os.path.join(_SCENARIOS_ROOT, name))
-    )
+    (
+        name
+        for name in os.listdir(_SCENARIOS_ROOT)
+        if os.path.isdir(os.path.join(_SCENARIOS_ROOT, name))
+        and any(
+            f.endswith(".rou.xml")
+            for f in os.listdir(os.path.join(_SCENARIOS_ROOT, name))
+        )
+    ),
+    # Sort alphabetically by scenario base name, but _car before _bike within the same base.
+    key=lambda n: (
+        (n[:-4], 0)
+        if n.endswith("_car")
+        else (n[:-5], 1)
+        if n.endswith("_bike")
+        else (n, 2)
+    ),
 )
 
 _default_scenario = (
