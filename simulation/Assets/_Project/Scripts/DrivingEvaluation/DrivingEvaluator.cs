@@ -425,11 +425,14 @@ public class DrivingEvaluator : MonoBehaviour
 
         LogEvent("", "Collision",
             $"other={otherName};tag={otherTag};impact_speed={impactSpeed:F1}");
-        PlayCollisionCue(collision);
 
-        // Queue a voice prompt for vehicle collisions; curb bumps are minor so skip it.
-        if (!IsCurbCollision(collision))
+        // Only play audio warnings for vehicle collisions (cars/bikes).
+        // Building and environment hits are still logged but produce no sound.
+        if (IsVehicleCollision(collision))
+        {
+            PlayCollisionCue(collision);
             QueueWarning(collisionVoiceClip);
+        }
 
         Debug.LogWarning($"[DrivingEvaluator] COLLISION with '{otherName}' " +
                          $"(tag={otherTag}) at {impactSpeed:F1} m/s");
@@ -599,6 +602,12 @@ public class DrivingEvaluator : MonoBehaviour
         }
 
         return false;
+    }
+
+    // Returns true when the collided object is an NPC vehicle (has VehicleController).
+    private static bool IsVehicleCollision(Collision collision)
+    {
+        return collision.gameObject.GetComponentInParent<VehicleController>() != null;
     }
 
     private void LogEvent(string junctionId, string eventType, string detail)
