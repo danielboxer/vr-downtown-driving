@@ -1,65 +1,65 @@
-## Simulation
+# Simulation
 
-The simulation uses the Sumo2Unity project. See their documentation [here](https://github.com/SimuTraffX-Lab/SUMO2Unity/blob/main/README.md). 
+The simulation extends the Sumo2Unity project. See their documentation [here](https://github.com/SimuTraffX-Lab/SUMO2Unity/blob/main/README.md).
+
+## Scenarios
+
+Six scenarios across two vehicle modes. Select one in the tool before starting Unity.
+
+| Folder           | Vehicle | Description                             |
+| ---------------- | ------- | --------------------------------------- |
+| calibration_car  | Car     | No traffic, learn controls              |
+| downtown_car     | Car     | Free drive                              |
+| right_turn_car   | Car     | Right turn at a signalized intersection |
+| calibration_bike | Bike    | No traffic, learn controls              |
+| downtown_bike    | Bike    | Free ride                               |
+| right_turn_bike  | Bike    | Right turn at a signalized intersection |
+
 
 ## Controls
 
-Car:
+**Car**
 
-Steer - A/D keys (tilt in VR)
-Accelerate - W key, right trigger
-Brake - S key, left trigger
-Handbrake - Space
-Left signal - 1 key, left thumbstick left
-Right signal - 2 key, left thumbstick right
-Cancel signal - 3 key, left thumbstick down
-Calibrate steering - C key (hold)
-Gear change (drive/reverse) - G key (toggle), right thumbstick up (Drive) / down (Reverse)
-Horn - H key, right thumbstick click
-
-Bike:
-
-Steer - A/D keys (tilt in VR)
-Brake - S key, both triggers (analog, progressive)
-Reverse - R key, X button (left hand)
-Calibrate - C key (hold), Y button (hold)
-Speed - automatic when brakes released, ramps up smoothly
-
-## Running the simulation
-
-1. Run `Sumo2UnityTool.exe`
-2. Press `Start simulation`
-3. Run Unity simulation
-
-## Modifying the SUMO network
-
-- Open `netedit`
-- Click `File` > `Load Netedit Config`
-- Select `Sumo2Unity.netecfg`
-
-Make sure to delete any trips or flows in .rou file before making your own trips.
+| Action             | Keyboard   | VR                           |
+| ------------------ | ---------- | ---------------------------- |
+| Steer              | A / D      | Tilt controller              |
+| Accelerate         | W          | Right trigger                |
+| Brake              | S          | Left trigger                 |
+| Handbrake          | Space      |                              |
+| Left signal        | Q          | Left thumbstick left         |
+| Right signal       | E          | Left thumbstick right        |
+| Cancel signal      |            | Left thumbstick down         |
+| Drive / Reverse    | G (toggle) | Right thumbstick up / down   |
+| Calibrate steering | C (hold)   | Left secondary button (hold) |
+| Horn               | H          | Right thumbstick click       |
 
 
-## Modifying a route
+**Bike**
 
-1. In netedit, go to `Inspect` mode
-2. Click `Demand` in the top bar
-3. Click the car of the route you want to edit
-4. Now you can modify the route parameters
+| Action    | Keyboard | VR                     |
+| --------- | -------- | ---------------------- |
+| Steer     | A / D    | Tilt controller        |
+| Brake     | S        | Both triggers (analog) |
+| Reverse   | R        | X button               |
+| Calibrate | C (hold) | Y button (hold)        |
 
+Speed ramps up automatically when the brakes are released.
 
-## OpenStreetMap to Sumo
+## Running
 
-https://www.youtube.com/watch?v=HQFZKigh4Sk
-https://www.youtube.com/watch?v=Dh_0A-wOk84
+1. Run `uv run main.py` from `simulation/python/`
+2. Select a scenario and press **Start simulation**
+3. Press Play in Unity
 
-Run the OSM Web Wizard:
-```powershell
-cd $Env:SUMO_HOME
-python .\tools\osmWebWizard.py
-```
+## Driving Evaluation
 
-Run this to make the edge and junctions ids more readable:
+Scenarios run the driving evaluator, which checks stop-line compliance at red lights and turn signal use at the junction.
+
+## Modifying the SUMO Network
+
+Open `netedit`, then **File > Load Netedit Config** and pick `Sumo2Unity.netecfg` from the scenario folder you want to edit. Remove existing trips or flows before adding new ones.
+
+To renumber edge and junction IDs:
 
 ```powershell
 netconvert --net-file Sumo2Unity.net.xml -o Sumo2Unity.net.xml `
@@ -68,7 +68,7 @@ netconvert --net-file Sumo2Unity.net.xml -o Sumo2Unity.net.xml `
   --numerical-ids.node-start 0
 ```
 
-Run this command to save additional files needed:
+Save config files after changes:
 
 ```powershell
 netconvert --net-file Sumo2Unity.net.xml --save-configuration Sumo2Unity.netecfg
@@ -76,15 +76,31 @@ netconvert --net-file Sumo2Unity.net.xml --save-configuration Sumo2Unity.netecfg
 sumo --net-file Sumo2Unity.net.xml --save-configuration Sumo2Unity.sumocfg
 ```
 
-Finally, in the network file, set the net offset to 0 since it will have a large real world offset.
+Set the net offset to 0 in the network file; the real-world coordinate offset is too large for Unity.
 
-## VR setup unity
+## Modifying a Route
+
+1. In netedit, switch to **Inspect** mode
+2. Click **Demand** in the top bar
+3. Click the vehicle of the route you want to change
+4. Edit the route parameters
+
+## OpenStreetMap to SUMO
+
+- https://www.youtube.com/watch?v=HQFZKigh4Sk
+- https://www.youtube.com/watch?v=Dh_0A-wOk84
+
+```powershell
+cd $Env:SUMO_HOME
+python .\tools\osmWebWizard.py
+```
+
+## VR Setup
 
 https://www.youtube.com/watch?v=exc-73Mna3A
 
+### XR Interaction Simulator
 
-### Unity XR Interaction Simulator
+Enable via **Edit > Project Settings > XR Plug-in Management > XR Interaction Toolkit > Use XR Interaction Simulator in scenes**.
 
-Edit > Project Settings > XR Plug-in Management > XR Interaction Toolkit > Use XR Interaction Simulator in scenes
-
-Use right click to rotate head.
+Right-click rotates the head. Movement keys are rebound to arrow keys to avoid conflict with driving controls.
