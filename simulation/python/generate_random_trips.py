@@ -32,6 +32,7 @@ SCENARIOS_DIR = os.path.normpath(os.path.join(SCRIPT_DIR, "..", "Scenarios"))
 
 DEFAULT_CAR_PERIOD = 3.0
 DEFAULT_BIKE_PERIOD = 15.0
+DEFAULT_START_TIME = 0.0
 DEFAULT_END_TIME = 3600.0
 DEFAULT_SEED = 42
 
@@ -103,6 +104,7 @@ def run_random_trips(
     net_file: str,
     output_file: str,
     period: float,
+    start: float,
     end: float,
     seed: int,
     prefix: str,
@@ -118,6 +120,8 @@ def run_random_trips(
         net_file,
         "-o",
         output_file,
+        "-b",
+        str(start),
         "-e",
         str(end),
         "-p",
@@ -274,6 +278,12 @@ def main() -> None:
         help="Simulation end time in seconds (default %(default)s)",
     )
     parser.add_argument(
+        "--start",
+        type=float,
+        default=DEFAULT_START_TIME,
+        help="Earliest departure time for generated trips in seconds (default %(default)s)",
+    )
+    parser.add_argument(
         "--flows",
         type=int,
         default=0,
@@ -337,6 +347,7 @@ def main() -> None:
             net_file,
             car_file,
             args.period,
+            args.start,
             args.end,
             args.seed,
             prefix="car_",
@@ -359,6 +370,7 @@ def main() -> None:
                 net_file,
                 bike_file,
                 args.bike_period,
+                args.start,
                 args.end,
                 args.seed + 1,
                 prefix="bike_",
