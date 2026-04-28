@@ -1,13 +1,21 @@
-#!/usr/bin/env python3
-"""Generate random NPC traffic trips for the test_random_trips scenario.
+﻿#!/usr/bin/env python3
+"""Generate random NPC traffic and optionally augment an existing route file.
 
-Runs SUMO's randomTrips.py for cars and bikes, assigns custom vTypes,
-and writes the combined Sumo2Unity.rou.xml.
+Usage examples:
+    # Generate random trips for test_random_trips (default behaviour)
+    python generate_random_trips.py test_random_trips
 
-Usage:
-    python generate_random_trips.py
+    # Higher density using flows instead of individual trips
+    python generate_random_trips.py test_random_trips --flows 8 --period 2
+
+    # Augment busy_downtown_car with extra random trips on top of its existing flows
+    python generate_random_trips.py busy_downtown_car --base-file Sumo2Unity.rou.xml
+
+    # No bikes, custom output file
+    python generate_random_trips.py downtown_car --no-bikes --output Sumo2Unity_random.rou.xml
 """
 
+import argparse
 import os
 import random
 import subprocess
@@ -21,29 +29,17 @@ DUAROUTER = os.path.join(SUMO_HOME, "bin", "duarouter.exe")
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 SCENARIOS_DIR = os.path.normpath(os.path.join(SCRIPT_DIR, "..", "Scenarios"))
-NET_FILE = os.path.join(SCENARIOS_DIR, "downtown.net.xml")
-OUTPUT_DIR = os.path.join(SCENARIOS_DIR, "test_random_trips")
-OUTPUT_FILE = os.path.join(OUTPUT_DIR, "Sumo2Unity.rou.xml")
 
-END_TIME = 3600.0
-CAR_PERIOD = 3.0  # one car trip every 3s = ~1200 car trips/hour (busy downtown)
-BIKE_PERIOD = 15.0  # one bike trip every 15s = ~240 bike trips/hour
-RANDOM_SEED = 42
+DEFAULT_CAR_PERIOD = 3.0
+DEFAULT_BIKE_PERIOD = 15.0
+DEFAULT_END_TIME = 3600.0
+DEFAULT_SEED = 42
 
 CAR_VTYPES = ["301", "302", "303", "304", "305", "306"]
 BIKE_VTYPE = "bike"
 
-# Ego car trip, always included
-EGO_TRIP = {
-    "id": "f_0.0",
-    "type": "EgoCar",
-    "depart": "540.00",
-    "from": "62",
-    "to": "62",
-}
-
-# Edges reserved for the ego car; random trips that start or end here are dropped
-# to prevent congestion that would block ego insertion at t=540.
+# The ego car's starting edge â€” kept clear of random traffic to prevent congestion
+# at t=540 that would block ego vehicle insertion.
 EGO_RESERVED_EDGES: set[str] = {"62"}
 
 VTYPES = [
@@ -86,23 +82,44 @@ VTYPES = [
 ]
 
 
+def resolve_scenario(scenario: str) -> tuple[str, str]:
+    """Return (scenario_dir, net_file) for the given scenario name or path."""
+    if os.path.isabs(scenario) or os.sep in scenario:
+        scenario_dir = os.path.normpath(scenario)
+    else:
+        scenario_dir = os.path.join(SCENARIOS_DIR, scenario)
+    if not os.path.isdir(scenario_dir):
+        print(f"Error: scenario directory not found: {scenario_dir}", file=sys.stderr)
+        sys.exit(1)
+    parent = os.path.dirname(scenario_dir)
+    net_files = [f for f in os.listdir(parent) if f.endswith(".net.xml")]
+    if not net_files:
+        print(f"Error: no *.net.xml found in {parent}", file=sys.stderr)
+        sys.exit(1)
+    return scenario_dir, os.path.join(parent, net_files[0])
+
+
 def run_random_trips(
+    net_file: str,
     output_file: str,
     period: float,
+    end: float,
     seed: int,
     prefix: str,
+    fringe_factor: float = 100.0,
     vehicle_class: str | None = None,
+    num_flows: int = 0,
 ) -> None:
     """Call SUMO randomTrips.py and write the result to output_file."""
     cmd = [
         sys.executable,
         RANDOM_TRIPS_PY,
         "-n",
-        NET_FILE,
+        net_file,
         "-o",
         output_file,
         "-e",
-        str(END_TIME),
+        str(end),
         "-p",
         str(period),
         "-s",
@@ -111,9 +128,13 @@ def run_random_trips(
         prefix,
         "--min-distance",
         "50",
+        "--fringe-factor",
+        str(fringe_factor),
     ]
     if vehicle_class:
         cmd += ["--vehicle-class", vehicle_class]
+    if num_flows > 0:
+        cmd += ["--flows", str(num_flows)]
 
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
@@ -122,16 +143,19 @@ def run_random_trips(
         )
         sys.exit(1)
     if result.stderr:
-        # randomTrips.py prints progress to stderr
         print(result.stderr.strip(), file=sys.stderr)
 
 
-def validate_bike_trips(trips_file: str, routes_file: str) -> set[str]:
-    """Run duarouter on the bike trips and return the IDs of successfully routed vehicles."""
+def validate_bike_trips(net_file: str, trips_file: str, routes_file: str) -> set[str]:
+    """Run duarouter on bike trips and return the IDs of successfully routed vehicles.
+
+    Only used for individual trips (not flows); flows don't need pre-validation because
+    SUMO's online router handles unroutable departures at runtime without aborting.
+    """
     cmd = [
         DUAROUTER,
         "-n",
-        NET_FILE,
+        net_file,
         "-r",
         trips_file,
         "-o",
@@ -140,80 +164,47 @@ def validate_bike_trips(trips_file: str, routes_file: str) -> set[str]:
         "--no-step-log",
         "--no-warnings",
         "--vtype-output",
-        os.devnull,  # discard vType output
+        os.devnull,
     ]
     result = subprocess.run(cmd, capture_output=True, text=True)
-    if result.returncode not in (0, 1):  # 1 = warnings only, still OK
+    if result.returncode not in (0, 1):  # 0=OK, 1=warnings only
         print(f"duarouter error:\n{result.stderr}", file=sys.stderr)
         sys.exit(1)
-
     if not os.path.exists(routes_file):
         return set()
-
     tree = ET.parse(routes_file)
-    # duarouter output uses <vehicle id="..."> elements for successfully routed vehicles
     return {elem.get("id", "") for elem in tree.getroot().iter("vehicle")}
 
 
-def parse_trips(file_path: str) -> list[dict]:
-    """Parse <trip> elements from a randomTrips output XML file."""
+def parse_entries(file_path: str) -> list[dict]:
+    """Parse <trip> and <flow> elements from a randomTrips output file."""
     tree = ET.parse(file_path)
-    return [dict(elem.attrib) for elem in tree.getroot().iter("trip")]
-
-
-def main() -> None:
-    rng = random.Random(RANDOM_SEED)
-
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
-
-    with tempfile.TemporaryDirectory() as tmpdir:
-        car_file = os.path.join(tmpdir, "cars.xml")
-        bike_file = os.path.join(tmpdir, "bikes.xml")
-        bike_routes_file = os.path.join(tmpdir, "bike_routes.xml")
-
-        print("Generating car trips...")
-        run_random_trips(car_file, CAR_PERIOD, RANDOM_SEED, prefix="car_")
-
-        print("Generating bike trips...")
-        run_random_trips(
-            bike_file,
-            BIKE_PERIOD,
-            RANDOM_SEED + 1,
-            prefix="bike_",
-            vehicle_class="bicycle",
-        )
-
-        car_trips = parse_trips(car_file)
-        all_bike_trips = parse_trips(bike_file)
-
-        # Validate bike trips with duarouter: drop any trip that has no valid route
-        # across the bicycle network (disconnected segments are common in OSM-derived nets).
-        print("Validating bike routes with duarouter...")
-        valid_bike_ids = validate_bike_trips(bike_file, bike_routes_file)
-        bike_trips = [t for t in all_bike_trips if t.get("id") in valid_bike_ids]
-        dropped = len(all_bike_trips) - len(bike_trips)
-        if dropped:
-            print(f"  Dropped {dropped} unroutable bike trip(s)")
-
-    # Remove random trips that start or end on the ego's reserved edges
-    car_trips = [
-        t
-        for t in car_trips
-        if t.get("from") not in EGO_RESERVED_EDGES
-        and t.get("to") not in EGO_RESERVED_EDGES
-    ]
-    bike_trips = [
-        t
-        for t in bike_trips
-        if t.get("from") not in EGO_RESERVED_EDGES
-        and t.get("to") not in EGO_RESERVED_EDGES
+    return [
+        {"_tag": elem.tag, **dict(elem.attrib)}
+        for elem in tree.getroot()
+        if elem.tag in ("trip", "flow")
     ]
 
-    print(
-        f"  {len(car_trips)} car trips, {len(bike_trips)} bike trips (after edge filtering)"
-    )
 
-    # Build the combined routes XML
+def read_base_file(base_path: str) -> list[dict]:
+    """Read existing trips/flows from a route file (excludes vType definitions)."""
+    if not os.path.exists(base_path):
+        return []
+    tree = ET.parse(base_path)
+    return [
+        {"_tag": elem.tag, **dict(elem.attrib)}
+        for elem in tree.getroot()
+        if elem.tag in ("trip", "flow")
+    ]
+
+
+def build_route_xml(
+    base_entries: list[dict],
+    car_entries: list[dict],
+    bike_entries: list[dict],
+    rng: random.Random,
+) -> ET.Element:
+    """Assemble the final <routes> element with vTypes, base entries, and random entries."""
     root = ET.Element("routes")
     root.set("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance")
     root.set("xsi:noNamespaceSchemaLocation", "http://sumo.dlr.de/xsd/routes_file.xsd")
@@ -224,28 +215,184 @@ def main() -> None:
         for k, v in attrs.items():
             vtype_elem.set(k, v)
 
-    # Assign a random car vType to each car trip, bike vType to each bike trip
-    all_trips: list[dict] = []
-    for trip in car_trips:
-        trip["type"] = rng.choice(CAR_VTYPES)
-        all_trips.append(trip)
-    for trip in bike_trips:
-        trip["type"] = BIKE_VTYPE
-        all_trips.append(trip)
-    all_trips.append(EGO_TRIP.copy())
+    # Base entries (existing file content): written first, as-is
+    if base_entries:
+        root.append(ET.Comment(" Existing flows / trips "))
+        for attrs in base_entries:
+            tag = attrs.pop("_tag")
+            elem = ET.SubElement(root, tag)
+            for k, v in attrs.items():
+                elem.set(k, v)
+            attrs["_tag"] = tag  # restore so the caller's list is not mutated
 
-    # Sort by departure time (SUMO requires sorted order)
-    all_trips.sort(key=lambda t: float(t.get("depart", 0)))
+    # Assign a random car vType to each car entry, bike vType to each bike entry
+    for entry in car_entries:
+        entry["type"] = rng.choice(CAR_VTYPES)
+    for entry in bike_entries:
+        entry["type"] = BIKE_VTYPE
 
-    root.append(ET.Comment(" Vehicles, persons and containers (sorted by depart) "))
-    for attrs in all_trips:
-        trip_elem = ET.SubElement(root, "trip")
-        for k, v in attrs.items():
-            trip_elem.set(k, v)
+    all_random = car_entries + bike_entries
+    # Sort by departure/begin time (SUMO requires sorted order)
+    all_random.sort(key=lambda e: float(e.get("depart") or e.get("begin") or 0))
 
+    if all_random:
+        root.append(ET.Comment(" Randomly generated trips "))
+        for attrs in all_random:
+            tag = attrs.pop("_tag")
+            elem = ET.SubElement(root, tag)
+            for k, v in attrs.items():
+                elem.set(k, v)
+
+    return root
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument(
+        "scenario",
+        help="Scenario folder name (e.g. test_random_trips) or full path",
+    )
+    parser.add_argument(
+        "--period",
+        type=float,
+        default=DEFAULT_CAR_PERIOD,
+        help="Car departure period in seconds (default %(default)s â†’ ~%(default)s veh/hr)",
+    )
+    parser.add_argument(
+        "--bike-period",
+        type=float,
+        default=DEFAULT_BIKE_PERIOD,
+        help="Bike departure period in seconds (default %(default)s)",
+    )
+    parser.add_argument(
+        "--end",
+        type=float,
+        default=DEFAULT_END_TIME,
+        help="Simulation end time in seconds (default %(default)s)",
+    )
+    parser.add_argument(
+        "--flows",
+        type=int,
+        default=0,
+        help="Generate N continuous flows instead of individual trips (default 0 = trips)",
+    )
+    parser.add_argument(
+        "--no-bikes",
+        action="store_true",
+        help="Skip bike trip/flow generation",
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=DEFAULT_SEED,
+        help="Random seed (default %(default)s)",
+    )
+    parser.add_argument(
+        "--fringe-factor",
+        type=float,
+        default=100.0,
+        help=(
+            "Weight towards network-boundary edges for trip origins/destinations "
+            "(default %(default)s; higher = more fringe; 1.0 = fully random edge selection)"
+        ),
+    )
+    parser.add_argument(
+        "--base-file",
+        metavar="PATH",
+        help=(
+            "Existing route file to augment. "
+            "Its trips/flows are preserved under '<!-- Existing flows / trips -->'. "
+            "Defaults to Sumo2Unity.rou.xml in the scenario folder if it exists."
+        ),
+    )
+    parser.add_argument(
+        "--output",
+        metavar="PATH",
+        help="Output route file path (default: Sumo2Unity.rou.xml in scenario folder)",
+    )
+    args = parser.parse_args()
+
+    rng = random.Random(args.seed)
+    scenario_dir, net_file = resolve_scenario(args.scenario)
+
+    base_path = args.base_file or os.path.join(scenario_dir, "Sumo2Unity.rou.xml")
+    output_path = args.output or os.path.join(scenario_dir, "Sumo2Unity.rou.xml")
+
+    base_entries = read_base_file(base_path) if args.base_file else []
+    if base_entries:
+        print(f"  Read {len(base_entries)} existing entries from {base_path}")
+
+    label = "flows" if args.flows > 0 else "trips"
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        car_file = os.path.join(tmpdir, "cars.xml")
+        bike_file = os.path.join(tmpdir, "bikes.xml")
+        bike_routes_file = os.path.join(tmpdir, "bike_routes.xml")
+
+        print(f"Generating car {label}...")
+        run_random_trips(
+            net_file,
+            car_file,
+            args.period,
+            args.end,
+            args.seed,
+            prefix="car_",
+            fringe_factor=args.fringe_factor,
+            num_flows=args.flows,
+        )
+        car_entries = parse_entries(car_file)
+        # Drop trips that start or end on the ego's reserved edge
+        car_entries = [
+            e
+            for e in car_entries
+            if e.get("from") not in EGO_RESERVED_EDGES
+            and e.get("to") not in EGO_RESERVED_EDGES
+        ]
+
+        bike_entries: list[dict] = []
+        if not args.no_bikes:
+            print(f"Generating bike {label}...")
+            run_random_trips(
+                net_file,
+                bike_file,
+                args.bike_period,
+                args.end,
+                args.seed + 1,
+                prefix="bike_",
+                fringe_factor=args.fringe_factor,
+                vehicle_class="bicycle",
+                num_flows=args.flows,
+            )
+            all_bike = parse_entries(bike_file)
+            all_bike = [
+                e
+                for e in all_bike
+                if e.get("from") not in EGO_RESERVED_EDGES
+                and e.get("to") not in EGO_RESERVED_EDGES
+            ]
+
+            if args.flows == 0:
+                # Validate individual bike trips with duarouter.
+                # Flows are skipped: SUMO's online router handles unroutable departures
+                # at runtime without aborting, so pre-validation isn't needed.
+                print("Validating bike routes with duarouter...")
+                valid_ids = validate_bike_trips(net_file, bike_file, bike_routes_file)
+                bike_entries = [e for e in all_bike if e.get("id") in valid_ids]
+                dropped = len(all_bike) - len(bike_entries)
+                if dropped:
+                    print(f"  Dropped {dropped} unroutable bike trip(s)")
+            else:
+                bike_entries = all_bike
+
+    print(f"  {len(car_entries)} car {label}, {len(bike_entries)} bike {label}")
+
+    root = build_route_xml(base_entries, car_entries, bike_entries, rng)
     ET.indent(root, space="    ")
-    ET.ElementTree(root).write(OUTPUT_FILE, encoding="UTF-8", xml_declaration=True)
-    print(f"Written: {OUTPUT_FILE}")
+    ET.ElementTree(root).write(output_path, encoding="UTF-8", xml_declaration=True)
+    print(f"Written: {output_path}")
 
 
 if __name__ == "__main__":

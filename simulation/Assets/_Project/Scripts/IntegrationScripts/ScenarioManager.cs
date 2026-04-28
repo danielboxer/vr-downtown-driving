@@ -147,7 +147,6 @@ public class ScenarioManager : MonoBehaviour
                 break;
 
             case ScenarioId.downtown_car:
-            case ScenarioId.test_random_trips:
                 activeEgo = egoCar;
                 break;
 
