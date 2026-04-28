@@ -1,212 +1,186 @@
-<?xml version='1.0' encoding='UTF-8'?>
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- generated on 2026-04-28 17:30:06 by Eclipse SUMO netedit Version 1.22.0
+-->
+
 <routes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/routes_file.xsd">
     <!-- VTypes -->
-    <vType id="301" length="4.68" width="2.32" height="1.47" color="0,0,128" />
-    <vType id="302" length="4.68" width="2.32" height="1.47" color="132,132,132" />
-    <vType id="303" length="4.06" width="1.84" color="66,66,66" />
-    <vType id="304" length="4.07" width="1.84" color="228,58,58" />
-    <vType id="305" length="4.81" guiShape="passenger" width="2.16" color="245,215,50" />
-    <vType id="306" length="4.81" width="2.16" color="229,229,229" />
-    <vType id="EgoBike" length="1.80" vClass="bicycle" color="16,186,16" />
-    <vType id="EgoCar" length="4.81" width="2.16" color="69,56,56" />
-    <vType id="EgoScooter" length="1.09" vClass="scooter" />
-    <vType id="bike" length="1.80" maxSpeed="6.00" vClass="bicycle" width="0.65" height="1.70" color="200,50,50" />
-    <!-- Existing flows / trips -->
-    <flow id="f_10_304" type="304" begin="0.00" from="33" to="23" via="9 8 20 19 18 22" end="3600.00" vehsPerHour="200" />
-    <flow id="f_11_305" type="305" begin="0.00" from="48" to="14" end="3600.00" vehsPerHour="200" />
-    <flow id="f_12_306" type="306" begin="0.00" from="79" to="74" end="3600.00" vehsPerHour="400" />
-    <flow id="f_13_302" type="302" begin="0.00" from="90" to="68" end="3600.00" number="400" />
-    <flow id="f_14_303" type="303" begin="0.00" from="82" to="12" end="3600.00" number="200" />
-    <flow id="f_15_bike" type="bike" begin="0.00" from="79" to="74" via="78 71 72 73" number="1800" vehsPerHour="200" />
-    <flow id="f_16_bike" type="bike" begin="0.00" from="88" to="12" via="36 29" number="1800" vehsPerHour="200" />
-    <flow id="f_1_301" type="301" begin="0.00" from="79" to="103" via="78 71 72" end="3600.00" vehsPerHour="400" />
-    <flow id="f_2_302" type="302" begin="0.00" from="66" to="23" via="20 19 18 22" end="3600.00" vehsPerHour="200" />
-    <flow id="f_3_303" type="303" begin="0.00" from="90" to="43" via="87 25" end="3600.00" vehsPerHour="200" />
-    <flow id="f_4_304" type="304" begin="0.00" from="26" to="12" via="29" end="3600.00" vehsPerHour="200" />
-    <flow id="f_5_305" type="305" begin="0.00" from="82" to="84" via="83" end="3600.00" vehsPerHour="200" />
-    <flow id="f_6_306" type="306" begin="0.00" from="31" to="12" via="36 29" end="3600.00" vehsPerHour="400" />
-    <flow id="f_7_301" type="301" begin="0.00" from="15" to="75" via="1" end="3600.00" vehsPerHour="200" />
-    <flow id="f_8_302" type="302" begin="0.00" from="16" to="49" via="1 0" end="3600.00" vehsPerHour="200" />
-    <flow id="f_9_303" type="303" begin="0.00" from="2" to="32" via="3 4 39 6 5" end="3600.00" vehsPerHour="200" />
-    <trip id="f_0.0" type="EgoCar" depart="540.00" from="62" to="78" />
-    <!-- Randomly generated trips -->
-    <trip id="car_0" depart="0.00" from="76" to="103" type="306" />
-    <trip id="bike_0" depart="0.00" from="15" to="68" type="bike" />
-    <trip id="car_1" depart="30.00" from="26" to="14" type="301" />
-    <trip id="car_2" depart="60.00" from="82" to="68" type="301" />
-    <trip id="bike_1" depart="60.00" from="2" to="35" type="bike" />
-    <trip id="car_3" depart="90.00" from="98" to="12" type="306" />
-    <trip id="car_4" depart="120.00" from="21" to="42" type="303" />
-    <trip id="bike_2" depart="120.00" from="79" to="74" type="bike" />
-    <trip id="car_5" depart="150.00" from="15" to="14" type="302" />
-    <trip id="car_6" depart="180.00" from="76" to="49" type="302" />
-    <trip id="bike_3" depart="180.00" from="48" to="42" type="bike" />
-    <trip id="car_7" depart="210.00" from="21" to="49" type="302" />
-    <trip id="car_8" depart="240.00" from="88" to="103" type="306" />
-    <trip id="bike_4" depart="240.00" from="15" to="32" type="bike" />
-    <trip id="car_9" depart="270.00" from="88" to="68" type="301" />
-    <trip id="car_10" depart="300.00" from="33" to="13" type="306" />
-    <trip id="bike_5" depart="300.00" from="33" to="75" type="bike" />
-    <trip id="car_11" depart="330.00" from="99" to="24" type="306" />
-    <trip id="car_12" depart="360.00" from="16" to="12" type="305" />
-    <trip id="bike_6" depart="360.00" from="61" to="74" type="bike" />
-    <trip id="car_13" depart="390.00" from="90" to="67" type="301" />
-    <trip id="car_14" depart="420.00" from="88" to="68" type="305" />
-    <trip id="bike_7" depart="420.00" from="46" to="13" type="bike" />
-    <trip id="car_15" depart="450.00" from="61" to="89" type="304" />
-    <trip id="car_16" depart="480.00" from="33" to="49" type="301" />
-    <trip id="bike_8" depart="480.00" from="90" to="75" type="bike" />
-    <trip id="car_17" depart="510.00" from="88" to="67" type="301" />
-    <trip id="car_18" depart="540.00" from="90" to="49" type="301" />
-    <trip id="bike_9" depart="540.00" from="33" to="12" type="bike" />
-    <trip id="car_19" depart="570.00" from="79" to="103" type="302" />
-    <trip id="car_20" depart="600.00" from="26" to="23" type="302" />
-    <trip id="bike_10" depart="600.00" from="61" to="42" type="bike" />
-    <trip id="car_21" depart="630.00" from="16" to="14" type="305" />
-    <trip id="car_22" depart="660.00" from="16" to="23" type="305" />
-    <trip id="bike_11" depart="660.00" from="82" to="51" type="bike" />
-    <trip id="car_23" depart="690.00" from="76" to="24" type="301" />
-    <trip id="car_24" depart="720.00" from="33" to="14" type="305" />
-    <trip id="bike_12" depart="720.00" from="61" to="49" type="bike" />
-    <trip id="car_25" depart="750.00" from="26" to="89" type="302" />
-    <trip id="car_26" depart="780.00" from="76" to="67" type="306" />
-    <trip id="bike_13" depart="780.00" from="33" to="103" type="bike" />
-    <trip id="car_27" depart="810.00" from="21" to="68" type="306" />
-    <trip id="car_28" depart="840.00" from="2" to="24" type="306" />
-    <trip id="bike_14" depart="840.00" from="16" to="89" type="bike" />
-    <trip id="car_29" depart="870.00" from="99" to="67" type="305" />
-    <trip id="car_30" depart="900.00" from="61" to="68" type="304" />
-    <trip id="bike_15" depart="900.00" from="90" to="23" type="bike" />
-    <trip id="car_31" depart="930.00" from="90" to="74" type="302" />
-    <trip id="car_32" depart="960.00" from="26" to="103" type="304" />
-    <trip id="bike_16" depart="960.00" from="90" to="42" type="bike" />
-    <trip id="car_33" depart="990.00" from="31" to="23" type="305" />
-    <trip id="car_34" depart="1020.00" from="21" to="89" type="303" />
-    <trip id="bike_17" depart="1020.00" from="16" to="75" type="bike" />
-    <trip id="car_35" depart="1050.00" from="90" to="23" type="301" />
-    <trip id="car_36" depart="1080.00" from="76" to="29" type="302" />
-    <trip id="bike_18" depart="1080.00" from="66" to="84" type="bike" />
-    <trip id="car_37" depart="1110.00" from="98" to="32" type="306" />
-    <trip id="car_38" depart="1140.00" from="26" to="14" type="304" />
-    <trip id="bike_19" depart="1140.00" from="79" to="12" type="bike" />
-    <trip id="car_39" depart="1170.00" from="66" to="19" type="303" />
-    <trip id="car_40" depart="1200.00" from="66" to="84" type="303" />
-    <trip id="bike_20" depart="1200.00" from="76" to="74" type="bike" />
-    <trip id="car_41" depart="1230.00" from="46" to="14" type="302" />
-    <trip id="car_42" depart="1260.00" from="99" to="42" type="302" />
-    <trip id="bike_21" depart="1260.00" from="98" to="24" type="bike" />
-    <trip id="car_43" depart="1290.00" from="16" to="103" type="303" />
-    <trip id="car_44" depart="1320.00" from="16" to="67" type="301" />
-    <trip id="bike_22" depart="1320.00" from="61" to="68" type="bike" />
-    <trip id="car_45" depart="1350.00" from="88" to="32" type="301" />
-    <trip id="car_46" depart="1380.00" from="16" to="24" type="304" />
-    <trip id="bike_23" depart="1380.00" from="87" to="103" type="bike" />
-    <trip id="car_47" depart="1410.00" from="99" to="42" type="301" />
-    <trip id="car_48" depart="1440.00" from="99" to="75" type="303" />
-    <trip id="bike_24" depart="1440.00" from="66" to="24" type="bike" />
-    <trip id="car_49" depart="1470.00" from="15" to="68" type="303" />
-    <trip id="car_50" depart="1500.00" from="79" to="49" type="305" />
-    <trip id="bike_25" depart="1500.00" from="21" to="67" type="bike" />
-    <trip id="car_51" depart="1530.00" from="26" to="67" type="303" />
-    <trip id="car_52" depart="1560.00" from="2" to="32" type="301" />
-    <trip id="bike_26" depart="1560.00" from="99" to="49" type="bike" />
-    <trip id="car_53" depart="1590.00" from="48" to="89" type="306" />
-    <trip id="car_54" depart="1620.00" from="90" to="20" type="304" />
-    <trip id="bike_27" depart="1620.00" from="2" to="42" type="bike" />
-    <trip id="car_55" depart="1650.00" from="52" to="13" type="305" />
-    <trip id="car_56" depart="1680.00" from="98" to="84" type="301" />
-    <trip id="bike_28" depart="1680.00" from="82" to="89" type="bike" />
-    <trip id="car_57" depart="1710.00" from="31" to="67" type="304" />
-    <trip id="car_58" depart="1740.00" from="66" to="13" type="301" />
-    <trip id="bike_29" depart="1740.00" from="79" to="103" type="bike" />
-    <trip id="car_59" depart="1770.00" from="82" to="49" type="305" />
-    <trip id="car_60" depart="1800.00" from="82" to="47" type="303" />
-    <trip id="car_61" depart="1830.00" from="1" to="23" type="306" />
-    <trip id="car_62" depart="1860.00" from="15" to="84" type="305" />
-    <trip id="bike_31" depart="1860.00" from="16" to="12" type="bike" />
-    <trip id="car_63" depart="1890.00" from="90" to="75" type="303" />
-    <trip id="car_64" depart="1920.00" from="31" to="103" type="305" />
-    <trip id="bike_32" depart="1920.00" from="16" to="67" type="bike" />
-    <trip id="car_65" depart="1950.00" from="90" to="89" type="302" />
-    <trip id="car_66" depart="1980.00" from="16" to="42" type="306" />
-    <trip id="bike_33" depart="1980.00" from="2" to="75" type="bike" />
-    <trip id="car_67" depart="2010.00" from="16" to="74" type="301" />
-    <trip id="car_68" depart="2040.00" from="82" to="12" type="301" />
-    <trip id="bike_34" depart="2040.00" from="16" to="49" type="bike" />
-    <trip id="car_69" depart="2070.00" from="48" to="49" type="306" />
-    <trip id="car_70" depart="2100.00" from="46" to="14" type="302" />
-    <trip id="bike_35" depart="2100.00" from="15" to="84" type="bike" />
-    <trip id="car_71" depart="2130.00" from="61" to="68" type="303" />
-    <trip id="car_72" depart="2160.00" from="21" to="23" type="301" />
-    <trip id="bike_36" depart="2160.00" from="99" to="12" type="bike" />
-    <trip id="car_73" depart="2190.00" from="99" to="67" type="302" />
-    <trip id="car_74" depart="2220.00" from="46" to="42" type="301" />
-    <trip id="bike_37" depart="2220.00" from="82" to="89" type="bike" />
-    <trip id="car_75" depart="2250.00" from="2" to="14" type="304" />
-    <trip id="car_76" depart="2280.00" from="33" to="49" type="303" />
-    <trip id="bike_38" depart="2280.00" from="98" to="84" type="bike" />
-    <trip id="car_77" depart="2310.00" from="26" to="14" type="304" />
-    <trip id="car_78" depart="2340.00" from="16" to="67" type="306" />
-    <trip id="bike_39" depart="2340.00" from="33" to="68" type="bike" />
-    <trip id="car_79" depart="2370.00" from="26" to="68" type="303" />
-    <trip id="car_80" depart="2400.00" from="21" to="13" type="302" />
-    <trip id="bike_40" depart="2400.00" from="48" to="89" type="bike" />
-    <trip id="car_81" depart="2430.00" from="98" to="49" type="303" />
-    <trip id="car_82" depart="2460.00" from="48" to="74" type="303" />
-    <trip id="bike_41" depart="2460.00" from="79" to="75" type="bike" />
-    <trip id="car_83" depart="2490.00" from="88" to="13" type="302" />
-    <trip id="car_84" depart="2520.00" from="16" to="32" type="306" />
-    <trip id="bike_42" depart="2520.00" from="90" to="24" type="bike" />
-    <trip id="car_85" depart="2550.00" from="46" to="42" type="303" />
-    <trip id="car_86" depart="2580.00" from="82" to="68" type="306" />
-    <trip id="bike_43" depart="2580.00" from="79" to="12" type="bike" />
-    <trip id="car_87" depart="2610.00" from="99" to="12" type="306" />
-    <trip id="car_88" depart="2640.00" from="46" to="24" type="306" />
-    <trip id="bike_44" depart="2640.00" from="21" to="89" type="bike" />
-    <trip id="car_89" depart="2670.00" from="90" to="14" type="301" />
-    <trip id="car_90" depart="2700.00" from="21" to="32" type="305" />
-    <trip id="bike_45" depart="2700.00" from="46" to="68" type="bike" />
-    <trip id="car_91" depart="2730.00" from="46" to="23" type="306" />
-    <trip id="car_92" depart="2760.00" from="46" to="75" type="302" />
-    <trip id="bike_46" depart="2760.00" from="66" to="84" type="bike" />
-    <trip id="car_93" depart="2790.00" from="61" to="103" type="305" />
-    <trip id="car_94" depart="2820.00" from="99" to="75" type="306" />
-    <trip id="bike_47" depart="2820.00" from="31" to="24" type="bike" />
-    <trip id="car_95" depart="2850.00" from="99" to="84" type="302" />
-    <trip id="car_96" depart="2880.00" from="90" to="13" type="302" />
-    <trip id="bike_48" depart="2880.00" from="21" to="13" type="bike" />
-    <trip id="car_97" depart="2910.00" from="48" to="14" type="304" />
-    <trip id="car_98" depart="2940.00" from="33" to="89" type="304" />
-    <trip id="bike_49" depart="2940.00" from="88" to="68" type="bike" />
-    <trip id="car_99" depart="2970.00" from="26" to="74" type="303" />
-    <trip id="car_100" depart="3000.00" from="99" to="89" type="306" />
-    <trip id="bike_50" depart="3000.00" from="99" to="68" type="bike" />
-    <trip id="car_101" depart="3030.00" from="61" to="68" type="306" />
-    <trip id="car_102" depart="3060.00" from="2" to="23" type="305" />
-    <trip id="bike_51" depart="3060.00" from="99" to="14" type="bike" />
-    <trip id="car_103" depart="3090.00" from="99" to="49" type="302" />
-    <trip id="car_104" depart="3120.00" from="61" to="74" type="306" />
-    <trip id="bike_52" depart="3120.00" from="21" to="14" type="bike" />
-    <trip id="car_105" depart="3150.00" from="16" to="49" type="303" />
-    <trip id="car_106" depart="3180.00" from="56" to="75" type="301" />
-    <trip id="bike_53" depart="3180.00" from="33" to="89" type="bike" />
-    <trip id="car_107" depart="3210.00" from="2" to="89" type="302" />
-    <trip id="car_108" depart="3240.00" from="16" to="13" type="301" />
-    <trip id="bike_54" depart="3240.00" from="26" to="32" type="bike" />
-    <trip id="car_109" depart="3270.00" from="66" to="68" type="303" />
-    <trip id="car_110" depart="3300.00" from="26" to="12" type="304" />
-    <trip id="bike_55" depart="3300.00" from="16" to="103" type="bike" />
-    <trip id="car_111" depart="3330.00" from="90" to="14" type="303" />
-    <trip id="car_112" depart="3360.00" from="66" to="67" type="301" />
-    <trip id="bike_56" depart="3360.00" from="61" to="67" type="bike" />
-    <trip id="car_113" depart="3390.00" from="46" to="49" type="302" />
-    <trip id="car_114" depart="3420.00" from="61" to="89" type="305" />
-    <trip id="bike_57" depart="3420.00" from="61" to="84" type="bike" />
-    <trip id="car_115" depart="3450.00" from="21" to="68" type="306" />
-    <trip id="car_116" depart="3480.00" from="26" to="3" type="303" />
-    <trip id="bike_58" depart="3480.00" from="90" to="89" type="bike" />
-    <trip id="car_117" depart="3510.00" from="31" to="74" type="302" />
-    <trip id="car_118" depart="3540.00" from="16" to="32" type="306" />
-    <trip id="bike_59" depart="3540.00" from="66" to="20" type="bike" />
-    <trip id="car_119" depart="3570.00" from="99" to="89" type="304" />
+    <vType id="301" length="4.68" width="2.32" height="1.47" color="0,0,128"/>
+    <vType id="302" length="4.68" width="2.32" height="1.47" color="132,132,132"/>
+    <vType id="303" length="4.06" width="1.84" color="66,66,66"/>
+    <vType id="304" length="4.07" width="1.84" color="228,58,58"/>
+    <vType id="305" length="4.81" guiShape="passenger" width="2.16" color="245,215,50"/>
+    <vType id="306" length="4.81" width="2.16" color="229,229,229"/>
+    <vType id="EgoBike" length="1.80" vClass="bicycle" color="16,186,16"/>
+    <vType id="EgoCar" length="4.81" width="2.16" color="69,56,56"/>
+    <vType id="EgoScooter" length="1.09" vClass="scooter"/>
+    <vType id="bike" length="1.80" maxSpeed="6.00" vClass="bicycle" width="0.65" height="1.70" color="200,50,50"/>
+    <!-- Vehicles, persons and containers (sorted by depart) -->
+    <flow id="f_10_304" type="304" begin="0.00" from="33" to="23" via="9 8 20 19 18 22" end="3600.00" vehsPerHour="100"/>
+    <flow id="f_11_305" type="305" begin="0.00" from="48" to="14" end="3600.00" vehsPerHour="100"/>
+    <flow id="f_12_306" type="306" begin="0.00" from="79" to="74" end="3600.00" vehsPerHour="200"/>
+    <flow id="f_13_302" type="302" begin="0.00" from="90" to="68" end="3600.00" vehsPerHour="200"/>
+    <flow id="f_14_303" type="303" begin="0.00" from="82" to="12" end="3600.00" vehsPerHour="200"/>
+    <flow id="f_15_bike" type="bike" begin="0.00" from="79" to="74" via="78 71 72 73" vehsPerHour="100"/>
+    <flow id="f_16_bike" type="bike" begin="0.00" from="88" to="12" via="36 29" vehsPerHour="100"/>
+    <flow id="f_1_301" type="301" begin="0.00" from="79" to="103" via="78 71 72" end="3600.00" vehsPerHour="200"/>
+    <flow id="f_2_302" type="302" begin="0.00" from="66" to="23" via="20 19 18 22" end="3600.00" vehsPerHour="100"/>
+    <flow id="f_3_303" type="303" begin="0.00" from="90" to="43" via="87 25" end="3600.00" vehsPerHour="100"/>
+    <flow id="f_4_304" type="304" begin="0.00" from="26" to="12" via="29" end="3600.00" vehsPerHour="150"/>
+    <flow id="f_5_305" type="305" begin="0.00" from="82" to="84" via="83" end="3600.00" vehsPerHour="100"/>
+    <flow id="f_6_306" type="306" begin="0.00" from="31" to="12" via="36 29" end="3600.00" vehsPerHour="150"/>
+    <flow id="f_7_301" type="301" begin="0.00" from="15" to="75" via="1" end="3600.00" vehsPerHour="100"/>
+    <flow id="f_8_302" type="302" begin="0.00" from="16" to="49" via="1 0" end="3600.00" vehsPerHour="100"/>
+    <flow id="f_9_303" type="303" begin="0.00" from="2" to="32" via="3 4 39 6 5" end="3600.00" vehsPerHour="100"/>
+    <trip id="f_0.0" type="EgoCar" depart="540.00" from="62" to="78"/>
+    <trip id="car_19" type="302" depart="570.00" from="79" to="103"/>
+    <trip id="bike_10" type="bike" depart="600.00" from="61" to="42"/>
+    <trip id="car_20" type="302" depart="600.00" from="26" to="23"/>
+    <trip id="car_21" type="305" depart="630.00" from="16" to="14"/>
+    <trip id="bike_11" type="bike" depart="660.00" from="82" to="51"/>
+    <trip id="car_22" type="305" depart="660.00" from="16" to="23"/>
+    <trip id="car_23" type="301" depart="690.00" from="76" to="24"/>
+    <trip id="bike_12" type="bike" depart="720.00" from="61" to="49"/>
+    <trip id="car_24" type="305" depart="720.00" from="33" to="14"/>
+    <trip id="car_25" type="302" depart="750.00" from="26" to="89"/>
+    <trip id="bike_13" type="bike" depart="780.00" from="33" to="103"/>
+    <trip id="car_26" type="306" depart="780.00" from="76" to="67"/>
+    <trip id="car_27" type="306" depart="810.00" from="21" to="68"/>
+    <trip id="bike_14" type="bike" depart="840.00" from="16" to="89"/>
+    <trip id="car_28" type="306" depart="840.00" from="2" to="24"/>
+    <trip id="car_29" type="305" depart="870.00" from="99" to="67"/>
+    <trip id="bike_15" type="bike" depart="900.00" from="90" to="23"/>
+    <trip id="car_30" type="304" depart="900.00" from="61" to="68"/>
+    <trip id="car_31" type="302" depart="930.00" from="90" to="74"/>
+    <trip id="bike_16" type="bike" depart="960.00" from="90" to="42"/>
+    <trip id="car_32" type="304" depart="960.00" from="26" to="103"/>
+    <trip id="car_33" type="305" depart="990.00" from="31" to="23"/>
+    <trip id="bike_17" type="bike" depart="1020.00" from="16" to="75"/>
+    <trip id="car_34" type="303" depart="1020.00" from="21" to="89"/>
+    <trip id="car_35" type="301" depart="1050.00" from="90" to="23"/>
+    <trip id="bike_18" type="bike" depart="1080.00" from="66" to="84"/>
+    <trip id="car_36" type="302" depart="1080.00" from="76" to="29"/>
+    <trip id="car_37" type="306" depart="1110.00" from="98" to="32"/>
+    <trip id="bike_19" type="bike" depart="1140.00" from="79" to="12"/>
+    <trip id="car_38" type="304" depart="1140.00" from="26" to="14"/>
+    <trip id="car_39" type="303" depart="1170.00" from="66" to="19"/>
+    <trip id="bike_20" type="bike" depart="1200.00" from="76" to="74"/>
+    <trip id="car_40" type="303" depart="1200.00" from="66" to="84"/>
+    <trip id="car_41" type="302" depart="1230.00" from="46" to="14"/>
+    <trip id="bike_21" type="bike" depart="1260.00" from="98" to="24"/>
+    <trip id="car_42" type="302" depart="1260.00" from="99" to="42"/>
+    <trip id="car_43" type="303" depart="1290.00" from="16" to="103"/>
+    <trip id="bike_22" type="bike" depart="1320.00" from="61" to="68"/>
+    <trip id="car_44" type="301" depart="1320.00" from="16" to="67"/>
+    <trip id="car_45" type="301" depart="1350.00" from="88" to="32"/>
+    <trip id="bike_23" type="bike" depart="1380.00" from="87" to="103"/>
+    <trip id="car_46" type="304" depart="1380.00" from="16" to="24"/>
+    <trip id="car_47" type="301" depart="1410.00" from="99" to="42"/>
+    <trip id="bike_24" type="bike" depart="1440.00" from="66" to="24"/>
+    <trip id="car_48" type="303" depart="1440.00" from="99" to="75"/>
+    <trip id="car_49" type="303" depart="1470.00" from="15" to="68"/>
+    <trip id="bike_25" type="bike" depart="1500.00" from="21" to="67"/>
+    <trip id="car_50" type="305" depart="1500.00" from="79" to="49"/>
+    <trip id="car_51" type="303" depart="1530.00" from="26" to="67"/>
+    <trip id="bike_26" type="bike" depart="1560.00" from="99" to="49"/>
+    <trip id="car_52" type="301" depart="1560.00" from="2" to="32"/>
+    <trip id="car_53" type="306" depart="1590.00" from="48" to="89"/>
+    <trip id="bike_27" type="bike" depart="1620.00" from="2" to="42"/>
+    <trip id="car_54" type="304" depart="1620.00" from="90" to="20"/>
+    <trip id="car_55" type="305" depart="1650.00" from="52" to="13"/>
+    <trip id="bike_28" type="bike" depart="1680.00" from="82" to="89"/>
+    <trip id="car_56" type="301" depart="1680.00" from="98" to="84"/>
+    <trip id="car_57" type="304" depart="1710.00" from="31" to="67"/>
+    <trip id="bike_29" type="bike" depart="1740.00" from="79" to="103"/>
+    <trip id="car_58" type="301" depart="1740.00" from="66" to="13"/>
+    <trip id="car_59" type="305" depart="1770.00" from="82" to="49"/>
+    <trip id="car_60" type="303" depart="1800.00" from="82" to="47"/>
+    <trip id="car_61" type="306" depart="1830.00" from="1" to="23"/>
+    <trip id="bike_31" type="bike" depart="1860.00" from="16" to="12"/>
+    <trip id="car_62" type="305" depart="1860.00" from="15" to="84"/>
+    <trip id="car_63" type="303" depart="1890.00" from="90" to="75"/>
+    <trip id="bike_32" type="bike" depart="1920.00" from="16" to="67"/>
+    <trip id="car_64" type="305" depart="1920.00" from="31" to="103"/>
+    <trip id="car_65" type="302" depart="1950.00" from="90" to="89"/>
+    <trip id="bike_33" type="bike" depart="1980.00" from="2" to="75"/>
+    <trip id="car_66" type="306" depart="1980.00" from="16" to="42"/>
+    <trip id="car_67" type="301" depart="2010.00" from="16" to="74"/>
+    <trip id="bike_34" type="bike" depart="2040.00" from="16" to="49"/>
+    <trip id="car_68" type="301" depart="2040.00" from="82" to="12"/>
+    <trip id="car_69" type="306" depart="2070.00" from="48" to="49"/>
+    <trip id="bike_35" type="bike" depart="2100.00" from="15" to="84"/>
+    <trip id="car_70" type="302" depart="2100.00" from="46" to="14"/>
+    <trip id="car_71" type="303" depart="2130.00" from="61" to="68"/>
+    <trip id="bike_36" type="bike" depart="2160.00" from="99" to="12"/>
+    <trip id="car_72" type="301" depart="2160.00" from="21" to="23"/>
+    <trip id="car_73" type="302" depart="2190.00" from="99" to="67"/>
+    <trip id="bike_37" type="bike" depart="2220.00" from="82" to="89"/>
+    <trip id="car_74" type="301" depart="2220.00" from="46" to="42"/>
+    <trip id="car_75" type="304" depart="2250.00" from="2" to="14"/>
+    <trip id="bike_38" type="bike" depart="2280.00" from="98" to="84"/>
+    <trip id="car_76" type="303" depart="2280.00" from="33" to="49"/>
+    <trip id="car_77" type="304" depart="2310.00" from="26" to="14"/>
+    <trip id="bike_39" type="bike" depart="2340.00" from="33" to="68"/>
+    <trip id="car_78" type="306" depart="2340.00" from="16" to="67"/>
+    <trip id="car_79" type="303" depart="2370.00" from="26" to="68"/>
+    <trip id="bike_40" type="bike" depart="2400.00" from="48" to="89"/>
+    <trip id="car_80" type="302" depart="2400.00" from="21" to="13"/>
+    <trip id="car_81" type="303" depart="2430.00" from="98" to="49"/>
+    <trip id="bike_41" type="bike" depart="2460.00" from="79" to="75"/>
+    <trip id="car_82" type="303" depart="2460.00" from="48" to="74"/>
+    <trip id="car_83" type="302" depart="2490.00" from="88" to="13"/>
+    <trip id="bike_42" type="bike" depart="2520.00" from="90" to="24"/>
+    <trip id="car_84" type="306" depart="2520.00" from="16" to="32"/>
+    <trip id="car_85" type="303" depart="2550.00" from="46" to="42"/>
+    <trip id="bike_43" type="bike" depart="2580.00" from="79" to="12"/>
+    <trip id="car_86" type="306" depart="2580.00" from="82" to="68"/>
+    <trip id="car_87" type="306" depart="2610.00" from="99" to="12"/>
+    <trip id="bike_44" type="bike" depart="2640.00" from="21" to="89"/>
+    <trip id="car_88" type="306" depart="2640.00" from="46" to="24"/>
+    <trip id="car_89" type="301" depart="2670.00" from="90" to="14"/>
+    <trip id="bike_45" type="bike" depart="2700.00" from="46" to="68"/>
+    <trip id="car_90" type="305" depart="2700.00" from="21" to="32"/>
+    <trip id="car_91" type="306" depart="2730.00" from="46" to="23"/>
+    <trip id="bike_46" type="bike" depart="2760.00" from="66" to="84"/>
+    <trip id="car_92" type="302" depart="2760.00" from="46" to="75"/>
+    <trip id="car_93" type="305" depart="2790.00" from="61" to="103"/>
+    <trip id="bike_47" type="bike" depart="2820.00" from="31" to="24"/>
+    <trip id="car_94" type="306" depart="2820.00" from="99" to="75"/>
+    <trip id="car_95" type="302" depart="2850.00" from="99" to="84"/>
+    <trip id="bike_48" type="bike" depart="2880.00" from="21" to="13"/>
+    <trip id="car_96" type="302" depart="2880.00" from="90" to="13"/>
+    <trip id="car_97" type="304" depart="2910.00" from="48" to="14"/>
+    <trip id="bike_49" type="bike" depart="2940.00" from="88" to="68"/>
+    <trip id="car_98" type="304" depart="2940.00" from="33" to="89"/>
+    <trip id="car_99" type="303" depart="2970.00" from="26" to="74"/>
+    <trip id="bike_50" type="bike" depart="3000.00" from="99" to="68"/>
+    <trip id="car_100" type="306" depart="3000.00" from="99" to="89"/>
+    <trip id="car_101" type="306" depart="3030.00" from="61" to="68"/>
+    <trip id="bike_51" type="bike" depart="3060.00" from="99" to="14"/>
+    <trip id="car_102" type="305" depart="3060.00" from="2" to="23"/>
+    <trip id="car_103" type="302" depart="3090.00" from="99" to="49"/>
+    <trip id="bike_52" type="bike" depart="3120.00" from="21" to="14"/>
+    <trip id="car_104" type="306" depart="3120.00" from="61" to="74"/>
+    <trip id="car_105" type="303" depart="3150.00" from="16" to="49"/>
+    <trip id="bike_53" type="bike" depart="3180.00" from="33" to="89"/>
+    <trip id="car_106" type="301" depart="3180.00" from="56" to="75"/>
+    <trip id="car_107" type="302" depart="3210.00" from="2" to="89"/>
+    <trip id="bike_54" type="bike" depart="3240.00" from="26" to="32"/>
+    <trip id="car_108" type="301" depart="3240.00" from="16" to="13"/>
+    <trip id="car_109" type="303" depart="3270.00" from="66" to="68"/>
+    <trip id="bike_55" type="bike" depart="3300.00" from="16" to="103"/>
+    <trip id="car_110" type="304" depart="3300.00" from="26" to="12"/>
+    <trip id="car_111" type="303" depart="3330.00" from="90" to="14"/>
+    <trip id="bike_56" type="bike" depart="3360.00" from="61" to="67"/>
+    <trip id="car_112" type="301" depart="3360.00" from="66" to="67"/>
+    <trip id="car_113" type="302" depart="3390.00" from="46" to="49"/>
+    <trip id="bike_57" type="bike" depart="3420.00" from="61" to="84"/>
+    <trip id="car_114" type="305" depart="3420.00" from="61" to="89"/>
+    <trip id="car_115" type="306" depart="3450.00" from="21" to="68"/>
+    <trip id="bike_58" type="bike" depart="3480.00" from="90" to="89"/>
+    <trip id="car_116" type="303" depart="3480.00" from="26" to="3"/>
+    <trip id="car_117" type="302" depart="3510.00" from="31" to="74"/>
+    <trip id="bike_59" type="bike" depart="3540.00" from="66" to="20"/>
+    <trip id="car_118" type="306" depart="3540.00" from="16" to="32"/>
+    <trip id="car_119" type="304" depart="3570.00" from="99" to="89"/>
 </routes>
