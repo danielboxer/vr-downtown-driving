@@ -130,8 +130,13 @@ public class ScenarioManager : MonoBehaviour
         // Disable everything first
         if (egoCar != null) egoCar.SetActive(false);
         if (egoBike != null) egoBike.SetActive(false);
-        if (carRightTurnSpline != null) carRightTurnSpline.SetActive(false);
-        if (bikeRightTurnSpline != null) bikeRightTurnSpline.SetActive(false);
+
+        // Disable ALL splines in the scene (including any not tracked in Inspector fields)
+        // so FindFirstObjectByType<Spline>() in FollowCurve.RefreshSpline() doesn't pick
+        // up a leftover spline that belongs to a different scenario.
+        var allSplines = FindObjectsByType<Spline>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        foreach (var s in allSplines)
+            s.gameObject.SetActive(false);
 
         GameObject activeEgo = null;
 
