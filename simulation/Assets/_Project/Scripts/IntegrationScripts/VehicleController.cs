@@ -38,6 +38,8 @@ public class VehicleController : MonoBehaviour
     private float _stoppedTimer;
     private float _lastHornTime = -99f;
     private Transform _egoTransform;
+    private SimulationController _simController;
+    private bool _wasAtRedLight;
 
     /// <summary>
     /// Detach this NPC from SUMO control and apply a collision impulse.
@@ -104,6 +106,7 @@ public class VehicleController : MonoBehaviour
             return;
         }
 
+        _simController = sim;
         stepLen = sim.unityStepLength;                 // ← value set in Inspector
         turnThresholdDeg = Mathf.Clamp(stepLen * 40f, 0.25f, 10f);
 
@@ -187,6 +190,18 @@ public class VehicleController : MonoBehaviour
         if (_stoppedTimer < hornTriggerDelay) return;
         if (Time.time - _lastHornTime < hornCooldown) return;
 
+        // Don't honk when legitimately waiting at a red or yellow light
+        bool atRed = IsWaitingAtRedLight();
+        if (atRed) { _wasAtRedLight = true; return; }
+
+        // Light just turned green: reset stopped timer so they don't all honk at once
+        if (_wasAtRedLight)
+        {
+            _wasAtRedLight = false;
+            _stoppedTimer = 0f;
+            return;
+        }
+
         // Only honk at ego-proximity chance; otherwise try the lower ambient chance
         Vector3 toEgo = _egoTransform != null
             ? _egoTransform.position - transform.position
@@ -210,6 +225,53 @@ public class VehicleController : MonoBehaviour
         if (clip != null)
             _hornSource.PlayOneShot(clip, hornVolume);
         _lastHornTime = Time.time;
+    }
+
+    private bool IsWaitingAtRedLight()
+    {
+        if (_simController == null || _simController.junctions == null) return false;
+
+        Vector3 npcPos = transform.position;
+        Vector3 npcDriveDir = curRot * Vector3.right;
+        const float maxDist = 50f;
+
+        float closestDist = float.MaxValue;
+        bool closestIsRed = false;
+
+        foreach (Transform junctionT in _simController.junctions.transform)
+        {
+            string state = _simController.GetTrafficLightState(junctionT.name);
+            if (state == null) continue;
+
+            foreach (Transform child in junctionT)
+            {
+                var sl = child.GetComponent<StopLineTrigger>();
+                if (sl == null) continue;
+
+                Vector3 toSl = child.position - npcPos;
+                float dist = toSl.magnitude;
+                if (dist > maxDist || dist < 0.01f) continue;
+
+                // NPC must be on the same approach as this stop line
+                // (driving in the same direction the stop line faces)
+                if (Vector3.Dot(npcDriveDir, child.forward) < 0.5f) continue;
+
+                // NPC must be behind or at the stop line, not past it
+                if (Vector3.Dot(npcDriveDir, toSl.normalized) < -0.2f) continue;
+
+                if (dist < closestDist)
+                {
+                    closestDist = dist;
+                    closestIsRed = false;
+                    if (sl.linkIndex < state.Length)
+                    {
+                        char c = state[sl.linkIndex];
+                        closestIsRed = (c == 'r' || c == 'R' || c == 'y' || c == 'Y');
+                    }
+                }
+            }
+        }
+        return closestIsRed;
     }
 
     private static Vector3 CalcAngularVel(Quaternion from, Quaternion to, float dt)
