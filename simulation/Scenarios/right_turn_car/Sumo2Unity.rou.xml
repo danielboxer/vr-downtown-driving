@@ -16,10 +16,11 @@
     <vType id="EgoScooter" length="1.09" vClass="scooter"/>
     <vType id="bike" length="1.80" maxSpeed="6.00" vClass="bicycle" width="0.65" height="1.70" color="200,50,50"/>
     <!-- Vehicles, persons and containers (sorted by depart) -->
-    <flow id="f_1_bike" type="bike" begin="0.00" from="79" to="71" number="3000" vehsPerHour="3000"/>
+    <flow id="f_1_bike" type="bike" begin="0.00" from="79" to="71" end="3600.00" vehsPerHour="2200" departLane="0"/>
     <flow id="f_2" type="301" begin="0.00" from="98" to="23" end="3600.00" vehsPerHour="50"/>
     <flow id="f_3" type="304" begin="0.00" from="90" to="24" via="87" end="3600.00" vehsPerHour="50"/>
     <flow id="f_4" type="305" begin="0.00" from="88" to="12" end="3600.00" vehsPerHour="50"/>
-    <flow id="f_5" type="306" begin="0.00" from="79" to="103" end="3600.00" vehsPerHour="1000"/>
+    <flow id="f_5" type="306" begin="0.00" from="79" to="103" end="3600.00" vehsPerHour="800" departLane="1"/>
+    <flow id="f_6" type="302" begin="0.00" from="79" to="103" end="3600.00" vehsPerHour="800" departLane="1"/>
     <trip id="f_0.0" type="EgoCar" depart="540.00" from="62" to="78"/>
 </routes>
