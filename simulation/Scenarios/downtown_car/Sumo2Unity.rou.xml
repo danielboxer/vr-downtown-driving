@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on 2026-04-26 21:19:02 by Eclipse SUMO netedit Version 1.22.0
+<!-- generated on 2026-04-27 20:34:25 by Eclipse SUMO netedit Version 1.22.0
 -->
 
 <routes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/routes_file.xsd">
@@ -18,15 +18,17 @@
     <!-- Vehicles, persons and containers (sorted by depart) -->
     <flow id="f_10_304" type="304" begin="0.00" from="33" to="23" via="9 8 20 19 18 22" end="3600.00" vehsPerHour="200"/>
     <flow id="f_11_305" type="305" begin="0.00" from="48" to="14" end="3600.00" vehsPerHour="200"/>
-    <flow id="f_12_306" type="306" begin="0.00" from="79" to="74" end="3600.00" vehsPerHour="200"/>
-    <flow id="f_13_302" type="302" begin="0.00" from="90" to="68" end="3600.00" number="200"/>
+    <flow id="f_12_306" type="306" begin="0.00" from="79" to="74" end="3600.00" vehsPerHour="400"/>
+    <flow id="f_13_302" type="302" begin="0.00" from="90" to="68" end="3600.00" number="400"/>
     <flow id="f_14_303" type="303" begin="0.00" from="82" to="12" end="3600.00" number="200"/>
-    <flow id="f_1_301" type="301" begin="0.00" from="79" to="103" via="78 71 72" end="3600.00" vehsPerHour="200"/>
+    <flow id="f_15_bike" type="bike" begin="0.00" from="79" to="74" via="78 71 72 73" number="1800" vehsPerHour="200"/>
+    <flow id="f_16_bike" type="bike" begin="0.00" from="88" to="12" via="36 29" number="1800" vehsPerHour="200"/>
+    <flow id="f_1_301" type="301" begin="0.00" from="79" to="103" via="78 71 72" end="3600.00" vehsPerHour="400"/>
     <flow id="f_2_302" type="302" begin="0.00" from="66" to="23" via="20 19 18 22" end="3600.00" vehsPerHour="200"/>
     <flow id="f_3_303" type="303" begin="0.00" from="90" to="43" via="87 25" end="3600.00" vehsPerHour="200"/>
     <flow id="f_4_304" type="304" begin="0.00" from="26" to="12" via="29" end="3600.00" vehsPerHour="200"/>
     <flow id="f_5_305" type="305" begin="0.00" from="82" to="84" via="83" end="3600.00" vehsPerHour="200"/>
-    <flow id="f_6_306" type="306" begin="0.00" from="31" to="12" via="36 29" end="3600.00" vehsPerHour="200"/>
+    <flow id="f_6_306" type="306" begin="0.00" from="31" to="12" via="36 29" end="3600.00" vehsPerHour="400"/>
     <flow id="f_7_301" type="301" begin="0.00" from="15" to="75" via="1" end="3600.00" vehsPerHour="200"/>
     <flow id="f_8_302" type="302" begin="0.00" from="16" to="49" via="1 0" end="3600.00" vehsPerHour="200"/>
     <flow id="f_9_303" type="303" begin="0.00" from="2" to="32" via="3 4 39 6 5" end="3600.00" vehsPerHour="200"/>

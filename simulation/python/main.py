@@ -268,13 +268,6 @@ def run_sim(cfg: dict, stop_event=None):
 
     # ------------------------------------------------------------
 
-    # ---------- TraCI context subscription ----------
-    traci.vehicle.subscribeContext(
-        ego,
-        traci.constants.CMD_GET_VEHICLE_VARIABLE,
-        subscribe_radius,  # ★ NEW (was 250)
-        [VAR_POSITION3D, VAR_ANGLE, VAR_TYPE],
-    )
     # ---------- ZMQ sockets ----------
     ctx = zmq.Context()
     pub = ctx.socket(zmq.PUB)
@@ -347,6 +340,16 @@ def run_sim(cfg: dict, stop_event=None):
             # keep sending config so Unity receives it despite slow-joiner
             pub.send_string(config_msg)
 
+        # Subscribe to ego context now that f_0.0 has been inserted (depart=IntegrationStartTime).
+        # Calling subscribeContext before any simulation steps fails when SUMO uses incremental
+        # route loading (large route files), because the vehicle isn't known yet at t=0.
+        traci.vehicle.subscribeContext(
+            ego,
+            traci.constants.CMD_GET_VEHICLE_VARIABLE,
+            subscribe_radius,
+            [VAR_POSITION3D, VAR_ANGLE, VAR_TYPE],
+        )
+
         while (
             traci.simulation.getMinExpectedNumber() > 0
             and (
@@ -362,15 +365,18 @@ def run_sim(cfg: dict, stop_event=None):
             while not u_q.empty():
                 for v in u_q.get().get("vehicles", []):
                     if v["vehicle_id"] == ego:
-                        traci.vehicle.moveToXY(
-                            ego,
-                            "",
-                            0,
-                            float(v["position"][0]),
-                            float(v["position"][1]),
-                            float(v["angle"]),
-                            keepRoute=2,
-                        )
+                        try:
+                            traci.vehicle.moveToXY(
+                                ego,
+                                "",
+                                0,
+                                float(v["position"][0]),
+                                float(v["position"][1]),
+                                float(v["angle"]),
+                                keepRoute=2,
+                            )
+                        except traci.exceptions.TraCIException:
+                            pass  # ego not yet inserted in SUMO; skip until it appears
             prof["Unity"].append(time.perf_counter() - t0)
 
             # ❷ SUMO step
