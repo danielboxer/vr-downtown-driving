@@ -13,5 +13,6 @@ public enum ScenarioId
     calibration_bike,
     busy_downtown_bike,
     downtown_bike,
-    right_turn_bike
+    right_turn_bike,
+    test_random_trips
 }
