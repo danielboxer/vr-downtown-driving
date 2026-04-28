@@ -7,12 +7,9 @@
 public enum ScenarioId
 {
     calibration_car,
-    busy_downtown_car,
     downtown_car,
     right_turn_car,
     calibration_bike,
-    busy_downtown_bike,
     downtown_bike,
-    right_turn_bike,
-    test_random_trips
+    right_turn_bike
 }
