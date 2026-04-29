@@ -1203,6 +1203,7 @@ MonoBehaviour:
   TrafficObject: {fileID: 2471852994914885337}
   updateInterval: 0.1
   carUserControl: {fileID: 7558851046672289916}
+  signalFlashInterval: 0.35
 --- !u!114 &4782113893452823864
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1297,10 +1298,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TiltSteeringProvider
   controllerHand: 0
   steerAxis: 0
-  maxSteerAngle: 45
+  maxSteerAngle: 135
   invertSteering: 1
   calibrateOnEnable: 1
-  inputActions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
+  inputActions: {fileID: 0}
   actionMapName: Driving
 --- !u!1 &2861148910917411302
 GameObject:
@@ -1656,7 +1657,7 @@ Transform:
   m_GameObject: {fileID: 4903456139816867151}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.351, y: 1.281, z: -2.367}
+  m_LocalPosition: {x: -0.351, y: 1.283, z: -2.313}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -1678,8 +1679,8 @@ MonoBehaviour:
   m_Camera: {fileID: 4205712336656208480}
   m_OriginBaseGameObject: {fileID: 4903456139816867151}
   m_CameraFloorOffsetObject: {fileID: 6364054956901253143}
-  m_RequestedTrackingOriginMode: 2
-  m_CameraYOffset: 1.1176
+  m_RequestedTrackingOriginMode: 1
+  m_CameraYOffset: 0
 --- !u!114 &4654756076795268927
 MonoBehaviour:
   m_ObjectHideFlags: 0
