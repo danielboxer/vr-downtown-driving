@@ -16,6 +16,13 @@ public class Speedometer : MonoBehaviour
     private float timeSinceLastUpdate = 0f;
     private float m_Speed = 0f;
 
+    [Tooltip("Seconds per flash half-cycle for the turn signal arrow. Lower = faster. Match to your blinker sound interval.")]
+    public float signalFlashInterval = 0.5f;
+
+    // Flash state for turn signal display
+    private float _signalFlashTimer = 0f;
+    private bool _signalFlashVisible = false;
+
     void Start()
     {
         rb = TrafficObject.GetComponent<Rigidbody>();
@@ -32,7 +39,15 @@ public class Speedometer : MonoBehaviour
         // Accumulate time
         timeSinceLastUpdate += Time.deltaTime;
 
-        // Check if it�s time to update the speed
+        // Advance the turn-signal flash timer every frame for accurate timing
+        _signalFlashTimer += Time.deltaTime;
+        if (_signalFlashTimer >= signalFlashInterval)
+        {
+            _signalFlashVisible = !_signalFlashVisible;
+            _signalFlashTimer -= signalFlashInterval;
+        }
+
+        // Check if it's time to update the speed
         if (timeSinceLastUpdate >= updateInterval)
         {
             // Calculate speed in km/h (example: velocity.magnitude is m/s, multiply by 3.6 to get km/h)
@@ -41,10 +56,25 @@ public class Speedometer : MonoBehaviour
             // Update the text if reference is available
             if (m_text != null)
             {
-                // Show "R" when in reverse, otherwise format speed
-                if (carUserControl != null && carUserControl.IsReverse)
+                bool isReverse = carUserControl != null && carUserControl.IsReverse;
+                bool isLeft = carUserControl != null && carUserControl.IsLeftSignalOn;
+                bool isRight = carUserControl != null && carUserControl.IsRightSignalOn;
+
+                if (isReverse || isLeft || isRight)
                 {
-                    m_text.text = "R";
+                    // Build display: "< R" / "R >" / "R" / "<" / ">" — signal arrows flash, R stays solid
+                    string arrow = "";
+                    if (isLeft)
+                        arrow = _signalFlashVisible ? "<" : " ";
+                    else if (isRight)
+                        arrow = _signalFlashVisible ? ">" : " ";
+
+                    if (isReverse && (isLeft || isRight))
+                        m_text.text = isLeft ? $"{arrow} R" : $"R {arrow}";
+                    else if (isReverse)
+                        m_text.text = "R";
+                    else
+                        m_text.text = arrow.Trim();
                 }
                 else
                 {
