@@ -292300,7 +292300,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1654852602
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -292316,9 +292316,8 @@ MonoBehaviour:
   stepLength: 0.1
   prefabs:
   - {fileID: 1316973427445556549, guid: 5fb576aff4ca6cc45858605d8beb5ccc, type: 3}
-  - {fileID: 5548627528071542946, guid: 0222797132bed0544b325a1a3bebdd1b, type: 3}
-  spawnInterval: 3
-  speed: 1
+  spawnInterval: 1
+  speed: 0.5
   lifetime: 15
 --- !u!4 &1654852603
 Transform:
