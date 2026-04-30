@@ -425,13 +425,12 @@ public class DrivingEvaluator : MonoBehaviour
         LogEvent("", "Collision",
             $"other={otherName};tag={otherTag};impact_speed={impactSpeed:F1}");
 
-        // Only play audio warnings for vehicle collisions (cars/bikes).
-        // Building and environment hits are still logged but produce no sound.
-        if (IsVehicleCollision(collision))
-        {
+        // Play crash sound for all collisions except curbs.
+        // Voice warning is reserved for vehicle collisions only.
+        if (!IsCurbCollision(collision))
             PlayCollisionCue(collision);
+        if (IsVehicleCollision(collision))
             QueueWarning(collisionVoiceClip);
-        }
 
         Debug.LogWarning($"[DrivingEvaluator] COLLISION with '{otherName}' " +
                          $"(tag={otherTag}) at {impactSpeed:F1} m/s");
