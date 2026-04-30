@@ -106,11 +106,23 @@ namespace UnityStandardAssets.Bike
             float accel = _accelInput;
             float brake = _brakeInput;
 
-            // Determine the target steering angle based on input
+            // Determine the road-wheel steering angle based on input.
             float targetAngle = h * m_Bike.m_MaximumSteerAngle;
 
+            // With the physical bike handlebar cradle active, keep the visible handlebar
+            // matched to the user's cradle angle instead of the smaller road-wheel angle.
+            float visualAngle = targetAngle;
+            if (m_TiltSteering != null && m_TiltSteering.enabled && m_TiltSteering.HasController)
+            {
+                visualAngle = Mathf.Clamp(
+                    m_TiltSteering.SteeringWheelAngle,
+                    -m_TiltSteering.maxSteerAngle,
+                    m_TiltSteering.maxSteerAngle
+                );
+            }
+
             // Apply the rotation to the wheel around the Y-axis
-            m_Wheel.transform.localRotation = Quaternion.Euler(0f, targetAngle, 0f);
+            m_Wheel.transform.localRotation = Quaternion.Euler(0f, visualAngle, 0f);
 
             // Pass the input to the bike controller
             m_Bike.Move(h, accel, -brake, 0f, _reverseInput);
