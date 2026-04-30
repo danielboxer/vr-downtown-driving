@@ -284368,7 +284368,7 @@ MonoBehaviour:
   egoBike: {fileID: 1449816493}
   carRightTurnSpline: {fileID: 1451207572}
   bikeRightTurnSpline: {fileID: 0}
-  defaultScenario: 3
+  defaultScenario: 0
   fadeOverlay: {fileID: 0}
   fadeDuration: 0.4
   _activeScenario: 0
