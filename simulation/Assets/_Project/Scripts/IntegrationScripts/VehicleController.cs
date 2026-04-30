@@ -64,10 +64,14 @@ public class VehicleController : MonoBehaviour
         rb.AddForceAtPosition(impactImpulse, contactPoint, ForceMode.Impulse);
     }
 
+    private void Awake()
+    {
+        // Initialize rb in Awake so Detach() is safe to call before Start runs
+        rb = GetComponent<Rigidbody>() ?? gameObject.AddComponent<Rigidbody>();
+    }
+
     private void Start()
     {
-        rb = GetComponent<Rigidbody>() ?? gameObject.AddComponent<Rigidbody>();
-
         rb.isKinematic = false;
         rb.useGravity = false;
         rb.linearDamping = 1f;
