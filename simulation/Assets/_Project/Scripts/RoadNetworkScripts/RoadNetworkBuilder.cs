@@ -88,6 +88,8 @@ public class RoadNetworkBuilder : MonoBehaviour
     [Header("Generation Options")]
     [Tooltip("Mark all generated GameObjects as static (enables batching, GI, occlusion culling, navmesh).")]
     public bool markGeneratedAsStatic = true;
+    [Tooltip("Scale in lightmap for road, junction, curb, and polygon geometry. Lower values pack more objects per atlas. 0.2 is recommended for large road networks.")]
+    public float roadLightmapScale = 0.2f;
     [Tooltip("Add a BoxCollider to each traffic light head so vehicles can collide with the pole.")]
     public bool addTrafficLightColliders = true;
     [Tooltip("Size of the box collider added to each traffic light head (width, height, depth).")]
@@ -373,6 +375,7 @@ public class RoadNetworkBuilder : MonoBehaviour
                 var mr = laneObj.AddComponent<MeshRenderer>();
                 mf.sharedMesh = laneMesh;
                 mr.sharedMaterial = roadSurfaceMaterial ?? GetFallbackMaterial();
+                mr.scaleInLightmap = roadLightmapScale;
 
                 // Physics collider so vehicles don't fall through the road
                 var laneCol = laneObj.AddComponent<MeshCollider>();
@@ -447,6 +450,7 @@ public class RoadNetworkBuilder : MonoBehaviour
             var jMr = jObj.AddComponent<MeshRenderer>();
             jMf.mesh = junctionMesh;
             jMr.material = junctionSurfaceMaterial ?? GetFallbackMaterial();
+            jMr.scaleInLightmap = roadLightmapScale;
         }
 
         // ★ NEW: make sure every child built above is on the Ground layer
@@ -460,7 +464,7 @@ public class RoadNetworkBuilder : MonoBehaviour
             GenerateCurbs();
     }
 
-    // -------------------- helper --------------------------------------------
+    // -------------------- helpers --------------------------------------------
     private static void SetLayerRecursively(GameObject obj, int layer)
     {
         if (layer < 0) return;
@@ -469,20 +473,28 @@ public class RoadNetworkBuilder : MonoBehaviour
             SetLayerRecursively(child.gameObject, layer);
     }
 
+    // Road/junction/curb/TL flags: batching + occlusion + navmesh.
+    // ContributeGI intentionally excluded — procedural road meshes are too
+    // numerous to UV-unwrap for lightmaps (causes crash/huge atlas counts).
+    // Polygon buildings/terrain get ContributeGI separately in BuildPolygonGameObject.
+    private const StaticEditorFlags RoadStaticFlags =
+        StaticEditorFlags.OccluderStatic |
+        StaticEditorFlags.OccludeeStatic |
+        StaticEditorFlags.BatchingStatic |
+        StaticEditorFlags.NavigationStatic |
+        StaticEditorFlags.OffMeshLinkGeneration |
+        StaticEditorFlags.ReflectionProbeStatic;
+
     private static void SetStaticRecursively(GameObject obj)
     {
-        GameObjectUtility.SetStaticEditorFlags(obj,
-            StaticEditorFlags.ContributeGI |
-            StaticEditorFlags.OccluderStatic |
-            StaticEditorFlags.OccludeeStatic |
-            StaticEditorFlags.BatchingStatic |
-            StaticEditorFlags.NavigationStatic |
-            StaticEditorFlags.OffMeshLinkGeneration |
-            StaticEditorFlags.ReflectionProbeStatic);
+        // Preserve ContributeGI if a prior pass already set it (e.g. polygon buildings);
+        // roads/junctions/curbs should not force-add it.
+        var existing = GameObjectUtility.GetStaticEditorFlags(obj);
+        GameObjectUtility.SetStaticEditorFlags(obj, RoadStaticFlags | (existing & StaticEditorFlags.ContributeGI));
         foreach (Transform child in obj.transform)
             SetStaticRecursively(child.gameObject);
     }
-    // ------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
 
     // ======================================================================
     //  Curb / Sidewalk Strip Generation
@@ -690,8 +702,9 @@ public class RoadNetworkBuilder : MonoBehaviour
         go.transform.SetParent(parent);
 
         go.AddComponent<MeshFilter>().sharedMesh = curbMesh;
-        go.AddComponent<MeshRenderer>().sharedMaterial =
-            sidewalkWallMaterial != null ? sidewalkWallMaterial : GetPolygonMaterial("terrain");
+        var curbMr = go.AddComponent<MeshRenderer>();
+        curbMr.sharedMaterial = sidewalkWallMaterial != null ? sidewalkWallMaterial : GetPolygonMaterial("terrain");
+        curbMr.scaleInLightmap = roadLightmapScale;
 
         // MeshCollider for collision (non-convex is fine since curbs are static)
         var col = go.AddComponent<MeshCollider>();
@@ -1446,6 +1459,7 @@ public class RoadNetworkBuilder : MonoBehaviour
         var mr = polyGO.AddComponent<MeshRenderer>();
         mf.sharedMesh = polyMesh;
         mr.sharedMaterial = GetPolygonMaterial(polygonType);
+        mr.scaleInLightmap = roadLightmapScale;
 
         // Physics collider so vehicles don't fall through.
         // Large flat polygons can trigger a PhysX large-triangle warning with a MeshCollider

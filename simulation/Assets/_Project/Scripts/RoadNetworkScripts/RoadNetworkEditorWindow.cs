@@ -231,6 +231,9 @@ public class RoadNetworkEditorWindow : EditorWindow
         EditorGUILayout.PropertyField(so.FindProperty("markGeneratedAsStatic"),
             new GUIContent("Mark As Static", "Sets all generated objects as static (batching, GI, occlusion culling, navmesh)."));
 
+        EditorGUILayout.PropertyField(so.FindProperty("roadLightmapScale"),
+            new GUIContent("Lightmap Scale", "Scale in Lightmap for roads, junctions, curbs, and polygons. 0.2 is recommended; reduces atlas count dramatically."));
+
         EditorGUILayout.Space(4);
         EditorGUILayout.PropertyField(so.FindProperty("addTrafficLightColliders"),
             new GUIContent("Traffic Light Colliders", "Add a BoxCollider to each traffic light head so vehicles collide with the pole."));

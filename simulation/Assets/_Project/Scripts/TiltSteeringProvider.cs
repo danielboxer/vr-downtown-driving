@@ -5,6 +5,7 @@ using UnityEngine.InputSystem.XR;
 /// <summary>
 /// Reads the vector between the left and right XR controllers and maps its
 /// continuous rotation around a vehicle-relative axis to a –1…+1 steering
+
 /// value. Attach to each ego vehicle alongside the UserControl script.
 /// CarUserControl / BikeUserControl will use <see cref="SteerValue"/> when
 /// this component is present, enabled, and both controllers provide data.
