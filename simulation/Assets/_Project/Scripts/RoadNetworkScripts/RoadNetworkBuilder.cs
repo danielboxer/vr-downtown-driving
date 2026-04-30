@@ -85,6 +85,22 @@ public class RoadNetworkBuilder : MonoBehaviour
     [Tooltip("Skip lane markings on the outer road edges where curbs are.")]
     public bool skipOuterEdgeMarkings = true;
 
+    [Header("Generation Options")]
+    [Tooltip("Mark all generated GameObjects as static (enables batching, GI, occlusion culling, navmesh).")]
+    public bool markGeneratedAsStatic = true;
+    [Tooltip("Add a BoxCollider to each traffic light head so vehicles can collide with the pole.")]
+    public bool addTrafficLightColliders = true;
+    [Tooltip("Size of the box collider added to each traffic light head (width, height, depth).")]
+    public Vector3 trafficLightColliderSize = new Vector3(0.2f, 3f, 0.2f);
+    [Tooltip("Local-space center of the traffic light box collider. Y=1.5 places the base at ground level.")]
+    public Vector3 trafficLightColliderCenter = new Vector3(0f, 1.5f, 0f);
+    [Tooltip("Add a BoxCollider to each stop sign post so vehicles can collide with it.")]
+    public bool addStopSignColliders = true;
+    [Tooltip("Size of the box collider added to each stop sign (width, height, depth).")]
+    public Vector3 stopSignColliderSize = new Vector3(0.1f, 2.5f, 0.1f);
+    [Tooltip("Local-space center of the stop sign box collider. Y=1.25 places the base at ground level.")]
+    public Vector3 stopSignColliderCenter = new Vector3(0f, 1.25f, 0f);
+
 
     private GameObject roadNetworkRoot;
 
@@ -436,6 +452,9 @@ public class RoadNetworkBuilder : MonoBehaviour
         // ★ NEW: make sure every child built above is on the Ground layer
         SetLayerRecursively(roadNetworkRoot, groundLayer);
 
+        // Mark all road geometry as static for batching, GI, and occlusion culling
+        if (markGeneratedAsStatic) SetStaticRecursively(roadNetworkRoot);
+
         // Generate raised curb strips along road edges
         if (generateCurbs && sidewalkHeight > 0.01f)
             GenerateCurbs();
@@ -448,6 +467,20 @@ public class RoadNetworkBuilder : MonoBehaviour
         obj.layer = layer;
         foreach (Transform child in obj.transform)
             SetLayerRecursively(child.gameObject, layer);
+    }
+
+    private static void SetStaticRecursively(GameObject obj)
+    {
+        GameObjectUtility.SetStaticEditorFlags(obj,
+            StaticEditorFlags.ContributeGI |
+            StaticEditorFlags.OccluderStatic |
+            StaticEditorFlags.OccludeeStatic |
+            StaticEditorFlags.BatchingStatic |
+            StaticEditorFlags.NavigationStatic |
+            StaticEditorFlags.OffMeshLinkGeneration |
+            StaticEditorFlags.ReflectionProbeStatic);
+        foreach (Transform child in obj.transform)
+            SetStaticRecursively(child.gameObject);
     }
     // ------------------------------------------------------------------------
 
@@ -952,6 +985,14 @@ public class RoadNetworkBuilder : MonoBehaviour
                 // Face toward oncoming traffic (the light faces the driver)
                 head.transform.rotation = Quaternion.LookRotation(-approachDir, Vector3.up);
 
+                // Optional pole collider on the primary head
+                if (addTrafficLightColliders)
+                {
+                    var headCol = head.AddComponent<BoxCollider>();
+                    headCol.size = trafficLightColliderSize;
+                    headCol.center = trafficLightColliderCenter;
+                }
+
                 // Mirrored light on the left side (child of primary so state syncs)
                 GameObject mirror = (GameObject)PrefabUtility.InstantiatePrefab(tlPrefab);
                 mirror.name = "Mirror";
@@ -960,6 +1001,14 @@ public class RoadNetworkBuilder : MonoBehaviour
                 mirror.transform.rotation = Quaternion.LookRotation(-approachDir, Vector3.up);
                 // Flip the mirror along the local X axis
                 mirror.transform.localScale = new Vector3(-1f, 1f, 1f);
+
+                // Optional pole collider on the mirror
+                if (addTrafficLightColliders)
+                {
+                    var mirrorCol = mirror.AddComponent<BoxCollider>();
+                    mirrorCol.size = trafficLightColliderSize;
+                    mirrorCol.center = trafficLightColliderCenter;
+                }
 
                 // ── Stop-line trigger for driving evaluation ──
                 GameObject stopLineGO = new GameObject($"StopLine_{jId}_E{edgeId}");
@@ -1018,6 +1067,9 @@ public class RoadNetworkBuilder : MonoBehaviour
                 }
             }
         }
+        // Mark junction hierarchy as static for batching, GI, and occlusion culling
+        if (markGeneratedAsStatic) SetStaticRecursively(junctionsRoot);
+
         // Make only the root non-selectable so children remain individually toggleable
         // Make only the root non-selectable so children remain individually toggleable.
         // EnablePicking first clears any stale descendant state from previous runs (which would cause the mixed cube icon).
@@ -1160,6 +1212,14 @@ public class RoadNetworkBuilder : MonoBehaviour
                 sign.transform.position = signPos;
                 // Face the sign toward oncoming traffic (same as the traffic light heads)
                 sign.transform.rotation = Quaternion.LookRotation(-approachDir, Vector3.up);
+
+                if (addStopSignColliders)
+                {
+                    var signCol = sign.AddComponent<BoxCollider>();
+                    signCol.size = stopSignColliderSize;
+                    signCol.center = stopSignColliderCenter;
+                }
+
                 placedCount++;
             }
         }
