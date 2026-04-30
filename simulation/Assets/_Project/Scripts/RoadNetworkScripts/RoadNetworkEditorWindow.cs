@@ -91,6 +91,8 @@ public class RoadNetworkEditorWindow : EditorWindow
     private const float slideInterval = 3f;
 
     private bool curbSettingsFoldout = false;
+    private bool generationOptionsFoldout = false;
+    private Vector2 _scrollPos;
 
     private static string LocateScenariosRoot()
     {
@@ -124,7 +126,10 @@ public class RoadNetworkEditorWindow : EditorWindow
 
     private void OnGUI()
     {
+        // Banner is fixed at the top; scroll view only wraps the controls below
         BannerSlideHelper.DrawSlide(demoSlides, ref slideIndex, ref lastSlideSwap, slideInterval);
+
+        _scrollPos = EditorGUILayout.BeginScrollView(_scrollPos);
         GUILayout.Space(10);
 
         GUILayout.Label("Import Sumo Files and Generate Network", EditorStyles.boldLabel);
@@ -145,6 +150,9 @@ public class RoadNetworkEditorWindow : EditorWindow
 
         // Curb settings foldout (reads/writes fields on the RoadNetworkBuilder component)
         DrawCurbSettings();
+
+        // Generation options foldout
+        DrawGenerationOptions();
 
         GUILayout.Space(10);
 
@@ -169,6 +177,7 @@ public class RoadNetworkEditorWindow : EditorWindow
             if (GUILayout.Button("Lane Decals"))
                 RunSelectiveRegen(roads: false, trafficLights: false, roadSigns: false, laneDecals: true);
         }
+        EditorGUILayout.EndScrollView();
     }
 
     private void DrawCurbSettings()
@@ -197,6 +206,53 @@ public class RoadNetworkEditorWindow : EditorWindow
             EditorGUILayout.PropertyField(so.FindProperty("outerSlopeWidth"), new GUIContent("Outer Slope Width"));
             EditorGUILayout.PropertyField(so.FindProperty("curbFilletRadius"), new GUIContent("Fillet Radius"));
             EditorGUILayout.PropertyField(so.FindProperty("skipOuterEdgeMarkings"), new GUIContent("Skip Outer Edge Markings"));
+        }
+
+        so.ApplyModifiedProperties();
+        EditorGUI.indentLevel--;
+    }
+
+    private void DrawGenerationOptions()
+    {
+        generationOptionsFoldout = EditorGUILayout.Foldout(generationOptionsFoldout, "Generation Options", true);
+        if (!generationOptionsFoldout) return;
+
+        RoadNetworkBuilder builder = FindFirstObjectByType<RoadNetworkBuilder>();
+        if (builder == null)
+        {
+            EditorGUILayout.HelpBox("No RoadNetworkBuilder in scene. Settings will appear after first generation.", MessageType.Info);
+            return;
+        }
+
+        EditorGUI.indentLevel++;
+        var so = new SerializedObject(builder);
+        so.Update();
+
+        EditorGUILayout.PropertyField(so.FindProperty("markGeneratedAsStatic"),
+            new GUIContent("Mark As Static", "Sets all generated objects as static (batching, GI, occlusion culling, navmesh)."));
+
+        EditorGUILayout.Space(4);
+        EditorGUILayout.PropertyField(so.FindProperty("addTrafficLightColliders"),
+            new GUIContent("Traffic Light Colliders", "Add a BoxCollider to each traffic light head so vehicles collide with the pole."));
+
+        using (new EditorGUI.DisabledGroupScope(!builder.addTrafficLightColliders))
+        {
+            EditorGUILayout.PropertyField(so.FindProperty("trafficLightColliderSize"),
+                new GUIContent("  Collider Size"));
+            EditorGUILayout.PropertyField(so.FindProperty("trafficLightColliderCenter"),
+                new GUIContent("  Collider Center"));
+        }
+
+        EditorGUILayout.Space(4);
+        EditorGUILayout.PropertyField(so.FindProperty("addStopSignColliders"),
+            new GUIContent("Stop Sign Colliders", "Add a BoxCollider to each stop sign post."));
+
+        using (new EditorGUI.DisabledGroupScope(!builder.addStopSignColliders))
+        {
+            EditorGUILayout.PropertyField(so.FindProperty("stopSignColliderSize"),
+                new GUIContent("  Collider Size"));
+            EditorGUILayout.PropertyField(so.FindProperty("stopSignColliderCenter"),
+                new GUIContent("  Collider Center"));
         }
 
         so.ApplyModifiedProperties();
