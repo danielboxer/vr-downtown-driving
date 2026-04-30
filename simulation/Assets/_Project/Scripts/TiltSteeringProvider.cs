@@ -44,9 +44,9 @@ public class TiltSteeringProvider : MonoBehaviour
     public SteerAxis steerAxis = SteerAxis.Roll;
 
     [Header("Steering Range")]
-    [Tooltip("Controller-wheel degrees from center to full steering lock. Real car wheels are commonly around 450°-540° each way.")]
+    [Tooltip("Controller-wheel degrees from center to full steering lock. Real car wheels are commonly around 450°-540° each way; bike handlebars are usually much smaller, often around 30°-60°.")]
     [Min(1f)]
-    public float maxSteerAngle = 540f;
+    public float maxSteerAngle = 450f;
 
     [Tooltip("Negate the steering direction. Enable if rotating right steers left.")]
     public bool invertSteering = true;
@@ -56,20 +56,29 @@ public class TiltSteeringProvider : MonoBehaviour
     public bool calibrateOnEnable = true;
 
     [Header("Controller Vector Debug")]
-    [Tooltip("Draw the live vector between the left and right controllers with a LineRenderer so it is visible in Game/VR view.")]
+    [Tooltip("Draw the raw live vector directly between the left and right controllers with a LineRenderer so it is visible in Game/VR view.")]
     public bool drawControllerLine = true;
 
-    [Tooltip("Optional LineRenderer to use for the controller vector. If empty, one is created at runtime.")]
+    [Tooltip("Optional LineRenderer to use for the raw controller vector. If empty, one is created at runtime.")]
     public LineRenderer controllerLineRenderer;
 
-    [Tooltip("Color of the controller vector line.")]
-    public Color controllerLineColor = Color.cyan;
+    [Tooltip("Color of the raw controller vector line.")]
+    public Color controllerLineColor = Color.gray;
 
-    [Tooltip("World-space width of the controller vector line.")]
+    [Tooltip("Draw the controller vector projected onto the active steering plane and centered between the controllers. This is the vector actually used for steering.")]
+    public bool drawProjectedControllerLine = true;
+
+    [Tooltip("Optional LineRenderer to use for the projected controller vector. If empty, one is created at runtime.")]
+    public LineRenderer projectedControllerLineRenderer;
+
+    [Tooltip("Color of the projected steering vector line.")]
+    public Color projectedControllerLineColor = Color.cyan;
+
+    [Tooltip("World-space width of the controller vector lines.")]
     [Min(0.001f)]
     public float controllerLineWidth = 0.015f;
 
-    [Tooltip("Also draw the vector using Debug.DrawLine for Scene view debugging.")]
+    [Tooltip("Also draw the raw and projected vectors using Debug.DrawLine for Scene view debugging.")]
     public bool drawDebugLine = true;
 
     [Header("Input Actions")]
@@ -85,8 +94,14 @@ public class TiltSteeringProvider : MonoBehaviour
     /// <summary>True when both XR controllers are detected and the controller vector is usable.</summary>
     public bool HasController { get; private set; }
 
-    /// <summary>Current unwrapped controller-wheel angle in degrees relative to calibration.</summary>
-    public float SteeringAngle => _currentUnwrappedAngle - _centerAngle;
+    /// <summary>Physical controller/cradle angle in degrees relative to the active center, before invertSteering is applied.</summary>
+    public float ControllerWheelAngle { get; private set; }
+
+    /// <summary>Physical controller/cradle angle in degrees after invertSteering is applied. This is the unclamped angle used to calculate SteerValue.</summary>
+    public float SteeringWheelAngle { get; private set; }
+
+    /// <summary>Current unwrapped controller-wheel steering angle in degrees after inversion.</summary>
+    public float SteeringAngle => SteeringWheelAngle;
 
     private const float MinProjectedVectorSqrMagnitude = 0.0001f;
 
@@ -97,6 +112,7 @@ public class TiltSteeringProvider : MonoBehaviour
     private bool _calibrated;
     private InputAction _calibrateAction;
     private LineRenderer _runtimeLineRenderer;
+    private LineRenderer _runtimeProjectedLineRenderer;
 
     private void Awake()
     {
@@ -116,6 +132,8 @@ public class TiltSteeringProvider : MonoBehaviour
         _centerAngle = 0f;
         HasController = false;
         SteerValue = 0f;
+        ControllerWheelAngle = 0f;
+        SteeringWheelAngle = 0f;
         SetLineVisible(false);
     }
 
@@ -124,6 +142,8 @@ public class TiltSteeringProvider : MonoBehaviour
         _calibrateAction?.Disable();
         HasController = false;
         SteerValue = 0f;
+        ControllerWheelAngle = 0f;
+        SteeringWheelAngle = 0f;
         SetLineVisible(false);
     }
 
@@ -134,6 +154,8 @@ public class TiltSteeringProvider : MonoBehaviour
         {
             HasController = false;
             SteerValue = 0f;
+            ControllerWheelAngle = 0f;
+            SteeringWheelAngle = 0f;
             _hasLastWrappedAngle = false;
             SetLineVisible(false);
             return;
@@ -156,10 +178,10 @@ public class TiltSteeringProvider : MonoBehaviour
             SetCenter(currentAngle);
         }
 
-        float delta = currentAngle - _centerAngle;
-        if (invertSteering) delta = -delta;
+        ControllerWheelAngle = currentAngle - _centerAngle;
+        SteeringWheelAngle = invertSteering ? -ControllerWheelAngle : ControllerWheelAngle;
 
-        SteerValue = Mathf.Clamp(delta / maxSteerAngle, -1f, 1f);
+        SteerValue = Mathf.Clamp(SteeringWheelAngle / maxSteerAngle, -1f, 1f);
     }
 
     /// <summary>Set the current two-controller vector as the steering center.</summary>
@@ -314,20 +336,55 @@ public class TiltSteeringProvider : MonoBehaviour
 
     private void DrawControllerVector(Vector3 leftPosition, Vector3 rightPosition)
     {
+        Vector3 rawVector = rightPosition - leftPosition;
+        Vector3 midpoint = (leftPosition + rightPosition) * 0.5f;
+        Vector3 projectedStart = midpoint;
+        Vector3 projectedEnd = midpoint;
+        bool hasProjectedVector = TryGetProjectedVector(rawVector, out Vector3 projectedVector);
+
+        if (hasProjectedVector)
+        {
+            projectedStart = midpoint - projectedVector * 0.5f;
+            projectedEnd = midpoint + projectedVector * 0.5f;
+        }
+
         if (drawDebugLine)
         {
             Debug.DrawLine(leftPosition, rightPosition, controllerLineColor);
+            if (hasProjectedVector)
+            {
+                Debug.DrawLine(projectedStart, projectedEnd, projectedControllerLineColor);
+            }
         }
 
-        if (!drawControllerLine)
+        DrawLine(GetOrCreateRawLineRenderer(), drawControllerLine, leftPosition, rightPosition, controllerLineColor);
+        DrawLine(GetOrCreateProjectedLineRenderer(), drawProjectedControllerLine && hasProjectedVector, projectedStart, projectedEnd, projectedControllerLineColor);
+    }
+
+    private bool TryGetProjectedVector(Vector3 rawVector, out Vector3 projectedVector)
+    {
+        projectedVector = Vector3.zero;
+
+        Vector3 axis = GetSteeringAxis();
+        if (axis.sqrMagnitude < Mathf.Epsilon)
         {
-            SetLineVisible(false);
+            return false;
+        }
+
+        projectedVector = Vector3.ProjectOnPlane(rawVector, axis.normalized);
+        return projectedVector.sqrMagnitude >= MinProjectedVectorSqrMagnitude;
+    }
+
+    private void DrawLine(LineRenderer line, bool visible, Vector3 start, Vector3 end, Color color)
+    {
+        if (line == null)
+        {
             return;
         }
 
-        LineRenderer line = GetOrCreateLineRenderer();
-        if (line == null)
+        if (!visible)
         {
+            line.enabled = false;
             return;
         }
 
@@ -336,29 +393,56 @@ public class TiltSteeringProvider : MonoBehaviour
         line.positionCount = 2;
         line.startWidth = controllerLineWidth;
         line.endWidth = controllerLineWidth;
-        line.startColor = controllerLineColor;
-        line.endColor = controllerLineColor;
-        line.SetPosition(0, leftPosition);
-        line.SetPosition(1, rightPosition);
+        line.startColor = color;
+        line.endColor = color;
+        if (line.material != null)
+        {
+            line.material.color = color;
+        }
+        line.SetPosition(0, start);
+        line.SetPosition(1, end);
     }
 
-    private LineRenderer GetOrCreateLineRenderer()
+    private LineRenderer GetOrCreateRawLineRenderer()
     {
         if (controllerLineRenderer != null)
         {
             return controllerLineRenderer;
         }
 
-        if (_runtimeLineRenderer != null)
+        if (_runtimeLineRenderer == null)
         {
-            return _runtimeLineRenderer;
+            _runtimeLineRenderer = CreateRuntimeLineRenderer("Raw Controller Vector", controllerLineColor);
         }
 
-        _runtimeLineRenderer = gameObject.AddComponent<LineRenderer>();
-        _runtimeLineRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-        _runtimeLineRenderer.receiveShadows = false;
-        _runtimeLineRenderer.useWorldSpace = true;
-        _runtimeLineRenderer.positionCount = 2;
+        return _runtimeLineRenderer;
+    }
+
+    private LineRenderer GetOrCreateProjectedLineRenderer()
+    {
+        if (projectedControllerLineRenderer != null)
+        {
+            return projectedControllerLineRenderer;
+        }
+
+        if (_runtimeProjectedLineRenderer == null)
+        {
+            _runtimeProjectedLineRenderer = CreateRuntimeLineRenderer("Projected Steering Vector", projectedControllerLineColor);
+        }
+
+        return _runtimeProjectedLineRenderer;
+    }
+
+    private LineRenderer CreateRuntimeLineRenderer(string lineName, Color color)
+    {
+        GameObject lineObject = new GameObject(lineName);
+        lineObject.transform.SetParent(transform, false);
+
+        LineRenderer line = lineObject.AddComponent<LineRenderer>();
+        line.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        line.receiveShadows = false;
+        line.useWorldSpace = true;
+        line.positionCount = 2;
 
         Shader shader = Shader.Find("Sprites/Default");
         if (shader == null)
@@ -368,13 +452,13 @@ public class TiltSteeringProvider : MonoBehaviour
 
         if (shader != null)
         {
-            _runtimeLineRenderer.material = new Material(shader)
+            line.material = new Material(shader)
             {
-                color = controllerLineColor
+                color = color
             };
         }
 
-        return _runtimeLineRenderer;
+        return line;
     }
 
     private void SetLineVisible(bool visible)
@@ -387,6 +471,16 @@ public class TiltSteeringProvider : MonoBehaviour
         if (_runtimeLineRenderer != null)
         {
             _runtimeLineRenderer.enabled = visible;
+        }
+
+        if (projectedControllerLineRenderer != null)
+        {
+            projectedControllerLineRenderer.enabled = visible;
+        }
+
+        if (_runtimeProjectedLineRenderer != null)
+        {
+            _runtimeProjectedLineRenderer.enabled = visible;
         }
     }
 
