@@ -48,12 +48,19 @@ public class TiltSteeringProvider : MonoBehaviour
     [Min(1f)]
     public float maxSteerAngle = 450f;
 
+    [Tooltip("How much extra physical rotation past the software steering lock can be remembered. 360° means about one extra full turn past lock; 0° means no extra turn is saved.")]
+    [Min(0f)]
+    public float savedAnglePastSteeringLock = 360f;
+
     [Tooltip("Negate the steering direction. Enable if rotating right steers left.")]
     public bool invertSteering = true;
 
     [Header("Calibration")]
     [Tooltip("Auto-calibrate center the first time a valid two-controller vector arrives.")]
     public bool calibrateOnEnable = true;
+
+    [Tooltip("Continuously set the current controller/cradle angle as center while the keyboard C key is held.")]
+    public bool holdCToCalibrate = true;
 
     [Header("Controller Vector Debug")]
     [Tooltip("Draw the raw live vector directly between the left and right controllers with a LineRenderer so it is visible in Game/VR view.")]
@@ -81,23 +88,16 @@ public class TiltSteeringProvider : MonoBehaviour
     [Tooltip("Also draw the raw and projected vectors using Debug.DrawLine for Scene view debugging.")]
     public bool drawDebugLine = true;
 
-    [Header("Input Actions")]
-    [Tooltip("Assign the InputSystem_Actions asset (same one used by CarUserControl/BikeUserControl).")]
-    public InputActionAsset inputActions;
-
-    [Tooltip("Action map that contains the Calibrate action.")]
-    public string actionMapName = "Driving";
-
     /// <summary>Current steering value from –1 (full left) to +1 (full right).</summary>
     public float SteerValue { get; private set; }
 
     /// <summary>True when both XR controllers are detected and the controller vector is usable.</summary>
     public bool HasController { get; private set; }
 
-    /// <summary>Physical controller/cradle angle in degrees relative to the active center, before invertSteering is applied.</summary>
+    /// <summary>Clamped physical controller/cradle angle in degrees relative to the active center, before invertSteering is applied.</summary>
     public float ControllerWheelAngle { get; private set; }
 
-    /// <summary>Physical controller/cradle angle in degrees after invertSteering is applied. This is the unclamped angle used to calculate SteerValue.</summary>
+    /// <summary>Clamped physical controller/cradle angle in degrees after invertSteering is applied. This is the angle used to calculate SteerValue.</summary>
     public float SteeringWheelAngle { get; private set; }
 
     /// <summary>Current unwrapped controller-wheel steering angle in degrees after inversion.</summary>
@@ -110,22 +110,11 @@ public class TiltSteeringProvider : MonoBehaviour
     private float _lastWrappedAngle;
     private bool _hasLastWrappedAngle;
     private bool _calibrated;
-    private InputAction _calibrateAction;
     private LineRenderer _runtimeLineRenderer;
     private LineRenderer _runtimeProjectedLineRenderer;
 
-    private void Awake()
-    {
-        if (inputActions != null)
-        {
-            var map = inputActions.FindActionMap(actionMapName, false);
-            _calibrateAction = map?.FindAction("Calibrate", false);
-        }
-    }
-
     private void OnEnable()
     {
-        _calibrateAction?.Enable();
         _calibrated = false;
         _hasLastWrappedAngle = false;
         _currentUnwrappedAngle = 0f;
@@ -139,7 +128,6 @@ public class TiltSteeringProvider : MonoBehaviour
 
     private void OnDisable()
     {
-        _calibrateAction?.Disable();
         HasController = false;
         SteerValue = 0f;
         ControllerWheelAngle = 0f;
@@ -172,16 +160,25 @@ public class TiltSteeringProvider : MonoBehaviour
             SetCenter(currentAngle);
         }
 
-        // Manual calibration via button press.
-        if (_calibrateAction != null && _calibrateAction.WasPressedThisFrame())
+        // Manual keyboard-only calibration. Holding C keeps the current cradle angle centered.
+        if (holdCToCalibrate && Keyboard.current != null && Keyboard.current.cKey.isPressed)
         {
             SetCenter(currentAngle);
         }
 
-        ControllerWheelAngle = currentAngle - _centerAngle;
-        SteeringWheelAngle = invertSteering ? -ControllerWheelAngle : ControllerWheelAngle;
+        currentAngle = ClampTrackedAnglePastSteeringLock(currentAngle);
+        _currentUnwrappedAngle = currentAngle;
 
-        SteerValue = Mathf.Clamp(SteeringWheelAngle / maxSteerAngle, -1f, 1f);
+        float lockAngle = Mathf.Max(1f, maxSteerAngle);
+        float rawControllerWheelAngle = currentAngle - _centerAngle;
+        float rawSteeringWheelAngle = invertSteering ? -rawControllerWheelAngle : rawControllerWheelAngle;
+
+        // These are the angles used by vehicle input and wheel/handlebar visuals.
+        // They stop at the software steering lock even if the physical cradle keeps rotating.
+        ControllerWheelAngle = Mathf.Clamp(rawControllerWheelAngle, -lockAngle, lockAngle);
+        SteeringWheelAngle = Mathf.Clamp(rawSteeringWheelAngle, -lockAngle, lockAngle);
+
+        SteerValue = SteeringWheelAngle / lockAngle;
     }
 
     /// <summary>Set the current two-controller vector as the steering center.</summary>
@@ -201,6 +198,14 @@ public class TiltSteeringProvider : MonoBehaviour
     {
         _centerAngle = angle;
         _calibrated = true;
+    }
+
+    private float ClampTrackedAnglePastSteeringLock(float angle)
+    {
+        float lockAngle = Mathf.Max(1f, maxSteerAngle);
+        float savedOverflowAngle = Mathf.Max(0f, savedAnglePastSteeringLock);
+        float trackingLimit = lockAngle + savedOverflowAngle;
+        return Mathf.Clamp(angle, _centerAngle - trackingLimit, _centerAngle + trackingLimit);
     }
 
     private bool TryReadControllerPositions(out Vector3 leftPosition, out Vector3 rightPosition)
