@@ -64,12 +64,6 @@ public class VehicleController : MonoBehaviour
         rb.AddForceAtPosition(impactImpulse, contactPoint, ForceMode.Impulse);
     }
 
-    private void Awake()
-    {
-        // Initialize rb in Awake so Detach() is safe to call before Start runs
-        rb = GetComponent<Rigidbody>() ?? gameObject.AddComponent<Rigidbody>();
-    }
-
     private void Start()
     {
         rb.isKinematic = false;
@@ -101,6 +95,9 @@ public class VehicleController : MonoBehaviour
     }
     void Awake()
     {
+        // Initialize rb here so Detach() is safe to call before Start runs
+        rb = GetComponent<Rigidbody>() ?? gameObject.AddComponent<Rigidbody>();
+
         // Look for the first SimulationController in the scene
         SimulationController sim = FindFirstObjectByType<SimulationController>();
 
