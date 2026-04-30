@@ -211,21 +211,26 @@ namespace UnityStandardAssets.Vehicles.Car
                 steeringInput = m_FollowCurve.GetBlendedSteering(h, m_Car.m_MaximumSteerAngle);
             }
 
-            // Determine the target steering angle based on blended input
+            // Determine the road-wheel steering angle based on blended input.
+            // With the physical controller wheel active, keep the visible steering wheel
+            // matched to the user's cradle rotation instead of the small road-wheel angle.
             float targetAngle = steeringInput * m_Car.m_MaximumSteerAngle;
-
-            if (Mathf.Abs(steeringInput) > 0.01f)
+            if (m_TiltSteering != null && m_TiltSteering.enabled && m_TiltSteering.HasController)
             {
-                // Smoothly rotate the wheel towards the target angle
+                currentAngle = m_TiltSteering.SteeringWheelAngle;
+            }
+            else if (Mathf.Abs(steeringInput) > 0.01f)
+            {
+                // Smoothly rotate the wheel towards the target angle for keyboard/gamepad input.
                 currentAngle = Mathf.LerpAngle(currentAngle, targetAngle, rotationSpeed * Time.deltaTime);
             }
             else
             {
-                // Smoothly return the wheel to the center
+                // Smoothly return the wheel to the center for keyboard/gamepad input.
                 currentAngle = Mathf.LerpAngle(currentAngle, 0f, returnSpeed * Time.deltaTime);
             }
 
-            // Apply the rotation to the wheel around the Z-axis
+            // Apply the rotation to the wheel around the Z-axis.
             m_Wheel.transform.localRotation = Quaternion.Euler(0f, 0f, -currentAngle);
 
             // Pass accel and brake separately to CarController
