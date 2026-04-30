@@ -1297,11 +1297,21 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TiltSteeringProvider
   controllerHand: 0
+  leftControllerTransform: {fileID: 2847646671621489584}
+  rightControllerTransform: {fileID: 581594654919732073}
+  devicePositionSpace: {fileID: 866563749239405964}
+  minControllerSeparation: 0.15
+  steeringReference: {fileID: 5240819467718178132}
   steerAxis: 0
-  maxSteerAngle: 135
+  maxSteerAngle: 540
   invertSteering: 1
   calibrateOnEnable: 1
-  inputActions: {fileID: 0}
+  drawControllerLine: 1
+  controllerLineRenderer: {fileID: 0}
+  controllerLineColor: {r: 0, g: 1, b: 1, a: 1}
+  controllerLineWidth: 0.015
+  drawDebugLine: 1
+  inputActions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   actionMapName: Driving
 --- !u!1 &2861148910917411302
 GameObject:
