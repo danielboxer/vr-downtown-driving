@@ -12,3 +12,9 @@ Model > Generate Lightmap UVs
 Min Lightmap Resolution: 4
 
 Materials > Extract Textures, Extract Materials
+
+Add mesh collider to all buildings
+
+Set as static
+
+Bake lightmap
