@@ -67,6 +67,9 @@ namespace UnityStandardAssets.Vehicles.Car
         // Use this for initialization
         private void Start()
         {
+            // Interpolate Rigidbody so the car's transform is smoothed between physics steps.
+            m_Rigidbody.interpolation = RigidbodyInterpolation.Interpolate;
+
             m_WheelMeshLocalRotations = new Quaternion[4];
             for (int i = 0; i < 4; i++)
             {
