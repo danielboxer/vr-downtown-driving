@@ -18,3 +18,5 @@ Add mesh collider to all buildings
 Set as static
 
 Bake lightmap
+
+Bake occlusion culling
