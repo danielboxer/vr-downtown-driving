@@ -14,7 +14,7 @@ public class MirrorMovement : MonoBehaviour
 
     [Header("Movement")]
     [Tooltip("How much the mirror camera shifts in response to VR head movement. Set to 0 to disable parallax movement entirely.")]
-    [Range(0f, 10f)] public float sensitivity = 3f;
+    [Range(0f, 10f)] public float sensitivity = 1f;
 
     [Header("Rendering")]
     [Tooltip("Render the mirror every N frames. 1 = every frame. 2 = every other frame (~45 fps at 90 Hz). Keeps mirrors near real-time while saving GPU cost.")]
