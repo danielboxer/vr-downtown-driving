@@ -98,8 +98,8 @@ Camera:
     y: 0
     width: 1
     height: 1
-  near clip plane: 0.01
-  far clip plane: 1000
+  near clip plane: 0.1
+  far clip plane: 100
   field of view: 35
   orthographic: 0
   orthographic size: 5
@@ -130,7 +130,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a79441f348de89743a2939f4d699eac1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_RenderShadows: 1
+  m_RenderShadows: 0
   m_RequiresDepthTextureOption: 2
   m_RequiresOpaqueTextureOption: 2
   m_CameraType: 0
@@ -178,7 +178,8 @@ MonoBehaviour:
   mirror: {fileID: 2502351103613299119}
   playerOrigin: {fileID: 7461314806338748540}
   sensitivity: 1
-  renderEveryNFrames: 3
+  renderEveryNFrames: 4
+  frameOffset: 0
 --- !u!1 &1018234889824760928
 GameObject:
   m_ObjectHideFlags: 0
@@ -612,8 +613,8 @@ Camera:
     y: 0
     width: 1
     height: 1
-  near clip plane: 0.01
-  far clip plane: 1000
+  near clip plane: 0.1
+  far clip plane: 100
   field of view: 50
   orthographic: 0
   orthographic size: 5
@@ -644,7 +645,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a79441f348de89743a2939f4d699eac1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_RenderShadows: 1
+  m_RenderShadows: 0
   m_RequiresDepthTextureOption: 2
   m_RequiresOpaqueTextureOption: 2
   m_CameraType: 0
@@ -692,7 +693,8 @@ MonoBehaviour:
   mirror: {fileID: 3731303752537674448}
   playerOrigin: {fileID: 7461314806338748540}
   sensitivity: 1
-  renderEveryNFrames: 3
+  renderEveryNFrames: 4
+  frameOffset: 2
 --- !u!1 &2047086997564762175
 GameObject:
   m_ObjectHideFlags: 0
@@ -851,8 +853,8 @@ Camera:
     y: 0
     width: 1
     height: 1
-  near clip plane: 0.01
-  far clip plane: 1000
+  near clip plane: 0.05
+  far clip plane: 500
   field of view: 60
   orthographic: 0
   orthographic size: 5
@@ -2449,8 +2451,8 @@ Camera:
     y: 0
     width: 1
     height: 1
-  near clip plane: 0.01
-  far clip plane: 1000
+  near clip plane: 0.1
+  far clip plane: 100
   field of view: 50
   orthographic: 0
   orthographic size: 5
@@ -2481,7 +2483,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a79441f348de89743a2939f4d699eac1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_RenderShadows: 1
+  m_RenderShadows: 0
   m_RequiresDepthTextureOption: 2
   m_RequiresOpaqueTextureOption: 2
   m_CameraType: 0
@@ -2529,7 +2531,8 @@ MonoBehaviour:
   mirror: {fileID: 8220508320695184460}
   playerOrigin: {fileID: 7461314806338748540}
   sensitivity: 1
-  renderEveryNFrames: 3
+  renderEveryNFrames: 4
+  frameOffset: 1
 --- !u!1 &6667165719046367945
 GameObject:
   m_ObjectHideFlags: 0

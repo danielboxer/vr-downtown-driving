@@ -20,6 +20,9 @@ public class MirrorMovement : MonoBehaviour
     [Tooltip("Render the mirror every N frames. 1 = every frame. 2 = every other frame (~45 fps at 90 Hz). Keeps mirrors near real-time while saving GPU cost.")]
     [Range(1, 4)] public int renderEveryNFrames = 2;
 
+    [Tooltip("Frame offset for staggering multiple mirrors. Set mirrors to renderEveryNFrames=3 and offsets 0, 1, 2 so only one mirror renders per frame instead of all at once.")]
+    [Range(0, 3)] public int frameOffset = 0;
+
     private Camera _mirrorCamera;
     private Vector3 fallbackInitialPlayerPositionInMirrorSpace;
     private Vector3 initialCameraPositionInMirrorSpace;
@@ -66,7 +69,7 @@ public class MirrorMovement : MonoBehaviour
         transform.SetPositionAndRotation(cameraWorldPosition, cameraWorldRotation);
 
         // Only render on the designated frame interval to save GPU cost.
-        if (_mirrorCamera != null && Time.frameCount % renderEveryNFrames == 0)
+        if (_mirrorCamera != null && (Time.frameCount + frameOffset) % renderEveryNFrames == 0)
         {
             _mirrorCamera.Render();
         }
