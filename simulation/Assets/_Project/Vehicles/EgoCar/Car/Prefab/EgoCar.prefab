@@ -178,7 +178,7 @@ MonoBehaviour:
   mirror: {fileID: 2502351103613299119}
   playerOrigin: {fileID: 7461314806338748540}
   sensitivity: 1
-  renderEveryNFrames: 2
+  renderEveryNFrames: 3
 --- !u!1 &1018234889824760928
 GameObject:
   m_ObjectHideFlags: 0
@@ -692,7 +692,7 @@ MonoBehaviour:
   mirror: {fileID: 3731303752537674448}
   playerOrigin: {fileID: 7461314806338748540}
   sensitivity: 1
-  renderEveryNFrames: 2
+  renderEveryNFrames: 3
 --- !u!1 &2047086997564762175
 GameObject:
   m_ObjectHideFlags: 0
@@ -2529,7 +2529,7 @@ MonoBehaviour:
   mirror: {fileID: 8220508320695184460}
   playerOrigin: {fileID: 7461314806338748540}
   sensitivity: 1
-  renderEveryNFrames: 2
+  renderEveryNFrames: 3
 --- !u!1 &6667165719046367945
 GameObject:
   m_ObjectHideFlags: 0
