@@ -20,3 +20,10 @@ Set as static
 Bake lightmap
 
 Bake occlusion culling
+
+Set downtown textures to turn on mipmap streaming
+
+Select all downtown textures:
+- Stream Mipmap Levels: On
+- Aniso Level: 8
+- Filter Mode: Trilinear
