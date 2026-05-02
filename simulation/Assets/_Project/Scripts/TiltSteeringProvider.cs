@@ -71,30 +71,18 @@ public class TiltSteeringProvider : MonoBehaviour
     public bool holdCToCalibrate = true;
 
     [Header("Controller Vector Debug")]
-    [Tooltip("Draw the raw live vector directly between the left and right controllers with a LineRenderer so it is visible in Game/VR view.")]
-    public bool drawControllerLine = true;
-
-    [Tooltip("Optional LineRenderer to use for the raw controller vector. If empty, one is created at runtime.")]
-    public LineRenderer controllerLineRenderer;
-
-    [Tooltip("Color of the raw controller vector line.")]
-    public Color controllerLineColor = Color.gray;
-
     [Tooltip("Draw the controller vector projected onto the active steering plane and centered between the controllers. This is the vector actually used for steering.")]
     public bool drawProjectedControllerLine = true;
 
     [Tooltip("Optional LineRenderer to use for the projected controller vector. If empty, one is created at runtime.")]
     public LineRenderer projectedControllerLineRenderer;
 
-    [Tooltip("Color of the projected steering vector line.")]
-    public Color projectedControllerLineColor = Color.cyan;
-
-    [Tooltip("World-space width of the controller vector lines.")]
-    [Min(0.001f)]
-    public float controllerLineWidth = 0.015f;
-
     [Tooltip("Also draw the raw and projected vectors using Debug.DrawLine for Scene view debugging.")]
     public bool drawDebugLine = true;
+
+    // Visual style constants for the debug lines (not exposed in Inspector).
+    private static readonly Color ProjectedLineColor = Color.black;
+    private const float ProjectedLineWidth = 0.004f;
 
     /// <summary>Current steering value from –1 (full left) to +1 (full right).</summary>
     public float SteerValue { get; private set; }
@@ -114,13 +102,13 @@ public class TiltSteeringProvider : MonoBehaviour
     private const float MinProjectedVectorSqrMagnitude = 0.0001f;
 
     private InputAction _keyboardSteerAction;
+    private InputAction _calibrateAction;
 
     private float _centerAngle;
     private float _currentUnwrappedAngle;
     private float _lastWrappedAngle;
     private bool _hasLastWrappedAngle;
     private bool _calibrated;
-    private LineRenderer _runtimeLineRenderer;
     private LineRenderer _runtimeProjectedLineRenderer;
 
     private void Awake()
@@ -129,6 +117,7 @@ public class TiltSteeringProvider : MonoBehaviour
         {
             var map = inputActions.FindActionMap(actionMapName, false);
             _keyboardSteerAction = map?.FindAction("Steer", false);
+            _calibrateAction = map?.FindAction("Calibrate", false);
         }
     }
 
@@ -144,6 +133,7 @@ public class TiltSteeringProvider : MonoBehaviour
         SteeringWheelAngle = 0f;
         SetLineVisible(false);
         _keyboardSteerAction?.Enable();
+        _calibrateAction?.Enable();
     }
 
     private void OnDisable()
@@ -154,6 +144,7 @@ public class TiltSteeringProvider : MonoBehaviour
         SteeringWheelAngle = 0f;
         SetLineVisible(false);
         _keyboardSteerAction?.Disable();
+        _calibrateAction?.Disable();
     }
 
     private void Update()
@@ -204,8 +195,9 @@ public class TiltSteeringProvider : MonoBehaviour
             SetCenter(currentAngle);
         }
 
-        // Manual keyboard-only calibration. Holding C keeps the current cradle angle centered.
-        if (holdCToCalibrate && Keyboard.current != null && Keyboard.current.cKey.isPressed)
+        // Manual calibration: use the Calibrate action if available, otherwise fall back to the C key.
+        bool calibrateHeld = _calibrateAction?.IsPressed() ?? (Keyboard.current != null && Keyboard.current.cKey.isPressed);
+        if (holdCToCalibrate && calibrateHeld)
         {
             SetCenter(currentAngle);
         }
@@ -245,7 +237,7 @@ public class TiltSteeringProvider : MonoBehaviour
     private bool TryApplyKeyboardSteering()
     {
         float keyboardSteer = _keyboardSteerAction?.ReadValue<float>() ?? 0f;
-        if (Mathf.Abs(keyboardSteer) < 0.01f)
+        if (Mathf.Abs(keyboardSteer) < 0.001f)
             return false;
 
         HasController = true;
@@ -406,27 +398,26 @@ public class TiltSteeringProvider : MonoBehaviour
     {
         Vector3 rawVector = rightPosition - leftPosition;
         Vector3 midpoint = (leftPosition + rightPosition) * 0.5f;
-        Vector3 projectedStart = midpoint;
-        Vector3 projectedEnd = midpoint;
         bool hasProjectedVector = TryGetProjectedVector(rawVector, out Vector3 projectedVector);
 
+        // The black line is drawn along the raw controller direction, scaled by the
+        // projection magnitude, so its length reflects how well the vector is in the steering plane.
+        Vector3 projectedStart = midpoint;
+        Vector3 projectedEnd = midpoint;
         if (hasProjectedVector)
         {
-            projectedStart = midpoint - projectedVector * 0.5f;
-            projectedEnd = midpoint + projectedVector * 0.5f;
+            Vector3 rawDir = rawVector.sqrMagnitude > Mathf.Epsilon ? rawVector.normalized : Vector3.right;
+            float halfLen = projectedVector.magnitude * 0.5f;
+            projectedStart = midpoint - rawDir * halfLen;
+            projectedEnd = midpoint + rawDir * halfLen;
         }
 
-        if (drawDebugLine)
+        if (drawDebugLine && hasProjectedVector)
         {
-            Debug.DrawLine(leftPosition, rightPosition, controllerLineColor);
-            if (hasProjectedVector)
-            {
-                Debug.DrawLine(projectedStart, projectedEnd, projectedControllerLineColor);
-            }
+            Debug.DrawLine(projectedStart, projectedEnd, ProjectedLineColor);
         }
 
-        DrawLine(GetOrCreateRawLineRenderer(), drawControllerLine, leftPosition, rightPosition, controllerLineColor);
-        DrawLine(GetOrCreateProjectedLineRenderer(), drawProjectedControllerLine && hasProjectedVector, projectedStart, projectedEnd, projectedControllerLineColor);
+        DrawLine(GetOrCreateProjectedLineRenderer(), drawProjectedControllerLine && hasProjectedVector, projectedStart, projectedEnd, ProjectedLineColor, ProjectedLineWidth);
     }
 
     private bool TryGetProjectedVector(Vector3 rawVector, out Vector3 projectedVector)
@@ -443,7 +434,7 @@ public class TiltSteeringProvider : MonoBehaviour
         return projectedVector.sqrMagnitude >= MinProjectedVectorSqrMagnitude;
     }
 
-    private void DrawLine(LineRenderer line, bool visible, Vector3 start, Vector3 end, Color color)
+    private void DrawLine(LineRenderer line, bool visible, Vector3 start, Vector3 end, Color color, float width)
     {
         if (line == null)
         {
@@ -459,8 +450,8 @@ public class TiltSteeringProvider : MonoBehaviour
         line.enabled = true;
         line.useWorldSpace = true;
         line.positionCount = 2;
-        line.startWidth = controllerLineWidth;
-        line.endWidth = controllerLineWidth;
+        line.startWidth = width;
+        line.endWidth = width;
         line.startColor = color;
         line.endColor = color;
         if (line.material != null)
@@ -469,21 +460,6 @@ public class TiltSteeringProvider : MonoBehaviour
         }
         line.SetPosition(0, start);
         line.SetPosition(1, end);
-    }
-
-    private LineRenderer GetOrCreateRawLineRenderer()
-    {
-        if (controllerLineRenderer != null)
-        {
-            return controllerLineRenderer;
-        }
-
-        if (_runtimeLineRenderer == null)
-        {
-            _runtimeLineRenderer = CreateRuntimeLineRenderer("Raw Controller Vector", controllerLineColor);
-        }
-
-        return _runtimeLineRenderer;
     }
 
     private LineRenderer GetOrCreateProjectedLineRenderer()
@@ -495,7 +471,9 @@ public class TiltSteeringProvider : MonoBehaviour
 
         if (_runtimeProjectedLineRenderer == null)
         {
-            _runtimeProjectedLineRenderer = CreateRuntimeLineRenderer("Projected Steering Vector", projectedControllerLineColor);
+            _runtimeProjectedLineRenderer = CreateRuntimeLineRenderer("Projected Steering Vector", ProjectedLineColor);
+            // Render on top of the raw controller line.
+            _runtimeProjectedLineRenderer.sortingOrder = 1;
         }
 
         return _runtimeProjectedLineRenderer;
@@ -531,16 +509,6 @@ public class TiltSteeringProvider : MonoBehaviour
 
     private void SetLineVisible(bool visible)
     {
-        if (controllerLineRenderer != null)
-        {
-            controllerLineRenderer.enabled = visible;
-        }
-
-        if (_runtimeLineRenderer != null)
-        {
-            _runtimeLineRenderer.enabled = visible;
-        }
-
         if (projectedControllerLineRenderer != null)
         {
             projectedControllerLineRenderer.enabled = visible;

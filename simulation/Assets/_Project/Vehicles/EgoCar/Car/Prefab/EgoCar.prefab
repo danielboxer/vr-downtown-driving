@@ -1321,7 +1321,7 @@ MonoBehaviour:
   leftControllerTransform: {fileID: 2847646671621489584}
   rightControllerTransform: {fileID: 581594654919732073}
   devicePositionSpace: {fileID: 866563749239405964}
-  minControllerSeparation: 0.15
+  minControllerSeparation: 0.1
   steeringReference: {fileID: 5240819467718178132}
   steerAxis: 0
   maxSteerAngle: 450
@@ -1331,13 +1331,8 @@ MonoBehaviour:
   actionMapName: Driving
   calibrateOnEnable: 0
   holdCToCalibrate: 1
-  drawControllerLine: 1
-  controllerLineRenderer: {fileID: 0}
-  controllerLineColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
   drawProjectedControllerLine: 1
   projectedControllerLineRenderer: {fileID: 0}
-  projectedControllerLineColor: {r: 0, g: 1, b: 1, a: 1}
-  controllerLineWidth: 0.015
   drawDebugLine: 1
 --- !u!1 &2861148910917411302
 GameObject:
