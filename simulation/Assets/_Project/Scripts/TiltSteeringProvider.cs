@@ -56,6 +56,13 @@ public class TiltSteeringProvider : MonoBehaviour
     [Tooltip("Negate the steering direction. Enable if rotating right steers left.")]
     public bool invertSteering = true;
 
+    [Header("Keyboard Fallback")]
+    [Tooltip("Optional input actions asset. When the Steer action has a non-zero value the keyboard path bypasses the tilt angle accumulation and maps the value directly to SteerValue.")]
+    public InputActionAsset inputActions;
+
+    [Tooltip("Action map name containing the Steer action used for keyboard fallback.")]
+    public string actionMapName = "Driving";
+
     [Header("Calibration")]
     [Tooltip("Auto-calibrate center the first time a valid two-controller vector arrives.")]
     public bool calibrateOnEnable = true;
@@ -106,6 +113,8 @@ public class TiltSteeringProvider : MonoBehaviour
 
     private const float MinProjectedVectorSqrMagnitude = 0.0001f;
 
+    private InputAction _keyboardSteerAction;
+
     private float _centerAngle;
     private float _currentUnwrappedAngle;
     private float _lastWrappedAngle;
@@ -113,6 +122,15 @@ public class TiltSteeringProvider : MonoBehaviour
     private bool _calibrated;
     private LineRenderer _runtimeLineRenderer;
     private LineRenderer _runtimeProjectedLineRenderer;
+
+    private void Awake()
+    {
+        if (inputActions != null)
+        {
+            var map = inputActions.FindActionMap(actionMapName, false);
+            _keyboardSteerAction = map?.FindAction("Steer", false);
+        }
+    }
 
     private void OnEnable()
     {
@@ -125,6 +143,7 @@ public class TiltSteeringProvider : MonoBehaviour
         ControllerWheelAngle = 0f;
         SteeringWheelAngle = 0f;
         SetLineVisible(false);
+        _keyboardSteerAction?.Enable();
     }
 
     private void OnDisable()
@@ -134,6 +153,7 @@ public class TiltSteeringProvider : MonoBehaviour
         ControllerWheelAngle = 0f;
         SteeringWheelAngle = 0f;
         SetLineVisible(false);
+        _keyboardSteerAction?.Disable();
     }
 
     private void Update()
@@ -147,11 +167,34 @@ public class TiltSteeringProvider : MonoBehaviour
             SteeringWheelAngle = 0f;
             _hasLastWrappedAngle = false;
             SetLineVisible(false);
+            // Keyboard fallback: no controller vector, but keyboard may still steer.
+            TryApplyKeyboardSteering();
             return;
         }
 
         HasController = true;
         DrawControllerVector(leftPosition, rightPosition);
+
+        // Keyboard override: intercept before angle accumulation runs.
+        // When keyboard is active, output the direct value without accumulating
+        // the unwrapped angle. _lastWrappedAngle is still updated so that
+        // returning to tilt mode is seamless (no sudden jump in angle).
+        if (TryApplyKeyboardSteering())
+        {
+            // First-time calibration: anchor the tilt center even while keyboard
+            // is held so tilt steering starts centered when keyboard is released.
+            if (!_calibrated && calibrateOnEnable)
+            {
+                float initAngle = UpdateUnwrappedAngle(wrappedAngle);
+                SetCenter(initAngle);
+            }
+            else
+            {
+                _lastWrappedAngle = wrappedAngle;
+                _hasLastWrappedAngle = true;
+            }
+            return;
+        }
 
         float currentAngle = UpdateUnwrappedAngle(wrappedAngle);
 
@@ -193,6 +236,25 @@ public class TiltSteeringProvider : MonoBehaviour
 
         float currentAngle = UpdateUnwrappedAngle(wrappedAngle);
         SetCenter(currentAngle);
+    }
+
+    /// <summary>
+    /// Keyboard shortcut path: maps the steer action value directly to SteerValue without
+    /// angle accumulation. Returns true and sets all steer properties when keyboard is active.
+    /// </summary>
+    private bool TryApplyKeyboardSteering()
+    {
+        float keyboardSteer = _keyboardSteerAction?.ReadValue<float>() ?? 0f;
+        if (Mathf.Abs(keyboardSteer) < 0.01f)
+            return false;
+
+        HasController = true;
+        SteerValue = Mathf.Clamp(keyboardSteer, -1f, 1f);
+        float lockAngle = Mathf.Max(1f, maxSteerAngle);
+        // Both angles mirror the steer value so visual wheels track correctly.
+        SteeringWheelAngle = SteerValue * lockAngle;
+        ControllerWheelAngle = SteeringWheelAngle;
+        return true;
     }
 
     private void SetCenter(float angle)
