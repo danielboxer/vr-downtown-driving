@@ -5,13 +5,6 @@ using System.Collections;
 /// <summary>
 /// Receives the scenario name from the Python/SUMO config message and
 /// activates the correct ego vehicle and spline already placed in the scene.
-///
-/// SETUP
-///   1. Attach to the same GameObject as SimulationController.
-///   2. Place ego vehicles and splines in the scene, all DISABLED by default.
-///   3. Drag the scene objects into the Inspector slots below.
-///   4. Create a full-screen UI Canvas with a black Image, add a CanvasGroup,
-///      set alpha to 0, and assign it to fadeOverlay.
 /// </summary>
 public class ScenarioManager : MonoBehaviour
 {
