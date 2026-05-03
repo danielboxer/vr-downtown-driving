@@ -23,8 +23,8 @@ public class ScenarioManager : MonoBehaviour
     public ScenarioId defaultScenario = ScenarioId.calibration_car;
 
     [Header("Transition")]
-    [Tooltip("CanvasGroup on a full-screen black panel (alpha starts at 0)")]
-    public CanvasGroup fadeOverlay;
+    [Tooltip("Transparent black material for the fade quad")]
+    public Material vrFadeMaterial;
     [Tooltip("Duration of each fade direction (seconds)")]
     public float fadeDuration = 0.4f;
 
@@ -36,6 +36,8 @@ public class ScenarioManager : MonoBehaviour
     private DrivingEvaluator drivingEvaluator;
     private RouteArrowSpawner _arrowSpawner;
     private Coroutine _fadeCoroutine;
+    // tracks the scenario currently being transitioned to (set before the coroutine starts)
+    private ScenarioId? _pendingScenario;
 
     private void Awake()
     {
@@ -74,9 +76,14 @@ public class ScenarioManager : MonoBehaviour
         if (_scenarioActive && id == _activeScenario)
             return;
 
-        if (fadeOverlay != null)
+        // skip if a fade to this same scenario is already running (repeated warm-up messages)
+        if (_fadeCoroutine != null && _pendingScenario == id)
+            return;
+
+        if (vrFadeMaterial != null)
         {
             if (_fadeCoroutine != null) StopCoroutine(_fadeCoroutine);
+            _pendingScenario = id;
             _fadeCoroutine = StartCoroutine(FadeTransition(id));
         }
         else
@@ -87,27 +94,78 @@ public class ScenarioManager : MonoBehaviour
 
     private IEnumerator FadeTransition(ScenarioId scenario)
     {
+        // Create a fade quad on the current active camera.
+        // Using Camera.main at transition time handles camera changes between car and bike scenarios.
+        GameObject vrQuadGO = null;
+        Renderer vrQuadRenderer = null;
+        Camera cam = Camera.main;
+        if (cam != null)
+        {
+            vrQuadGO = CreateFadeQuad(cam);
+            vrQuadRenderer = vrQuadGO.GetComponent<Renderer>();
+            vrQuadRenderer.material = Instantiate(vrFadeMaterial);
+        }
+
         // fade to black
-        yield return FadeOverlay(0f, 1f);
+        yield return FadeOverlay(vrQuadRenderer, 0f, 1f);
 
         ApplyScenarioImmediate(scenario);
 
         // fade back in
-        yield return FadeOverlay(1f, 0f);
+        yield return FadeOverlay(vrQuadRenderer, 1f, 0f);
+
+        if (vrQuadGO != null) Destroy(vrQuadGO);
         _fadeCoroutine = null;
+        _pendingScenario = null;
     }
 
-    private IEnumerator FadeOverlay(float from, float to)
+    private IEnumerator FadeOverlay(Renderer quadRenderer, float from, float to)
     {
         float elapsed = 0f;
-        fadeOverlay.alpha = from;
-        while (elapsed < fadeDuration)
+        if (quadRenderer != null)
         {
-            elapsed += Time.deltaTime;
-            fadeOverlay.alpha = Mathf.Lerp(from, to, elapsed / fadeDuration);
-            yield return null;
+            SetMaterialAlpha(quadRenderer.material, from);
+            while (elapsed < fadeDuration)
+            {
+                elapsed += Time.deltaTime;
+                SetMaterialAlpha(quadRenderer.material, Mathf.Lerp(from, to, elapsed / fadeDuration));
+                yield return null;
+            }
+            SetMaterialAlpha(quadRenderer.material, to);
         }
-        fadeOverlay.alpha = to;
+        else
+        {
+            // No camera available — just wait out the duration so timing stays consistent.
+            yield return new WaitForSeconds(fadeDuration);
+        }
+    }
+
+    // Creates a quad parented to the camera, sized to fill its FOV.
+    private GameObject CreateFadeQuad(Camera cam)
+    {
+        var quadGO = GameObject.CreatePrimitive(PrimitiveType.Quad);
+        quadGO.name = "VRFadeQuad";
+        Destroy(quadGO.GetComponent<MeshCollider>());
+        quadGO.transform.SetParent(cam.transform, false);
+
+        // Place just past the near clip plane so nothing in the scene can render in front.
+        float dist = cam.nearClipPlane + 0.01f;
+        // 2x margin because Camera.fieldOfView may not match the actual XR eye projection FOV.
+        float halfH = dist * Mathf.Tan(cam.fieldOfView * 0.5f * Mathf.Deg2Rad) * 2f;
+        float halfW = halfH * Mathf.Max(cam.aspect, 1f) * 2f;
+
+        quadGO.transform.localPosition = new Vector3(0f, 0f, dist);
+        quadGO.transform.localRotation = Quaternion.identity;
+        quadGO.transform.localScale = new Vector3(halfW * 2f, halfH * 2f, 1f);
+        return quadGO;
+    }
+
+    // Sets material alpha on the _BaseColor property used by URP Unlit.
+    private static void SetMaterialAlpha(Material mat, float alpha)
+    {
+        Color c = mat.GetColor("_BaseColor");
+        c.a = alpha;
+        mat.SetColor("_BaseColor", c);
     }
 
     private void ApplyScenarioImmediate(ScenarioId scenario)
