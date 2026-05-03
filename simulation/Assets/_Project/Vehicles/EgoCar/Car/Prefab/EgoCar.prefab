@@ -1050,7 +1050,6 @@ GameObject:
   - component: {fileID: 7558851046672289916}
   - component: {fileID: 5757802278771181401}
   - component: {fileID: 4782113893452823864}
-  - component: {fileID: 5419899898733022588}
   - component: {fileID: 5378438025674776432}
   - component: {fileID: 1158735401654384248}
   m_Layer: 0
@@ -1261,21 +1260,6 @@ MonoBehaviour:
   turnSignalToggleSound: {fileID: 8300000, guid: c881502a731060a438bff28e6d6de2d6, type: 3}
   turnSignalLoopSound: {fileID: 8300000, guid: 9d0b2cb548cbaeb469ba726d71bd375e, type: 3}
   turnSignalLoopDelay: 0.05
---- !u!114 &5419899898733022588
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2471852994914885337}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e5464e5b10b3baa47b1091d5a5d98759, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  leftTurnSignal: {fileID: 0}
-  rightTurnSignal: {fileID: 0}
-  blinkInterval: 0.5
 --- !u!114 &5378438025674776432
 MonoBehaviour:
   m_ObjectHideFlags: 0
