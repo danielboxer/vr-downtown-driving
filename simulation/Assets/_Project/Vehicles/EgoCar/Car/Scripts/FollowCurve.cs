@@ -13,12 +13,6 @@ using UnityEngine;
 /// With splineWeight = 0.80 the car feels responsive yet stays on the road.
 /// During the right-turn section the weight can be ramped to 1.0 via the
 /// Turn-Tightening Zone, guaranteeing the manoeuvre always succeeds.
-///
-/// SETUP
-///   1. Attach this to the same GameObject as CarController / CarUserControl.
-///   2. Disable or remove ConstrainToCurve (the two systems conflict).
-///   3. Ensure a Spline component exists somewhere in the scene.
-///   4. Tune the Inspector values during testing sessions.
 /// </summary>
 public class FollowCurve : MonoBehaviour
 {
