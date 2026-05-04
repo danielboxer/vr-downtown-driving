@@ -139,11 +139,11 @@ public class SimulationController : MonoBehaviour
 
     private void Start()
     {
-        vehiclePrefab = Resources.Load("EloraGold") as GameObject;
+        vehiclePrefab = Resources.Load("Cars/EloraGold") as GameObject;
 
         if (vehiclePrefab == null)
         {
-            Debug.LogError("Vehicle prefab 'EloraGold' not found in Resources.");
+            Debug.LogError("Vehicle prefab 'EloraGold' not found in Resources/Cars.");
             return;
         }
 

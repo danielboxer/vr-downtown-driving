@@ -64,7 +64,7 @@ PrefabInstance:
       addedObject: {fileID: 8497617149974490527}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 7709d19ef209c9f408ec0ef90083c70c, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 7193451470552333432}
+      addedObject: {fileID: 5070992622299383227}
   m_SourcePrefab: {fileID: 100100000, guid: 7709d19ef209c9f408ec0ef90083c70c, type: 3}
 --- !u!4 &1334739179705862965 stripped
 Transform:
@@ -121,7 +121,7 @@ MonoBehaviour:
   - {fileID: 1334739179705862965}
   - {fileID: 7882657324995732502}
   wheelRadius: 0.32
---- !u!65 &7193451470552333432
+--- !u!65 &5070992622299383227
 BoxCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
