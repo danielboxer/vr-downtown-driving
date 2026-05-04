@@ -152,18 +152,13 @@ row += 1  # ★ NEW
 # ═════════════════ SIMULATION (run_sim) ═════════════════════════
 # ---------- threading state ----------
 _sim_thread = None
-_stop_event = threading.Event()
-# set by restart_clicked() or a RESTART_SIMULATION ZMQ command; cleared after the
-# sim thread exits so _on_sim_finished can trigger an automatic re-launch
+# set by restart_clicked() or a RESTART_SIMULATION ZMQ command
 _restart_event = threading.Event()
 
 
-def run_sim(cfg: dict, stop_event=None):
+def run_sim(cfg: dict):
     import traci
     from traci.constants import VAR_ANGLE, VAR_POSITION3D, VAR_TYPE
-
-    if stop_event is None:
-        stop_event = threading.Event()
 
     # ---------- apply GUI parameters ----------
     IntegrationStartTime = cfg["IntegrationStartTime"]
@@ -331,7 +326,7 @@ def run_sim(cfg: dict, stop_event=None):
     try:
         # outer restart loop: traci.load() reloads SUMO in-place without closing
         # the process or tearing down ZMQ, so Unity stays connected across restarts
-        while not stop_event.is_set():
+        while True:
             _restart_event.clear()
 
             # drain stale messages that arrived during the previous run or the
@@ -362,7 +357,6 @@ def run_sim(cfg: dict, stop_event=None):
             # ---------- warm-up ----------
             while (
                 traci.simulation.getTime() < IntegrationStartTime
-                and not stop_event.is_set()
                 and not _restart_event.is_set()
             ):
                 traci.simulationStep()
@@ -370,8 +364,6 @@ def run_sim(cfg: dict, stop_event=None):
                 # keep sending config so Unity receives it despite slow-joiner
                 pub.send_string(config_msg)
 
-            if stop_event.is_set():
-                break
             if _restart_event.is_set():
                 # restart requested during warm-up: reload and loop back
                 traci.load(sumo_cmd[1:])
@@ -405,7 +397,6 @@ def run_sim(cfg: dict, stop_event=None):
                     ExperimentEndTime <= 0
                     or traci.simulation.getTime() < ExperimentEndTime
                 )
-                and not stop_event.is_set()
                 and not _restart_event.is_set()
             ):
                 loop_t0 = time.perf_counter()
@@ -551,8 +542,6 @@ def run_sim(cfg: dict, stop_event=None):
 
             # end of main loop (inner)
 
-            if stop_event.is_set():
-                break
             if _restart_event.is_set():
                 # restart requested mid-run: send STOP_RECORDING, then reload SUMO
                 if start_rec_sent:
@@ -625,12 +614,12 @@ row += 1
 def _on_sim_finished():
     """Called on the main thread when run_sim exits."""
     restart_btn.config(state="disabled")
-    status_var.set("Simulation finished \u2014 click Start to run again")
+    status_var.set("Simulation finished - click Start to run again")
     start_btn.config(state="normal", text="Start simulation")
 
 
 def start_clicked():
-    global _sim_thread, _stop_event
+    global _sim_thread
     try:
         cfg = {
             k: (int(v.get()) if "Time" in k else float(v.get()))
@@ -648,11 +637,10 @@ def start_clicked():
             "Missing scenario", "Please select a valid scenario folder."
         )
         return
-    _stop_event = threading.Event()
     status_var.set("Running...")
     start_btn.config(state="disabled")
     restart_btn.config(state="normal")
-    _sim_thread = threading.Thread(target=run_sim, args=(cfg, _stop_event), daemon=True)
+    _sim_thread = threading.Thread(target=run_sim, args=(cfg,), daemon=True)
     _sim_thread.start()
 
 
@@ -668,18 +656,18 @@ def restart_clicked():
         start_clicked()
 
 
-# buttons
+# buttons: Start (left) and Restart (right) on the same row
 start_btn = ttk.Button(root, text="Start simulation", command=start_clicked)
 start_btn.grid(
     row=row, column=0, columnspan=2, pady=(12, 4), padx=6, sticky="ew", ipady=12
 )
-row_btn = row
 restart_btn = ttk.Button(
     root, text="Restart simulation", command=restart_clicked, state="disabled"
 )
 restart_btn.grid(
-    row=row_btn, column=2, columnspan=2, pady=(12, 4), padx=6, sticky="ew", ipady=12
+    row=row, column=2, columnspan=2, pady=(12, 4), padx=6, sticky="ew", ipady=12
 )
+
 
 root.update_idletasks()
 root.geometry(
