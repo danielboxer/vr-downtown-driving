@@ -120,6 +120,8 @@ public class RoadNetworkBuilder : MonoBehaviour
     public Vector3 streetLampColliderSize = new Vector3(0.15f, 3f, 0.15f);
     [Tooltip("Local-space center of the street lamp box collider. Y=1.5 places the base at ground level.")]
     public Vector3 streetLampColliderCenter = new Vector3(0f, 1.5f, 0f);
+    [Tooltip("Lamp prefab (with speed limit sign) used for the single lamp placed closest to the midpoint of each block side. Falls back to the regular lamp if null.")]
+    public GameObject lampWithSignPrefab;
 
 
     private GameObject roadNetworkRoot;
@@ -1328,6 +1330,13 @@ public class RoadNetworkBuilder : MonoBehaviour
             return;
         }
 
+        // Sign lamp prefab: inspector field takes priority, then Resources fallback
+        GameObject signLampPrefab = lampWithSignPrefab;
+        if (signLampPrefab == null)
+            signLampPrefab = Resources.Load<GameObject>("StreetLamps/Sign Street Lamp");
+        if (signLampPrefab == null)
+            Debug.LogWarning("[RoadNetworkBuilder] Sign Street Lamp prefab not found; midpoint lamps will use the regular prefab.");
+
         GameObject lampsRoot = new GameObject("StreetLamps");
         lampsRoot.transform.SetParent(roadNetworkRoot.transform);
 
@@ -1349,7 +1358,7 @@ public class RoadNetworkBuilder : MonoBehaviour
             {
                 float w = laneWidthMap.TryGetValue(firstLane.laneId, out float fw) ? fw : laneMeshScaleWidth;
                 var sidewalkPts = ComputeSidewalkPoints(firstLane, w, false, sidewalkInset);
-                PlaceLampsAlongEdge(sidewalkPts, lampPrefab, lampsRoot.transform, leftSide: false, ref lampCount);
+                PlaceLampsAlongEdge(sidewalkPts, lampPrefab, signLampPrefab, lampsRoot.transform, leftSide: false, ref lampCount);
             }
 
             // Left side: leftmost lane outer edge -- only if no opposite edge exists
@@ -1360,7 +1369,7 @@ public class RoadNetworkBuilder : MonoBehaviour
                 {
                     float w = laneWidthMap.TryGetValue(lastLane.laneId, out float lw) ? lw : laneMeshScaleWidth;
                     var sidewalkPts = ComputeSidewalkPoints(lastLane, w, true, sidewalkInset);
-                    PlaceLampsAlongEdge(sidewalkPts, lampPrefab, lampsRoot.transform, leftSide: true, ref lampCount);
+                    PlaceLampsAlongEdge(sidewalkPts, lampPrefab, signLampPrefab, lampsRoot.transform, leftSide: true, ref lampCount);
                 }
             }
         }
@@ -1404,8 +1413,9 @@ public class RoadNetworkBuilder : MonoBehaviour
     /// Starts half a spacing interval in from the first point so lamps don't
     /// land right at junction edges.
     /// leftSide: true if this is the left (median-facing) sidewalk, used to orient lamps inward.
+    /// signPrefab: when non-null, the lamp closest to the block midpoint uses this prefab instead.
     /// </summary>
-    private void PlaceLampsAlongEdge(Vector3[] pts, GameObject prefab, Transform parent, bool leftSide, ref int count)
+    private void PlaceLampsAlongEdge(Vector3[] pts, GameObject prefab, GameObject signPrefab, Transform parent, bool leftSide, ref int count)
     {
         if (pts.Length < 2) return;
 
@@ -1440,7 +1450,12 @@ public class RoadNetworkBuilder : MonoBehaviour
                 float yaw = leftSide ? 90f : -90f;
                 Quaternion rot = Quaternion.LookRotation(dir, Vector3.up) * Quaternion.Euler(0f, yaw, 0f);
 
-                GameObject lamp = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+                // Use the sign lamp prefab for the lamp closest to the block midpoint
+                bool isMidpointLamp = signPrefab != null
+                    && Mathf.Abs(nextDist - totalLength * 0.5f) < lampSpacing * 0.5f;
+                GameObject lampPrefabToUse = isMidpointLamp ? signPrefab : prefab;
+
+                GameObject lamp = (GameObject)PrefabUtility.InstantiatePrefab(lampPrefabToUse);
                 lamp.name = $"StreetLamp_{count++}";
                 lamp.transform.SetParent(parent);
                 lamp.transform.position = pos;
