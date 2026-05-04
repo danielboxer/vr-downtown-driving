@@ -88,8 +88,6 @@ public class RoadNetworkBuilder : MonoBehaviour
     [Header("Generation Options")]
     [Tooltip("Mark all generated GameObjects as static (enables batching, GI, occlusion culling, navmesh).")]
     public bool markGeneratedAsStatic = true;
-    [Tooltip("Scale in lightmap for road, junction, curb, and polygon geometry. Lower values pack more objects per atlas. 0.2 is recommended for large road networks.")]
-    public float roadLightmapScale = 0.2f;
     [Tooltip("Add a BoxCollider to each traffic light head so vehicles can collide with the pole.")]
     public bool addTrafficLightColliders = true;
     [Tooltip("Size of the box collider added to each traffic light head (width, height, depth).")]
@@ -102,6 +100,22 @@ public class RoadNetworkBuilder : MonoBehaviour
     public Vector3 stopSignColliderSize = new Vector3(0.1f, 2.5f, 0.1f);
     [Tooltip("Local-space center of the stop sign box collider. Y=1.25 places the base at ground level.")]
     public Vector3 stopSignColliderCenter = new Vector3(0f, 1.25f, 0f);
+
+    [Header("Street Lamps")]
+    [Tooltip("Enable or disable street lamp generation along sidewalk edges.")]
+    public bool generateStreetLamps = true;
+    [Tooltip("Distance between consecutive lamps along each sidewalk edge (meters).")]
+    public float lampSpacing = 80f;
+    [Tooltip("Offset from the start of the flat sidewalk top inward to the lamp base (meters).")]
+    public float lampCurbOffset = 1.0f;
+    [Tooltip("Minimum distance from each junction end of an edge before placing a lamp (meters).")]
+    public float lampJunctionClearance = 10f;
+    [Tooltip("Add a BoxCollider to each street lamp so vehicles can collide with the pole.")]
+    public bool addStreetLampColliders = true;
+    [Tooltip("Size of the box collider added to each street lamp (width, height, depth).")]
+    public Vector3 streetLampColliderSize = new Vector3(0.15f, 3f, 0.15f);
+    [Tooltip("Local-space center of the street lamp box collider. Y=1.5 places the base at ground level.")]
+    public Vector3 streetLampColliderCenter = new Vector3(0f, 1.5f, 0f);
 
 
     private GameObject roadNetworkRoot;
@@ -143,7 +157,7 @@ public class RoadNetworkBuilder : MonoBehaviour
         }
 
         // Also destroy any orphaned root left from a previous builder instance
-        var oldRoot = GameObject.Find("RoadNetworkRoot");
+        var oldRoot = GameObject.Find("RoadNetwork");
         if (oldRoot != null)
             DestroyImmediate(oldRoot);
 
@@ -153,7 +167,7 @@ public class RoadNetworkBuilder : MonoBehaviour
             DestroyImmediate(oldJunctions);
 
         // Destroy orphaned road signs and lane decals from an older generation
-        // (new layout nests these under Junctions/RoadSigns and RoadNetworkRoot/LaneDecals,
+        // (new layout nests these under Junctions/RoadSigns and RoadNetwork/LaneDecals,
         //  so they are cleaned up automatically when those parents are destroyed above)
         var oldSigns = GameObject.Find("RoadSignsRoot");
         if (oldSigns != null)
@@ -193,7 +207,7 @@ public class RoadNetworkBuilder : MonoBehaviour
         }
         if (roadNetworkRoot == null)
         {
-            roadNetworkRoot = new GameObject("RoadNetworkRoot");
+            roadNetworkRoot = new GameObject("RoadNetwork");
             if (groundLayer >= 0) roadNetworkRoot.layer = groundLayer;
         }
 
@@ -335,13 +349,13 @@ public class RoadNetworkBuilder : MonoBehaviour
     }
 
     /// <summary>
-    /// Attempts to find an existing RoadNetworkRoot in the scene and assign it.
+    /// Attempts to find an existing RoadNetwork in the scene and assign it.
     /// Returns true if one was found.
     /// </summary>
     public bool FindExistingRoot()
     {
         if (roadNetworkRoot != null) return true;
-        var existing = GameObject.Find("RoadNetworkRoot");
+        var existing = GameObject.Find("RoadNetwork");
         if (existing != null) { roadNetworkRoot = existing; return true; }
         return false;
     }
@@ -375,7 +389,6 @@ public class RoadNetworkBuilder : MonoBehaviour
                 var mr = laneObj.AddComponent<MeshRenderer>();
                 mf.sharedMesh = laneMesh;
                 mr.sharedMaterial = roadSurfaceMaterial ?? GetFallbackMaterial();
-                mr.scaleInLightmap = roadLightmapScale;
 
                 // Physics collider so vehicles don't fall through the road
                 var laneCol = laneObj.AddComponent<MeshCollider>();
@@ -450,7 +463,6 @@ public class RoadNetworkBuilder : MonoBehaviour
             var jMr = jObj.AddComponent<MeshRenderer>();
             jMf.mesh = junctionMesh;
             jMr.material = junctionSurfaceMaterial ?? GetFallbackMaterial();
-            jMr.scaleInLightmap = roadLightmapScale;
         }
 
         // ★ NEW: make sure every child built above is on the Ground layer
@@ -704,7 +716,6 @@ public class RoadNetworkBuilder : MonoBehaviour
         go.AddComponent<MeshFilter>().sharedMesh = curbMesh;
         var curbMr = go.AddComponent<MeshRenderer>();
         curbMr.sharedMaterial = sidewalkWallMaterial != null ? sidewalkWallMaterial : GetPolygonMaterial("terrain");
-        curbMr.scaleInLightmap = roadLightmapScale;
 
         // MeshCollider for collision (non-convex is fine since curbs are static)
         var col = go.AddComponent<MeshCollider>();
@@ -1111,13 +1122,12 @@ public class RoadNetworkBuilder : MonoBehaviour
         }
     }
 
-    /// <summary>Deletes road sign GameObjects (under the RoadSigns child of Junctions).</summary>
+    /// <summary>Deletes road sign GameObjects (under the RoadSigns child of RoadNetwork).</summary>
     public void DeleteRoadSignObjects()
     {
-        var junctions = GameObject.Find("Junctions");
-        if (junctions != null)
+        if (FindExistingRoot())
         {
-            var signsChild = junctions.transform.Find("RoadSigns");
+            var signsChild = roadNetworkRoot.transform.Find("RoadSigns");
             if (signsChild != null)
                 DestroyImmediate(signsChild.gameObject);
         }
@@ -1164,12 +1174,9 @@ public class RoadNetworkBuilder : MonoBehaviour
             list.Add(edgeData);
         }
 
-        // Find (or create) the Junctions scene root so signs sit alongside traffic lights
-        GameObject junctionsRoot = GameObject.Find("Junctions") ?? new GameObject("Junctions");
-
-        // Signs go in a dedicated child so they can be deleted independently of TL heads
+        // Signs go in a dedicated child of RoadNetwork so they can be deleted independently of TL heads
         GameObject signsRoot = new GameObject("RoadSigns");
-        signsRoot.transform.SetParent(junctionsRoot.transform);
+        signsRoot.transform.SetParent(roadNetworkRoot.transform);
         int placedCount = 0;
 
         foreach (var jData in junctionRecords.Values)
@@ -1237,6 +1244,171 @@ public class RoadNetworkBuilder : MonoBehaviour
             }
         }
         Debug.Log($"[Sumo2Unity] Placed {placedCount} stop signs under 'Junctions/RoadSigns'.");
+    }
+
+    /// <summary>Deletes street lamp GameObjects (under the StreetLamps child of RoadNetworkRoot).</summary>
+    public void DeleteStreetLampObjects()
+    {
+        if (!FindExistingRoot()) return;
+        var lampsChild = roadNetworkRoot.transform.Find("StreetLamps");
+        if (lampsChild != null) DestroyImmediate(lampsChild.gameObject);
+    }
+
+    /// <summary>
+    /// Generates street lamps along the sidewalk edges of every road.
+    /// Lamps are loaded from Resources/StreetLamps/Street Lamp 02 and placed
+    /// at regular intervals on the right side of all roads and both sides of
+    /// single-direction roads (no opposite-direction edge).
+    /// </summary>
+    public void GenerateStreetLamps()
+    {
+        if (!FindExistingRoot())
+        {
+            Debug.LogError("[RoadNetworkBuilder] No road network root found. Generate roads first.");
+            return;
+        }
+
+        // Remove any existing lamp root before regenerating
+        var existingLamps = roadNetworkRoot.transform.Find("StreetLamps");
+        if (existingLamps != null) DestroyImmediate(existingLamps.gameObject);
+
+        GameObject lampPrefab = Resources.Load<GameObject>("StreetLamps/Street Lamp 02");
+        if (lampPrefab == null)
+        {
+            Debug.LogError("[RoadNetworkBuilder] Prefab not found at Resources/StreetLamps/Street Lamp 02.");
+            return;
+        }
+
+        GameObject lampsRoot = new GameObject("StreetLamps");
+        lampsRoot.transform.SetParent(roadNetworkRoot.transform);
+
+        int lampCount = 0;
+        // Total outward offset from lane centre: half lane width puts us at the lane edge,
+        // then innerSlopeWidth clears the ramp, then lampCurbOffset positions within the flat top.
+        float sidewalkInset = innerSlopeWidth + lampCurbOffset;
+
+        foreach (var edgeData in edgeRecords.Values)
+        {
+            var lanes = edgeData.GetLaneDataList();
+            if (lanes.Count == 0) continue;
+
+            bool hasOpposite = HasOppositeEdge(edgeData);
+
+            // Right side: rightmost lane (index 0) outer edge -- always generate
+            var firstLane = lanes[0];
+            if (firstLane.shapePoints.Count >= 2)
+            {
+                float w = laneWidthMap.TryGetValue(firstLane.laneId, out float fw) ? fw : laneMeshScaleWidth;
+                var sidewalkPts = ComputeSidewalkPoints(firstLane, w, false, sidewalkInset);
+                PlaceLampsAlongEdge(sidewalkPts, lampPrefab, lampsRoot.transform, leftSide: false, ref lampCount);
+            }
+
+            // Left side: leftmost lane outer edge -- only if no opposite edge exists
+            if (!hasOpposite)
+            {
+                var lastLane = lanes[lanes.Count - 1];
+                if (lastLane.shapePoints.Count >= 2)
+                {
+                    float w = laneWidthMap.TryGetValue(lastLane.laneId, out float lw) ? lw : laneMeshScaleWidth;
+                    var sidewalkPts = ComputeSidewalkPoints(lastLane, w, true, sidewalkInset);
+                    PlaceLampsAlongEdge(sidewalkPts, lampPrefab, lampsRoot.transform, leftSide: true, ref lampCount);
+                }
+            }
+        }
+
+        if (markGeneratedAsStatic)
+            SetStaticRecursively(lampsRoot);
+
+        Debug.Log($"[Sumo2Unity] Placed {lampCount} street lamps.");
+    }
+
+    /// <summary>
+    /// Returns world-space points on the sidewalk flat top at a fixed outward offset from the lane edge.
+    /// totalOffset = laneWidth*0.5 (to lane edge) + sidewalkInset (across the curb ramp and into flat top).
+    /// Points are raised to sidewalkHeight so lamps stand on the sidewalk surface.
+    /// </summary>
+    private Vector3[] ComputeSidewalkPoints(RoadLaneData lane, float width, bool left, float sidewalkInset)
+    {
+        int n = lane.shapePoints.Count;
+        var pts = new Vector3[n];
+        float totalOffset = width * 0.5f + sidewalkInset;
+
+        for (int i = 0; i < n; i++)
+        {
+            Vector3 center = ToUnity(lane.shapePoints[i][0], lane.shapePoints[i][1]);
+
+            Vector3 dir;
+            if (i < n - 1)
+                dir = (ToUnity(lane.shapePoints[i + 1][0], lane.shapePoints[i + 1][1]) - center).normalized;
+            else
+                dir = (center - ToUnity(lane.shapePoints[i - 1][0], lane.shapePoints[i - 1][1])).normalized;
+
+            Vector3 perp = new Vector3(-dir.z, 0f, dir.x);
+            pts[i] = center + perp * totalOffset * (left ? 1f : -1f);
+            pts[i].y = sidewalkHeight;
+        }
+        return pts;
+    }
+
+    /// <summary>
+    /// Instantiates lamps at regular intervals along a sidewalk polyline.
+    /// Starts half a spacing interval in from the first point so lamps don't
+    /// land right at junction edges.
+    /// leftSide: true if this is the left (median-facing) sidewalk, used to orient lamps inward.
+    /// </summary>
+    private void PlaceLampsAlongEdge(Vector3[] pts, GameObject prefab, Transform parent, bool leftSide, ref int count)
+    {
+        if (pts.Length < 2) return;
+
+        // Compute total polyline length for junction clearance trimming
+        float totalLength = 0f;
+        for (int i = 0; i < pts.Length - 1; i++)
+            totalLength += Vector3.Distance(pts[i], pts[i + 1]);
+
+        float clearance = lampJunctionClearance;
+        // If the edge is too short to fit any lamp with clearance on both sides, skip it
+        if (totalLength <= clearance * 2f) return;
+
+        float nextDist = clearance;
+        float cumDist = 0f;
+
+        for (int i = 0; i < pts.Length - 1; i++)
+        {
+            Vector3 a = pts[i];
+            Vector3 b = pts[i + 1];
+            float segLen = Vector3.Distance(a, b);
+            if (segLen < 0.001f) continue;
+
+            Vector3 dir = (b - a) / segLen;
+
+            while (nextDist <= cumDist + segLen && nextDist <= totalLength - clearance)
+            {
+                float t = nextDist - cumDist;
+                Vector3 pos = a + dir * t;
+
+                // Inward rotation: right sidewalk faces -90 deg right (toward road center),
+                // left sidewalk faces +90 deg left (toward road center).
+                float yaw = leftSide ? 90f : -90f;
+                Quaternion rot = Quaternion.LookRotation(dir, Vector3.up) * Quaternion.Euler(0f, yaw, 0f);
+
+                GameObject lamp = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+                lamp.name = $"StreetLamp_{count++}";
+                lamp.transform.SetParent(parent);
+                lamp.transform.position = pos;
+                lamp.transform.rotation = rot;
+
+                if (addStreetLampColliders)
+                {
+                    var col = lamp.AddComponent<BoxCollider>();
+                    col.size = streetLampColliderSize;
+                    col.center = streetLampColliderCenter;
+                }
+
+                nextDist += lampSpacing;
+            }
+
+            cumDist += segLen;
+        }
     }
 
     /// <summary>Deletes lane arrow decal GameObjects (under the LaneDecals child of RoadNetworkRoot).</summary>
@@ -1459,7 +1631,6 @@ public class RoadNetworkBuilder : MonoBehaviour
         var mr = polyGO.AddComponent<MeshRenderer>();
         mf.sharedMesh = polyMesh;
         mr.sharedMaterial = GetPolygonMaterial(polygonType);
-        mr.scaleInLightmap = roadLightmapScale;
 
         // Physics collider so vehicles don't fall through.
         // Large flat polygons can trigger a PhysX large-triangle warning with a MeshCollider
