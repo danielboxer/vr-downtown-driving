@@ -38,12 +38,21 @@ public class ScenarioManager : MonoBehaviour
     private Coroutine _fadeCoroutine;
     // tracks the scenario currently being transitioned to (set before the coroutine starts)
     private ScenarioId? _pendingScenario;
+    // scene-defined spawn transforms captured in Awake before any physics runs
+    private Vector3 _egoCarSpawnPos;
+    private Quaternion _egoCarSpawnRot;
+    private Vector3 _egoBikeSpawnPos;
+    private Quaternion _egoBikeSpawnRot;
 
     private void Awake()
     {
         _simController = GetComponent<SimulationController>();
         drivingEvaluator = GetComponent<DrivingEvaluator>();
         _arrowSpawner = GetComponent<RouteArrowSpawner>();
+
+        // Capture scene-defined spawn transforms before any scenario enables the ego vehicles.
+        if (egoCar != null) { _egoCarSpawnPos = egoCar.transform.position; _egoCarSpawnRot = egoCar.transform.rotation; }
+        if (egoBike != null) { _egoBikeSpawnPos = egoBike.transform.position; _egoBikeSpawnRot = egoBike.transform.rotation; }
     }
 
     private void Start()
@@ -90,6 +99,22 @@ public class ScenarioManager : MonoBehaviour
         {
             ApplyScenarioImmediate(id);
         }
+    }
+
+    /// <summary>
+    /// Restarts the currently active scenario from the spawn position.
+    /// Unlike ApplyScenario, this always runs even if the scenario is already active.
+    /// </summary>
+    public void RestartScenario()
+    {
+        if (!_scenarioActive) return;
+
+        if (_fadeCoroutine != null) StopCoroutine(_fadeCoroutine);
+        _pendingScenario = _activeScenario;
+        if (vrFadeMaterial != null)
+            _fadeCoroutine = StartCoroutine(FadeTransition(_activeScenario));
+        else
+            ApplyScenarioImmediate(_activeScenario);
     }
 
     private IEnumerator FadeTransition(ScenarioId scenario)
@@ -226,6 +251,13 @@ public class ScenarioManager : MonoBehaviour
 
         if (activeEgo != null)
         {
+            // Reset to the scene-defined spawn position before enabling.
+            Vector3 spawnPos = (activeEgo == egoCar) ? _egoCarSpawnPos : _egoBikeSpawnPos;
+            Quaternion spawnRot = (activeEgo == egoCar) ? _egoCarSpawnRot : _egoBikeSpawnRot;
+            var rb = activeEgo.GetComponent<Rigidbody>();
+            if (rb != null) { rb.linearVelocity = Vector3.zero; rb.angularVelocity = Vector3.zero; }
+            activeEgo.transform.SetPositionAndRotation(spawnPos, spawnRot);
+
             activeEgo.SetActive(true);
             _simController.RegisterEgoVehicle(activeEgo);
 
