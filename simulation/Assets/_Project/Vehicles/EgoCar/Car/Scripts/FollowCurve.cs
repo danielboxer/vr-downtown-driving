@@ -70,6 +70,10 @@ public class FollowCurve : MonoBehaviour
     [Range(0f, 1f)]
     public float turnPeakWeight = 1.0f;
 
+    [Header("Spline")]
+    [Tooltip("The spline this component should follow. Must be assigned explicitly.")]
+    public Spline targetSpline;
+
     // ──────────────────────────────────────────────────────────────
     //  Runtime state
     // ──────────────────────────────────────────────────────────────
@@ -96,17 +100,17 @@ public class FollowCurve : MonoBehaviour
     }
 
     /// <summary>
-    /// Re-scan for an active Spline in the scene.
-    /// Called automatically at Start and can be called after scenario changes.
+    /// Assigns the active spline. Pass the scenario spline, or null to fall back to
+    /// the inspector-assigned targetSpline (or to clear spline assist entirely).
+    /// Called by ScenarioManager on scenario changes.
     /// </summary>
-    public void RefreshSpline()
+    public void RefreshSpline(Spline assignedSpline = null)
     {
-        spline = FindFirstObjectByType<Spline>();
+        spline = assignedSpline ?? targetSpline;
         if (spline != null)
-        {
-            Debug.Log($"FollowCurve: Spline found ({spline.gameObject.name}), " +
-                      $"base weight = {splineWeight:F2}");
-        }
+            Debug.Log($"FollowCurve: Using spline '{spline.gameObject.name}', base weight = {splineWeight:F2}");
+        else
+            Debug.LogWarning("FollowCurve: No spline assigned — using player input only.");
     }
 
     // ──────────────────────────────────────────────────────────────
@@ -282,18 +286,4 @@ public class FollowCurve : MonoBehaviour
         return closestT;
     }
 
-    // ──────────────────────────────────────────────────────────────
-    //  HUD overlay
-    // ──────────────────────────────────────────────────────────────
-
-    private void OnGUI()
-    {
-        GUI.Label(new Rect(10, 10, 650, 25),
-            $"Weight: {_dbgEffectiveWeight:F2}  |  " +
-            $"SplineSteer: {_dbgSplineSteer:F2}  |  " +
-            $"Lateral: {_dbgLateralOffset:F2}m  |  " +
-            $"T: {_dbgClosestT:F3}  |  " +
-            $"Dist: {_dbgDistanceToSpline:F1}m  |  " +
-            $"Active: {_dbgIsActive}");
-    }
 }

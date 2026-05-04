@@ -145,6 +145,6 @@ public class Fps : MonoBehaviour
             normal = { textColor = Color.black }
         };
 
-        GUI.Label(new Rect(5, 40, 200, 25), "FPS: " + Mathf.Round(displayedFps), style);
+        GUI.Label(new Rect(5, 5, 200, 25), "FPS: " + Mathf.Round(displayedFps), style);
     }
 }
