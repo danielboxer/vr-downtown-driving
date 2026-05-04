@@ -243,14 +243,13 @@ public class ScenarioManager : MonoBehaviour
         if (egoCar != null) egoCar.SetActive(false);
         if (egoBike != null) egoBike.SetActive(false);
 
-        // Disable ALL splines in the scene (including any not tracked in Inspector fields)
-        // so FindFirstObjectByType<Spline>() in FollowCurve.RefreshSpline() doesn't pick
-        // up a leftover spline that belongs to a different scenario.
-        var allSplines = FindObjectsByType<Spline>(FindObjectsInactive.Include, FindObjectsSortMode.None);
-        foreach (var s in allSplines)
-            s.gameObject.SetActive(false);
+        // Disable only the known route splines so they don't interfere with the new scenario.
+        // Tree placement splines and other non-route splines are left untouched.
+        if (carRightTurnSpline != null) carRightTurnSpline.SetActive(false);
+        if (bikeRightTurnSpline != null) bikeRightTurnSpline.SetActive(false);
 
         GameObject activeEgo = null;
+        Spline activeSpline = null;
 
         switch (scenario)
         {
@@ -264,7 +263,11 @@ public class ScenarioManager : MonoBehaviour
 
             case ScenarioId.right_turn_car:
                 activeEgo = egoCar;
-                if (carRightTurnSpline != null) carRightTurnSpline.SetActive(true);
+                if (carRightTurnSpline != null)
+                {
+                    carRightTurnSpline.SetActive(true);
+                    activeSpline = carRightTurnSpline.GetComponent<Spline>();
+                }
                 break;
 
             case ScenarioId.calibration_bike:
@@ -277,7 +280,11 @@ public class ScenarioManager : MonoBehaviour
 
             case ScenarioId.right_turn_bike:
                 activeEgo = egoBike;
-                if (bikeRightTurnSpline != null) bikeRightTurnSpline.SetActive(true);
+                if (bikeRightTurnSpline != null)
+                {
+                    bikeRightTurnSpline.SetActive(true);
+                    activeSpline = bikeRightTurnSpline.GetComponent<Spline>();
+                }
                 break;
 
             default:
@@ -297,17 +304,14 @@ public class ScenarioManager : MonoBehaviour
             activeEgo.SetActive(true);
             _simController.RegisterEgoVehicle(activeEgo);
 
-            // let FollowCurve pick up the newly active spline
+            // Pass the active scenario spline directly — no FindFirstObjectByType needed
             var followCurve = activeEgo.GetComponent<FollowCurve>();
             if (followCurve != null)
-                followCurve.RefreshSpline();
+                followCurve.RefreshSpline(activeSpline);
 
             // Spawn route arrows along the active spline (if any)
             if (_arrowSpawner != null)
-            {
-                Spline activeSpline = FindFirstObjectByType<Spline>();
                 _arrowSpawner.SpawnArrows(activeSpline);
-            }
 
             // Start driving evaluation for this scenario
             if (drivingEvaluator != null)
