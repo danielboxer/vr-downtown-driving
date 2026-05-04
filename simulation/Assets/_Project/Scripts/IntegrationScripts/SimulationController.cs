@@ -10,7 +10,6 @@ using System.Text;
 
 public class SimulationController : MonoBehaviour
 {
-    private ExchangeData _ExchangeData;
     private GameObject vehiclePrefab;
     private Dictionary<string, GameObject> vehicleObjects = new Dictionary<string, GameObject>();
     private string vehicleDataJson = "{}";
@@ -116,7 +115,6 @@ public class SimulationController : MonoBehaviour
         return _lastTlState.TryGetValue(junctionId, out var state) ? state : null;
     }
 
-    /// <summary>Finds (or creates) SUMO2Unity\SUMOData\Results next to the project.</summary>
     /// <summary>Finds (or creates) SUMO2Unity\Results next to the project.</summary>
     private static string LocateOrCreateResultsFolder()
     {
@@ -149,11 +147,9 @@ public class SimulationController : MonoBehaviour
             return;
         }
 
-        _ExchangeData = GetComponent<ExchangeData>();
-        if (_ExchangeData == null)
-        {
-            _ExchangeData = gameObject.AddComponent<ExchangeData>();
-        }
+        // Ensure ExchangeData component is present (added here if not already on the GameObject)
+        if (GetComponent<ExchangeData>() == null)
+            gameObject.AddComponent<ExchangeData>();
 
         // Auto-find the Junctions root if not assigned in the Inspector
         if (junctions == null)
@@ -164,7 +160,6 @@ public class SimulationController : MonoBehaviour
             else
                 Debug.LogWarning("[SimulationController] 'Junctions' GameObject not found in scene. Traffic lights will not update.");
         }
-        //StartCoroutine(FindGameObjectAfterDelay(1.0f));
 
         // 3) open log file in SUMOData folder
         string sumoDataDir = LocateOrCreateResultsFolder();

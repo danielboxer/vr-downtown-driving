@@ -12,13 +12,7 @@ using UnityEngine.InputSystem.XR;
 /// </summary>
 public class TiltSteeringProvider : MonoBehaviour
 {
-    // Kept so older prefab data that serialized a single controller hand can
-    // deserialize cleanly, but steering now always uses both controllers.
-    public enum Hand { Right, Left }
     public enum SteerAxis { Roll, Yaw, Pitch }
-
-    [HideInInspector]
-    public Hand controllerHand = Hand.Right;
 
     [Header("Controller Wheel")]
     [Tooltip("Optional tracked left controller transform. If assigned with Right Controller Transform, world-space transform positions are used instead of raw XR devicePosition values.")]
