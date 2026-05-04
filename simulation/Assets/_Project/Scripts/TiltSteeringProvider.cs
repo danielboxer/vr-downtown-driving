@@ -67,9 +67,6 @@ public class TiltSteeringProvider : MonoBehaviour
     [Tooltip("Auto-calibrate center the first time a valid two-controller vector arrives.")]
     public bool calibrateOnEnable = true;
 
-    [Tooltip("Continuously set the current controller/cradle angle as center while the keyboard C key is held.")]
-    public bool holdCToCalibrate = true;
-
     [Header("Controller Vector Debug")]
     [Tooltip("Draw the controller vector projected onto the active steering plane and centered between the controllers. This is the vector actually used for steering.")]
     public bool drawProjectedControllerLine = true;
@@ -113,6 +110,22 @@ public class TiltSteeringProvider : MonoBehaviour
 
     private void Awake()
     {
+        // Auto-detect the input asset from a sibling vehicle control script if not assigned.
+        if (inputActions == null)
+        {
+            foreach (var mb in GetComponents<MonoBehaviour>())
+            {
+                var f = mb.GetType().GetField(
+                    "inputActions",
+                    System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+                if (f?.FieldType == typeof(InputActionAsset))
+                {
+                    inputActions = f.GetValue(mb) as InputActionAsset;
+                    if (inputActions != null) break;
+                }
+            }
+        }
+
         if (inputActions != null)
         {
             var map = inputActions.FindActionMap(actionMapName, false);
@@ -195,9 +208,9 @@ public class TiltSteeringProvider : MonoBehaviour
             SetCenter(currentAngle);
         }
 
-        // Manual calibration: use the Calibrate action if available, otherwise fall back to the C key.
-        bool calibrateHeld = _calibrateAction?.IsPressed() ?? (Keyboard.current != null && Keyboard.current.cKey.isPressed);
-        if (holdCToCalibrate && calibrateHeld)
+        // Manual calibration: use the Calibrate action
+        bool calibrateHeld = _calibrateAction?.IsPressed() ?? false;
+        if (calibrateHeld)
         {
             SetCenter(currentAngle);
         }
