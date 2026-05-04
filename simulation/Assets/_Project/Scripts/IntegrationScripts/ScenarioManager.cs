@@ -1,6 +1,8 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 using System;
 using System.Collections;
+using System.Collections.Generic;
 
 /// <summary>
 /// Receives the scenario name from the Python/SUMO config message and
@@ -28,6 +30,10 @@ public class ScenarioManager : MonoBehaviour
     [Tooltip("Duration of each fade direction (seconds)")]
     public float fadeDuration = 0.4f;
 
+    [Header("Input")]
+    [Tooltip("Assign InputSystem_Actions asset. The Restart action is resolved from the Driving map.")]
+    public InputActionAsset inputActions;
+
     [Header("Runtime State")]
     [ReadOnly, SerializeField] private ScenarioId _activeScenario;
     [ReadOnly, SerializeField] private bool _scenarioActive;
@@ -36,6 +42,7 @@ public class ScenarioManager : MonoBehaviour
     private DrivingEvaluator drivingEvaluator;
     private RouteArrowSpawner _arrowSpawner;
     private Coroutine _fadeCoroutine;
+    private InputAction _restartAction;
     // tracks the scenario currently being transitioned to (set before the coroutine starts)
     private ScenarioId? _pendingScenario;
     // scene-defined spawn transforms captured in Awake before any physics runs
@@ -50,9 +57,38 @@ public class ScenarioManager : MonoBehaviour
         drivingEvaluator = GetComponent<DrivingEvaluator>();
         _arrowSpawner = GetComponent<RouteArrowSpawner>();
 
+        if (inputActions != null)
+            _restartAction = inputActions.FindActionMap("Driving", false)?.FindAction("Restart", false);
+
         // Capture scene-defined spawn transforms before any scenario enables the ego vehicles.
         if (egoCar != null) { _egoCarSpawnPos = egoCar.transform.position; _egoCarSpawnRot = egoCar.transform.rotation; }
         if (egoBike != null) { _egoBikeSpawnPos = egoBike.transform.position; _egoBikeSpawnRot = egoBike.transform.rotation; }
+    }
+
+    private void OnEnable()
+    {
+        if (_restartAction != null)
+        {
+            _restartAction.Enable();
+            _restartAction.performed += OnRestartPerformed;
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (_restartAction != null)
+        {
+            _restartAction.performed -= OnRestartPerformed;
+            _restartAction.Disable();
+        }
+    }
+
+    private void OnRestartPerformed(InputAction.CallbackContext ctx)
+    {
+        // Sends RESTART_SIMULATION to Python (triggers traci.load()) and
+        // respawns the ego vehicle here in Unity.
+        ExchangeData.SendCommand("{\"type\":\"command\",\"command\":\"RESTART_SIMULATION\"}");
+        RestartScenario();
     }
 
     private void Start()

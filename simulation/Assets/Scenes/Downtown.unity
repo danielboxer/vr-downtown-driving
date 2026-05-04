@@ -288967,6 +288967,7 @@ MonoBehaviour:
   defaultScenario: 0
   vrFadeMaterial: {fileID: 2100000, guid: 18c8bef9c088a87458ea47eb54b28b3e, type: 2}
   fadeDuration: 1
+  inputActions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   _activeScenario: 0
   _scenarioActive: 0
 --- !u!114 &1580975094
@@ -396335,11 +396336,11 @@ SceneRoots:
   - {fileID: 410087041}
   - {fileID: 1447299977}
   - {fileID: 213887005}
+  - {fileID: 773921177}
   - {fileID: 1094064540}
   - {fileID: 223804855}
   - {fileID: 2002561776}
   - {fileID: 1449816492}
-  - {fileID: 773921177}
   - {fileID: 575397947}
   - {fileID: 769886917}
   - {fileID: 942602380}

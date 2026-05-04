@@ -1,6 +1,7 @@
 ﻿using AsyncIO;
 using NetMQ;
 using NetMQ.Sockets;
+using System.Collections.Concurrent;
 using System.Threading;
 using UnityEngine;
 using System;
@@ -21,6 +22,16 @@ public static class RecordingManager
 public class ExchangeData : MonoBehaviour
 {
     private SimulationController _SimulationController;
+
+    // Queue of JSON command strings to send to Python on the next background-thread iteration.
+    // Enqueue via SendCommand(); the background thread drains this each loop.
+    private static readonly ConcurrentQueue<string> _commandQueue = new ConcurrentQueue<string>();
+
+    /// <summary>Enqueues a JSON command string to be sent to Python via the DEALER socket.</summary>
+    public static void SendCommand(string commandJson)
+    {
+        _commandQueue.Enqueue(commandJson);
+    }
 
     // Thread for background communication
     private Thread _communicationThread;
@@ -78,6 +89,10 @@ public class ExchangeData : MonoBehaviour
                         // TrySendFrame may fail if SUMO is not running yet (HWM full);
                         // keep the thread alive so we can still receive messages.
                         dealerSocket.TrySendFrame(vehicleDataJson);
+
+                        // Send any queued commands (e.g. RESTART_SIMULATION from a keypress)
+                        while (_commandQueue.TryDequeue(out string commandJson))
+                            dealerSocket.TrySendFrame(commandJson);
 
                         // --- Receive Data from SUMO ---
                         string sumoDataJson;

@@ -153,6 +153,9 @@ row += 1  # ★ NEW
 # ---------- threading state ----------
 _sim_thread = None
 _stop_event = threading.Event()
+# set by restart_clicked() or a RESTART_SIMULATION ZMQ command; cleared after the
+# sim thread exits so _on_sim_finished can trigger an automatic re-launch
+_restart_event = threading.Event()
 
 
 def run_sim(cfg: dict, stop_event=None):
@@ -317,188 +320,257 @@ def run_sim(cfg: dict, stop_event=None):
             if rem > 0.002:
                 time.sleep(0.001)
 
-    # ---------- results dir / RTF file ----------
-    if calc_rtf:
-        res_dir = os.path.join(
-            os.path.abspath(os.path.join(scenario_dir, os.pardir)), "Results"
-        )
-        os.makedirs(res_dir, exist_ok=True)
-        rtf_f = open(os.path.join(res_dir, "rtf_report.txt"), "w", encoding="utf-8")
-        rtf_f.write("Time(s);RTF\n")
-    else:
-        rtf_f = None
-
-    # ---------- containers ----------
-    start_rec_sent = False
-    start_sim_t = start_wall_t = None
-    rtf_started = False
-    last_sim, last_wall = 0, 0
-
-    # ---------- main loop ----------
+    # ---------- constants / RTF path ----------
     STEP = steplength
-    next_step = time.perf_counter() + STEP
     TL_INT = 1.0
-    last_tl_t = 0.0
+    res_dir = os.path.join(
+        os.path.abspath(os.path.join(scenario_dir, os.pardir)), "Results"
+    )
+    rtf_f = None
 
     try:
-        # ---------- warm-up ----------
-        while (
-            traci.simulation.getTime() < IntegrationStartTime
-            and not stop_event.is_set()
-        ):
-            traci.simulationStep()
-            cam_follow("View #0", ego) if use_gui else None
-            # keep sending config so Unity receives it despite slow-joiner
-            pub.send_string(config_msg)
+        # outer restart loop: traci.load() reloads SUMO in-place without closing
+        # the process or tearing down ZMQ, so Unity stays connected across restarts
+        while not stop_event.is_set():
+            _restart_event.clear()
 
-        # Subscribe to ego context now that f_0.0 has been inserted (depart=IntegrationStartTime).
-        # Calling subscribeContext before any simulation steps fails when SUMO uses incremental
-        # route loading (large route files), because the vehicle isn't known yet at t=0.
-        traci.vehicle.subscribeContext(
-            ego,
-            traci.constants.CMD_GET_VEHICLE_VARIABLE,
-            subscribe_radius,
-            [VAR_POSITION3D, VAR_ANGLE, VAR_TYPE],
-        )
-
-        while (
-            traci.simulation.getMinExpectedNumber() > 0
-            and (
-                ExperimentEndTime <= 0 or traci.simulation.getTime() < ExperimentEndTime
-            )
-            and not stop_event.is_set()
-        ):
-            loop_t0 = time.perf_counter()
-            sim_t = traci.simulation.getTime()
-
-            # ❶ Unity → SUMO positions
-            t0 = time.perf_counter()
+            # drain stale messages that arrived during the previous run or the
+            # restart window so they don't affect the new run
             while not u_q.empty():
-                for v in u_q.get().get("vehicles", []):
-                    if v["vehicle_id"] == ego:
-                        try:
-                            traci.vehicle.moveToXY(
-                                ego,
-                                "",
-                                0,
-                                float(v["position"][0]),
-                                float(v["position"][1]),
-                                float(v["angle"]),
-                                keepRoute=2,
-                            )
-                        except traci.exceptions.TraCIException:
-                            pass  # ego not yet inserted in SUMO; skip until it appears
-            prof["Unity"].append(time.perf_counter() - t0)
+                u_q.get()
 
-            # ❷ SUMO step
-            t0 = time.perf_counter()
-            traci.simulationStep()
-            prof["Step"].append(time.perf_counter() - t0)
-            if use_gui:
-                cam_follow("View #0", ego)
-
-            # ❸ send START_RECORDING after warm-up (independent of RTF)
-            if sim_t >= ExperimentStartTime and not start_rec_sent:
-                pub.send_string(
-                    json.dumps({"type": "command", "command": "START_RECORDING"})
+            # open a fresh RTF file for each run
+            if rtf_f:
+                rtf_f.close()
+                rtf_f = None
+            if calc_rtf:
+                os.makedirs(res_dir, exist_ok=True)
+                rtf_f = open(
+                    os.path.join(res_dir, "rtf_report.txt"), "w", encoding="utf-8"
                 )
-                start_rec_sent = True
+                rtf_f.write("Time(s);RTF\n")
 
-            # ❹ initialise RTF after warm-up (only if enabled)
-            if calc_rtf and (not rtf_started) and sim_t >= ExperimentStartTime:
-                rtf_started = True
-                start_sim_t = sim_t
-                start_wall_t = time.perf_counter()
-                last_sim, last_wall = sim_t, start_wall_t
+            # ---------- per-run containers ----------
+            start_rec_sent = False
+            start_sim_t = start_wall_t = None
+            rtf_started = False
+            last_sim, last_wall = 0, 0
+            last_pos_z.clear()
+            next_step = time.perf_counter() + STEP
+            last_tl_t = 0.0
 
-            # ❺ collect ego + context vehicles
-            t0 = time.perf_counter()
-            vlist = traci.vehicle.getIDList()
-            vdata = []
-            if ego in vlist:
-                x, y, z = traci.vehicle.getPosition3D(ego)
-                ang = traci.vehicle.getAngle(ego)
-                vtype = traci.vehicle.getTypeID(ego)
-                vdata.append(
-                    {
-                        "vehicle_id": ego,
-                        "position": (round(x, 2), round(y, 2), round(z, 2)),
-                        "angle": round(ang, 2),
-                        "type": vtype,
-                        "timestamp": round(time.time(), 2),
-                    }
-                )
-                ctx_res = traci.vehicle.getContextSubscriptionResults(ego)
-                if ctx_res:
-                    for vid in ctx_res.keys():
-                        if vid == ego:
-                            continue
-                        x, y, z = traci.vehicle.getPosition3D(vid)
-                        ang = traci.vehicle.getAngle(vid)
-                        vtype = traci.vehicle.getTypeID(vid)
-                        vlong = traci.vehicle.getSpeed(vid)
-                        vlat = traci.vehicle.getLateralSpeed(vid)
-                        if vid in last_pos_z:
-                            pz, pt = last_pos_z[vid]
-                            dt = sim_t - pt
-                            vvert = (z - pz) / dt if dt > 0 else 0.0
-                        else:
-                            vvert = 0.0
-                        last_pos_z[vid] = (z, sim_t)
-                        vdata.append(
-                            {
-                                "vehicle_id": vid,
-                                "position": (round(x, 3), round(y, 3), round(z, 3)),
-                                "angle": round(ang, 3),
-                                "type": vtype,
-                                "long_speed": round(vlong, 2),
-                                "vert_speed": round(vvert, 3),
-                                "lat_speed": round(vlat, 2),
-                            }
-                        )
-            vjson = json.dumps(
-                {"type": "vehicles", "vehicles": vdata}, separators=(",", ":")
+            # ---------- warm-up ----------
+            while (
+                traci.simulation.getTime() < IntegrationStartTime
+                and not stop_event.is_set()
+                and not _restart_event.is_set()
+            ):
+                traci.simulationStep()
+                cam_follow("View #0", ego) if use_gui else None
+                # keep sending config so Unity receives it despite slow-joiner
+                pub.send_string(config_msg)
+
+            if stop_event.is_set():
+                break
+            if _restart_event.is_set():
+                # restart requested during warm-up: reload and loop back
+                traci.load(sumo_cmd[1:])
+                continue
+
+            # Subscribe to ego context now that f_0.0 has been inserted (depart=IntegrationStartTime).
+            # Calling subscribeContext before any simulation steps fails when SUMO uses incremental
+            # route loading (large route files), because the vehicle isn't known yet at t=0.
+            traci.vehicle.subscribeContext(
+                ego,
+                traci.constants.CMD_GET_VEHICLE_VARIABLE,
+                subscribe_radius,
+                [VAR_POSITION3D, VAR_ANGLE, VAR_TYPE],
             )
-            prof["Collect"].append(time.perf_counter() - t0)
 
-            # ❻ traffic lights once per second
-            if sim_t - last_tl_t >= TL_INT:
-                tls = [
-                    {
-                        "junction_id": tl,
-                        "state": traci.trafficlight.getRedYellowGreenState(tl),
-                    }
-                    for tl in traci.trafficlight.getIDList()
-                ]
-                pub.send_string(
-                    json.dumps(
-                        {"type": "trafficlights", "lights": tls}, separators=(",", ":")
-                    )
+            # warm-up done: update status and re-enable restart button on main thread
+            try:
+                root.after(
+                    0,
+                    lambda: [
+                        status_var.set("Running..."),
+                        restart_btn.config(state="normal"),
+                    ],
                 )
-                last_tl_t = sim_t
+            except Exception:
+                pass
 
-            # ❼ publish vehicles
-            t0 = time.perf_counter()
-            pub.send_string(vjson)
-            prof["Send"].append(time.perf_counter() - t0)
+            while (
+                traci.simulation.getMinExpectedNumber() > 0
+                and (
+                    ExperimentEndTime <= 0
+                    or traci.simulation.getTime() < ExperimentEndTime
+                )
+                and not stop_event.is_set()
+                and not _restart_event.is_set()
+            ):
+                loop_t0 = time.perf_counter()
+                sim_t = traci.simulation.getTime()
 
-            # ❽ incremental RTF (if enabled)
-            if calc_rtf and rtf_started and sim_t >= ExperimentStartTime:
-                now = time.perf_counter()
-                if sim_t == ExperimentStartTime:
-                    rtf_f.write("0.00;0.00\n")
-                else:
-                    sim_d = sim_t - last_sim
-                    real_d = now - last_wall
-                    rtf_f.write(
-                        f"{sim_t - ExperimentStartTime:.2f};{sim_d / real_d:.2f}\n"
+                # ❶ Unity → SUMO positions
+                t0 = time.perf_counter()
+                while not u_q.empty():
+                    msg = u_q.get()
+                    # Handle RESTART_SIMULATION command sent from Unity
+                    if (
+                        msg.get("type") == "command"
+                        and msg.get("command") == "RESTART_SIMULATION"
+                    ):
+                        _restart_event.set()
+                        break
+                    for v in msg.get("vehicles", []):
+                        if v["vehicle_id"] == ego:
+                            try:
+                                traci.vehicle.moveToXY(
+                                    ego,
+                                    "",
+                                    0,
+                                    float(v["position"][0]),
+                                    float(v["position"][1]),
+                                    float(v["angle"]),
+                                    keepRoute=2,
+                                )
+                            except traci.exceptions.TraCIException:
+                                pass  # ego not yet inserted in SUMO; skip until it appears
+                prof["Unity"].append(time.perf_counter() - t0)
+
+                # ❷ SUMO step
+                t0 = time.perf_counter()
+                traci.simulationStep()
+                prof["Step"].append(time.perf_counter() - t0)
+                if use_gui:
+                    cam_follow("View #0", ego)
+
+                # ❸ send START_RECORDING after warm-up (independent of RTF)
+                if sim_t >= ExperimentStartTime and not start_rec_sent:
+                    pub.send_string(
+                        json.dumps({"type": "command", "command": "START_RECORDING"})
                     )
-                last_sim, last_wall = sim_t, now
+                    start_rec_sent = True
 
-            # ❾ step pacing
-            sleep_precise(max(0.0, next_step - time.perf_counter()))
-            next_step += STEP
-            prof["Total"].append(time.perf_counter() - loop_t0)
+                # ❹ initialise RTF after warm-up (only if enabled)
+                if calc_rtf and (not rtf_started) and sim_t >= ExperimentStartTime:
+                    rtf_started = True
+                    start_sim_t = sim_t
+                    start_wall_t = time.perf_counter()
+                    last_sim, last_wall = sim_t, start_wall_t
+
+                # ❺ collect ego + context vehicles
+                t0 = time.perf_counter()
+                vlist = traci.vehicle.getIDList()
+                vdata = []
+                if ego in vlist:
+                    x, y, z = traci.vehicle.getPosition3D(ego)
+                    ang = traci.vehicle.getAngle(ego)
+                    vtype = traci.vehicle.getTypeID(ego)
+                    vdata.append(
+                        {
+                            "vehicle_id": ego,
+                            "position": (round(x, 2), round(y, 2), round(z, 2)),
+                            "angle": round(ang, 2),
+                            "type": vtype,
+                            "timestamp": round(time.time(), 2),
+                        }
+                    )
+                    ctx_res = traci.vehicle.getContextSubscriptionResults(ego)
+                    if ctx_res:
+                        for vid in ctx_res.keys():
+                            if vid == ego:
+                                continue
+                            x, y, z = traci.vehicle.getPosition3D(vid)
+                            ang = traci.vehicle.getAngle(vid)
+                            vtype = traci.vehicle.getTypeID(vid)
+                            vlong = traci.vehicle.getSpeed(vid)
+                            vlat = traci.vehicle.getLateralSpeed(vid)
+                            if vid in last_pos_z:
+                                pz, pt = last_pos_z[vid]
+                                dt = sim_t - pt
+                                vvert = (z - pz) / dt if dt > 0 else 0.0
+                            else:
+                                vvert = 0.0
+                            last_pos_z[vid] = (z, sim_t)
+                            vdata.append(
+                                {
+                                    "vehicle_id": vid,
+                                    "position": (round(x, 3), round(y, 3), round(z, 3)),
+                                    "angle": round(ang, 3),
+                                    "type": vtype,
+                                    "long_speed": round(vlong, 2),
+                                    "vert_speed": round(vvert, 3),
+                                    "lat_speed": round(vlat, 2),
+                                }
+                            )
+                vjson = json.dumps(
+                    {"type": "vehicles", "vehicles": vdata}, separators=(",", ":")
+                )
+                prof["Collect"].append(time.perf_counter() - t0)
+
+                # ❻ traffic lights once per second
+                if sim_t - last_tl_t >= TL_INT:
+                    tls = [
+                        {
+                            "junction_id": tl,
+                            "state": traci.trafficlight.getRedYellowGreenState(tl),
+                        }
+                        for tl in traci.trafficlight.getIDList()
+                    ]
+                    pub.send_string(
+                        json.dumps(
+                            {"type": "trafficlights", "lights": tls},
+                            separators=(",", ":"),
+                        )
+                    )
+                    last_tl_t = sim_t
+
+                # ❼ publish vehicles
+                t0 = time.perf_counter()
+                pub.send_string(vjson)
+                prof["Send"].append(time.perf_counter() - t0)
+
+                # ❽ incremental RTF (if enabled)
+                if calc_rtf and rtf_started and sim_t >= ExperimentStartTime:
+                    now = time.perf_counter()
+                    if sim_t == ExperimentStartTime:
+                        rtf_f.write("0.00;0.00\n")
+                    else:
+                        sim_d = sim_t - last_sim
+                        real_d = now - last_wall
+                        rtf_f.write(
+                            f"{sim_t - ExperimentStartTime:.2f};{sim_d / real_d:.2f}\n"
+                        )
+                    last_sim, last_wall = sim_t, now
+
+                # ❾ step pacing
+                sleep_precise(max(0.0, next_step - time.perf_counter()))
+                next_step += STEP
+                prof["Total"].append(time.perf_counter() - loop_t0)
+
+            # end of main loop (inner)
+
+            if stop_event.is_set():
+                break
+            if _restart_event.is_set():
+                # restart requested mid-run: send STOP_RECORDING, then reload SUMO
+                if start_rec_sent:
+                    try:
+                        pub.send_string(
+                            json.dumps({"type": "command", "command": "STOP_RECORDING"})
+                        )
+                    except Exception:
+                        pass
+                logger.info("Restarting simulation via traci.load()")
+                try:
+                    root.after(0, lambda: status_var.set("Restarting..."))
+                except Exception:
+                    pass
+                traci.load(sumo_cmd[1:])
+                continue
+            # natural end of simulation (no more vehicles expected)
+            break
 
     except KeyboardInterrupt:
         logger.info("Interrupted by user.")
@@ -552,6 +624,7 @@ row += 1
 
 def _on_sim_finished():
     """Called on the main thread when run_sim exits."""
+    restart_btn.config(state="disabled")
     status_var.set("Simulation finished \u2014 click Start to run again")
     start_btn.config(state="normal", text="Start simulation")
 
@@ -578,13 +651,35 @@ def start_clicked():
     _stop_event = threading.Event()
     status_var.set("Running...")
     start_btn.config(state="disabled")
+    restart_btn.config(state="normal")
     _sim_thread = threading.Thread(target=run_sim, args=(cfg, _stop_event), daemon=True)
     _sim_thread.start()
 
 
+def restart_clicked():
+    if _sim_thread and _sim_thread.is_alive():
+        # signal the sim thread to call traci.load() and restart from t=0;
+        # the thread stays alive so ZMQ and Unity stay connected
+        _restart_event.set()
+        status_var.set("Restarting...")
+        restart_btn.config(state="disabled")
+    else:
+        # sim not currently running, just start fresh
+        start_clicked()
+
+
 # buttons
 start_btn = ttk.Button(root, text="Start simulation", command=start_clicked)
-start_btn.grid(row=row, column=0, columnspan=4, pady=12, padx=6, sticky="ew", ipady=12)
+start_btn.grid(
+    row=row, column=0, columnspan=2, pady=(12, 4), padx=6, sticky="ew", ipady=12
+)
+row_btn = row
+restart_btn = ttk.Button(
+    root, text="Restart simulation", command=restart_clicked, state="disabled"
+)
+restart_btn.grid(
+    row=row_btn, column=2, columnspan=2, pady=(12, 4), padx=6, sticky="ew", ipady=12
+)
 
 root.update_idletasks()
 root.geometry(
