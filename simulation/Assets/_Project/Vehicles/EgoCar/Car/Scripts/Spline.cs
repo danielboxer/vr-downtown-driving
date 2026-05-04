@@ -21,6 +21,9 @@ public class Spline : MonoBehaviour
 
     public Vector3 GetPoint(float t)
     {
+        // Ensure control points are populated when called from editor context (before Awake)
+        if (controlPoints == null) RefreshControlPoints();
+
         t = Mathf.Clamp01(t);
 
         int numPoints = controlPoints.Length;
