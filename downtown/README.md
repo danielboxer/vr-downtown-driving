@@ -27,3 +27,5 @@ Select all downtown textures:
 - Stream Mipmap Levels: On
 - Aniso Level: 8
 - Filter Mode: Trilinear
+
+Optimize textures: https://www.youtube.com/watch?v=BeB9Cx_msKA
