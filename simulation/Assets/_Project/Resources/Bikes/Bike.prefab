@@ -57,8 +57,8 @@ Rigidbody:
   m_ImplicitCom: 1
   m_ImplicitTensor: 1
   m_UseGravity: 0
-  m_IsKinematic: 0
-  m_Interpolate: 2
+  m_IsKinematic: 1
+  m_Interpolate: 1
   m_Constraints: 0
   m_CollisionDetection: 0
 --- !u!65 &5862597813049980601
@@ -130,6 +130,26 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: -8639654762376582367, guid: da2e992f6554f8e4b941f3b403806c74, type: 3}
+      propertyPath: m_CastShadows
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8506257557911812161, guid: da2e992f6554f8e4b941f3b403806c74, type: 3}
+      propertyPath: m_CastShadows
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8186949965810601030, guid: da2e992f6554f8e4b941f3b403806c74, type: 3}
+      propertyPath: m_CastShadows
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -6652725513331149018, guid: da2e992f6554f8e4b941f3b403806c74, type: 3}
+      propertyPath: m_CastShadows
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -3229251229721261788, guid: da2e992f6554f8e4b941f3b403806c74, type: 3}
+      propertyPath: m_CastShadows
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: -2764206201270749828, guid: da2e992f6554f8e4b941f3b403806c74, type: 3}
       propertyPath: m_Layer
       value: 3
@@ -145,6 +165,10 @@ PrefabInstance:
     - target: {fileID: -1838999648383611715, guid: da2e992f6554f8e4b941f3b403806c74, type: 3}
       propertyPath: m_Layer
       value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 37609284264327186, guid: da2e992f6554f8e4b941f3b403806c74, type: 3}
+      propertyPath: m_CastShadows
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 635547659545568360, guid: da2e992f6554f8e4b941f3b403806c74, type: 3}
       propertyPath: m_Layer
@@ -162,9 +186,17 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 3
       objectReference: {fileID: 0}
+    - target: {fileID: 2160461917795050691, guid: da2e992f6554f8e4b941f3b403806c74, type: 3}
+      propertyPath: m_CastShadows
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 2516609131796833829, guid: da2e992f6554f8e4b941f3b403806c74, type: 3}
       propertyPath: m_Layer
       value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 2799955826622290025, guid: da2e992f6554f8e4b941f3b403806c74, type: 3}
+      propertyPath: m_CastShadows
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3442337337786662152, guid: da2e992f6554f8e4b941f3b403806c74, type: 3}
       propertyPath: m_Layer
@@ -174,9 +206,17 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 3
       objectReference: {fileID: 0}
+    - target: {fileID: 6496920947813401892, guid: da2e992f6554f8e4b941f3b403806c74, type: 3}
+      propertyPath: m_CastShadows
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6740989123359108604, guid: da2e992f6554f8e4b941f3b403806c74, type: 3}
       propertyPath: m_Layer
       value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 7762656278843200446, guid: da2e992f6554f8e4b941f3b403806c74, type: 3}
+      propertyPath: m_CastShadows
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
