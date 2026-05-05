@@ -94,7 +94,7 @@ namespace UnityStandardAssets.Bike
             m_EngineSource.pitch = pitch;
             m_EngineSource.dopplerLevel = useDoppler ? dopplerLevel : 0f;
 
-            // base volume 0.3–1.0, then scaled by masterVolume
+            // base volume 0.3-1.0, then scaled by masterVolume
             float baseVol = Mathf.Lerp(0.3f, 1f, speedFactor);
             m_EngineSource.volume = baseVol * masterVolume;   // <<< scaled
         }

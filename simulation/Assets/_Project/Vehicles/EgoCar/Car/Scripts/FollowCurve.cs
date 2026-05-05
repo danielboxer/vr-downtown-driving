@@ -38,7 +38,7 @@ public class FollowCurve : MonoBehaviour
              "from the spline. Helps pull the car back if it has drifted sideways.")]
     public float lateralCorrectionGain = 0.3f;
 
-    [Tooltip("Maximum lateral correction in steering units (0–1).")]
+    [Tooltip("Maximum lateral correction in steering units (0-1).")]
     [Range(0f, 1f)]
     public float maxLateralCorrection = 0.3f;
 

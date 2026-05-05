@@ -129,6 +129,9 @@ public class RoadNetworkBuilder : MonoBehaviour
     // ★ NEW: Ground-layer support --------------------------------------------
     private const string groundLayerName = "Ground";
     private int groundLayer = -1;
+    // EnvDetail layer: assigned to props hidden from mirror cameras (curbs, lamps, signs, TL heads)
+    private const string envDetailLayerName = "EnvDetail";
+    private int envDetailLayer = -1;
     // ------------------------------------------------------------------------
 
     public Dictionary<string, RoadJunctionData> junctionRecords;
@@ -204,7 +207,10 @@ public class RoadNetworkBuilder : MonoBehaviour
         // ★ NEW: cache “Ground” layer index once
         if (groundLayer < 0) groundLayer = LayerMask.NameToLayer(groundLayerName);
         if (groundLayer < 0)
-            Debug.LogWarning($"Layer \"{groundLayerName}\" does not exist – objects will keep their current layer.");
+            Debug.LogWarning($"Layer \"{groundLayerName}\" does not exist - objects will keep their current layer.");
+        if (envDetailLayer < 0) envDetailLayer = LayerMask.NameToLayer(envDetailLayerName);
+        if (envDetailLayer < 0)
+            Debug.LogWarning($"Layer \"{envDetailLayerName}\" does not exist - env-detail objects will keep their current layer.");
 
         if (roadNetworkRoot == null)
         {
@@ -559,6 +565,8 @@ public class RoadNetworkBuilder : MonoBehaviour
                 }
             }
         }
+        // Curbs are env detail: hidden from mirror cameras
+        SetLayerRecursively(curbRoot, envDetailLayer);
     }
 
     /// <summary>
@@ -1067,6 +1075,8 @@ public class RoadNetworkBuilder : MonoBehaviour
                     headCol.size = trafficLightColliderSize;
                     headCol.center = trafficLightColliderCenter;
                 }
+                // Traffic light heads (and child Mirror) are env detail: hidden from mirror cameras
+                SetLayerRecursively(head, envDetailLayer);
 
                 // Mirrored light on the opposite side (child of primary so state syncs)
                 GameObject mirror = (GameObject)PrefabUtility.InstantiatePrefab(activePrefab);
@@ -1294,6 +1304,8 @@ public class RoadNetworkBuilder : MonoBehaviour
                 placedCount++;
             }
         }
+        // Road signs are env detail: hidden from mirror cameras
+        SetLayerRecursively(signsRoot, envDetailLayer);
         Debug.Log($"[Sumo2Unity] Placed {placedCount} stop signs under 'Junctions/RoadSigns'.");
     }
 
@@ -1376,6 +1388,8 @@ public class RoadNetworkBuilder : MonoBehaviour
 
         if (markGeneratedAsStatic)
             SetStaticRecursively(lampsRoot);
+        // Street lamps are env detail: hidden from mirror cameras
+        SetLayerRecursively(lampsRoot, envDetailLayer);
 
         Debug.Log($"[Sumo2Unity] Placed {lampCount} street lamps.");
     }
