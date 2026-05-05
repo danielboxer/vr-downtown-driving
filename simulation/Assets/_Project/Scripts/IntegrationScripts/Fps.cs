@@ -17,7 +17,9 @@ public class Fps : MonoBehaviour
     // ────────────────────────────────────────────────────────────  logging fields
     private float logInterval;             // set from SimulationController
     private string filePath;                // full path to FPS_Report.txt
+    private StreamWriter fpsWriter;
     private float timeAccum;               // time since last log
+    private float flushAccum;
 
     private bool firstFpsTimestampLogged;
     private float firstFpsLoggedTime;
@@ -63,7 +65,8 @@ public class Fps : MonoBehaviour
         // --------------------------------------------------------  file location
         string sumoDataDir = LocateOrCreateResultsFolder();
         filePath = Path.Combine(sumoDataDir, "FPS_Report.txt");
-        File.WriteAllText(filePath, "unity_time;FPS\n");
+        fpsWriter = new StreamWriter(filePath, append: false);
+        fpsWriter.WriteLine("unity_time;FPS");
 
         // --------------------------------------------------------  other setup
         _ExchangeData = GetComponent<ExchangeData>() ?? gameObject.AddComponent<ExchangeData>();
@@ -109,6 +112,7 @@ public class Fps : MonoBehaviour
     private void FixedUpdate()
     {
         timeAccum += Time.fixedDeltaTime;
+        flushAccum += Time.fixedDeltaTime;
 
         if (timeAccum >= logInterval - 0.002f)
         {
@@ -116,6 +120,13 @@ public class Fps : MonoBehaviour
                 LogFpsToFile();
 
             timeAccum = 0f;
+        }
+
+        // Flush occasionally instead of forcing a disk write every sample.
+        if (flushAccum >= 2f)
+        {
+            fpsWriter?.Flush();
+            flushAccum = 0f;
         }
     }
 
@@ -132,11 +143,20 @@ public class Fps : MonoBehaviour
         }
 
         float offsetTime = Time.time - firstFpsLoggedTime;
-        string logEntry = $"{offsetTime:F3};{latestSmoothedFps:F2}";
-        File.AppendAllText(filePath, logEntry + "\n");
+        fpsWriter?.WriteLine($"{offsetTime:F3};{latestSmoothedFps:F2}");
     }
 
     // ────────────────────────────────────────────────────────────────────────────
+    private void OnDestroy()
+    {
+        if (fpsWriter != null)
+        {
+            fpsWriter.Flush();
+            fpsWriter.Close();
+            fpsWriter = null;
+        }
+    }
+
     private void OnGUI()
     {
         GUIStyle style = new GUIStyle
