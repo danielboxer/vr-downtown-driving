@@ -63,10 +63,10 @@ public class Fps : MonoBehaviour
     private void Start()
     {
         // --------------------------------------------------------  file location
-        string sumoDataDir = LocateOrCreateResultsFolder();
-        filePath = Path.Combine(sumoDataDir, "FPS_Report.txt");
-        fpsWriter = new StreamWriter(filePath, append: false);
-        fpsWriter.WriteLine("unity_time;FPS");
+        //string sumoDataDir = LocateOrCreateResultsFolder();
+        //filePath = Path.Combine(sumoDataDir, "FPS_Report.txt");
+        //fpsWriter = new StreamWriter(filePath, append: false);
+        //fpsWriter.WriteLine("unity_time;FPS");
 
         // --------------------------------------------------------  other setup
         _ExchangeData = GetComponent<ExchangeData>() ?? gameObject.AddComponent<ExchangeData>();
@@ -80,7 +80,7 @@ public class Fps : MonoBehaviour
             return;
         }
 
-        logInterval = sim.unityStepLength;   // value you set in Inspector
+        //logInterval = sim.unityStepLength;   // value you set in Inspector
 
 
         displayedFps = 0f;           // avoid showing 0 initially
@@ -111,50 +111,50 @@ public class Fps : MonoBehaviour
     // ────────────────────────────────────────────────────────────────────────────
     private void FixedUpdate()
     {
-        timeAccum += Time.fixedDeltaTime;
-        flushAccum += Time.fixedDeltaTime;
+        //timeAccum += Time.fixedDeltaTime;
+        //flushAccum += Time.fixedDeltaTime;
 
-        if (timeAccum >= logInterval - 0.002f)
-        {
-            if (RecordingManager.startRecordingFromZero)
-                LogFpsToFile();
+        //if (timeAccum >= logInterval - 0.002f)
+        //{
+        //    if (RecordingManager.startRecordingFromZero)
+        //        LogFpsToFile();
 
-            timeAccum = 0f;
-        }
+        //    timeAccum = 0f;
+        //}
 
-        // Flush occasionally instead of forcing a disk write every sample.
-        if (flushAccum >= 2f)
-        {
-            fpsWriter?.Flush();
-            flushAccum = 0f;
-        }
+        //// Flush occasionally instead of forcing a disk write every sample.
+        //if (flushAccum >= 2f)
+        //{
+        //    fpsWriter?.Flush();
+        //    flushAccum = 0f;
+        //}
     }
 
     // ────────────────────────────────────────────────────────────────────────────
     private void LogFpsToFile()
     {
-        if (!RecordingManager.startRecordingFromZero)
-            return;
+        //if (!RecordingManager.startRecordingFromZero)
+        //    return;
 
-        if (!firstFpsTimestampLogged)
-        {
-            firstFpsLoggedTime = Time.time;
-            firstFpsTimestampLogged = true;
-        }
+        //if (!firstFpsTimestampLogged)
+        //{
+        //    firstFpsLoggedTime = Time.time;
+        //    firstFpsTimestampLogged = true;
+        //}
 
-        float offsetTime = Time.time - firstFpsLoggedTime;
-        fpsWriter?.WriteLine($"{offsetTime:F3};{latestSmoothedFps:F2}");
+        //float offsetTime = Time.time - firstFpsLoggedTime;
+        //fpsWriter?.WriteLine($"{offsetTime:F3};{latestSmoothedFps:F2}");
     }
 
     // ────────────────────────────────────────────────────────────────────────────
     private void OnDestroy()
     {
-        if (fpsWriter != null)
-        {
-            fpsWriter.Flush();
-            fpsWriter.Close();
-            fpsWriter = null;
-        }
+        //if (fpsWriter != null)
+        //{
+        //    fpsWriter.Flush();
+        //    fpsWriter.Close();
+        //    fpsWriter = null;
+        //}
     }
 
     private void OnGUI()
