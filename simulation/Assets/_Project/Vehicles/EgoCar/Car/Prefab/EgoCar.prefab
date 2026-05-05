@@ -100,13 +100,13 @@ Camera:
     height: 1
   near clip plane: 0.1
   far clip plane: 100
-  field of view: 35
+  field of view: 45
   orthographic: 0
   orthographic size: 5
   m_Depth: 0
   m_CullingMask:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 73
   m_RenderingPath: -1
   m_TargetTexture: {fileID: 8400000, guid: 4d29c6a8c4fde294e910feae753a05ee, type: 2}
   m_TargetDisplay: 0
@@ -575,13 +575,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1856135221622047196}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0.9890288, z: 0, w: -0.14772303}
+  m_LocalRotation: {x: 0, y: 0.9890289, z: -0, w: -0.14772302}
   m_LocalPosition: {x: -0.132, y: 0, z: -0.434}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1946304818188065329}
-  m_LocalEulerAnglesHint: {x: 0, y: -196.99, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 196.99, z: 0}
 --- !u!20 &1620993900410326831
 Camera:
   m_ObjectHideFlags: 0
@@ -621,7 +621,7 @@ Camera:
   m_Depth: 0
   m_CullingMask:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 73
   m_RenderingPath: -1
   m_TargetTexture: {fileID: 8400000, guid: c01e01e07a1e6844e8c5e1af1c0dbb17, type: 2}
   m_TargetDisplay: 0
@@ -861,7 +861,7 @@ Camera:
   m_Depth: 0
   m_CullingMask:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 235
   m_RenderingPath: -1
   m_TargetTexture: {fileID: 0}
   m_TargetDisplay: 0
@@ -1283,6 +1283,7 @@ MonoBehaviour:
   turnPeakT: 0.6
   turnEndT: 0.8
   turnPeakWeight: 1
+  targetSpline: {fileID: 0}
   _dbgEffectiveWeight: 0
   _dbgSplineSteer: 0
   _dbgLateralOffset: 0
@@ -1301,7 +1302,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ec843d34e21ba0147aa498d33db6bbc4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TiltSteeringProvider
-  controllerHand: 0
   leftControllerTransform: {fileID: 2847646671621489584}
   rightControllerTransform: {fileID: 581594654919732073}
   devicePositionSpace: {fileID: 866563749239405964}
@@ -1314,7 +1314,6 @@ MonoBehaviour:
   inputActions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   actionMapName: Driving
   calibrateOnEnable: 0
-  holdCToCalibrate: 1
   drawProjectedControllerLine: 1
   projectedControllerLineRenderer: {fileID: 0}
   drawDebugLine: 1
@@ -2434,13 +2433,13 @@ Camera:
     height: 1
   near clip plane: 0.1
   far clip plane: 100
-  field of view: 50
+  field of view: 35
   orthographic: 0
   orthographic size: 5
   m_Depth: 0
   m_CullingMask:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 73
   m_RenderingPath: -1
   m_TargetTexture: {fileID: 8400000, guid: 784f207ab3d2e654f9a2b63c16a40b04, type: 2}
   m_TargetDisplay: 0
