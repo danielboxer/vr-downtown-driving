@@ -123,6 +123,10 @@ public class RoadNetworkBuilder : MonoBehaviour
     [Tooltip("Lamp prefab (with speed limit sign) used for the single lamp placed closest to the midpoint of each block side. Falls back to the regular lamp if null.")]
     public GameObject lampWithSignPrefab;
 
+    [Header("Decals")]
+    [Tooltip("Draw distance (meters) applied to every generated DecalProjector (lane arrows, stop lines, lane marking dashes). Lower = cheaper; 50-100m is suitable for driving scenes.")]
+    public float decalDrawDistance = 50f;
+
 
     private GameObject roadNetworkRoot;
 
@@ -1601,7 +1605,7 @@ public class RoadNetworkBuilder : MonoBehaviour
                 var proj = decalObj.AddComponent<DecalProjector>();
                 proj.material = mat;
                 proj.size = new Vector3(2.5f, 2.5f, 0.4f);
-                proj.drawDistance = 250f;
+                proj.drawDistance = decalDrawDistance;
                 placedCount++;
             }
 
@@ -1622,7 +1626,7 @@ public class RoadNetworkBuilder : MonoBehaviour
                 slProj.material = stopLineDecalMaterial;
                 // Width spans the lane, Y = projection depth, Z = stripe thickness
                 slProj.size = new Vector3(laneW, 0.5f, 0.4f);
-                slProj.drawDistance = 250f;
+                slProj.drawDistance = decalDrawDistance;
             }
         }
         Debug.Log($"[Sumo2Unity] Placed {placedCount} lane arrow decals under 'RoadNetworkRoot/LaneDecals'.");
@@ -1917,7 +1921,7 @@ public class RoadNetworkBuilder : MonoBehaviour
                 var proj = decalObj.AddComponent<DecalProjector>();
                 proj.material = roadMarkingMaterial;
                 proj.size = new Vector3(baseSize.x, baseSize.y, length * 2f); // because length we computed is halfBack+halfFwd
-                proj.drawDistance = 250f;
+                proj.drawDistance = decalDrawDistance;
             }
         }
     }
