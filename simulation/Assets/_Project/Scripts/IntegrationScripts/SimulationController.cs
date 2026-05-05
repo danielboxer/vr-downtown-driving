@@ -253,10 +253,10 @@ public class SimulationController : MonoBehaviour
         PrewarmVehiclePools();
 
         // Open log file in Results folder
-        string sumoDataDir = LocateOrCreateResultsFolder();
-        string logPath = Path.Combine(sumoDataDir, "vehicle_data_report.txt");
-        writer = new StreamWriter(logPath, append: false, Encoding.UTF8);
-        writer.WriteLine("timestep_time;vehicle_id;vehicle_x;vehicle_y;vehicle_z");
+        //string sumoDataDir = LocateOrCreateResultsFolder();
+        //string logPath = Path.Combine(sumoDataDir, "vehicle_data_report.txt");
+        //writer = new StreamWriter(logPath, append: false, Encoding.UTF8);
+        //writer.WriteLine("timestep_time;vehicle_id;vehicle_x;vehicle_y;vehicle_z");
     }
 
     /// <summary>
@@ -296,54 +296,54 @@ public class SimulationController : MonoBehaviour
 
     private void FixedUpdate()
     {
-        // Only log if we have started and not stopped recording
-        if (!RecordingManager.startRecordingFromZero)
-        {
-            return;
-        }
+        //// Only log if we have started and not stopped recording
+        //if (!RecordingManager.startRecordingFromZero)
+        //{
+        //    return;
+        //}
 
-        fixedTimeAccum += Time.fixedDeltaTime;
-        if (fixedTimeAccum >= unityStepLength - 0.002)
-        {
-            float currentTime = Time.fixedTime;
+        //fixedTimeAccum += Time.fixedDeltaTime;
+        //if (fixedTimeAccum >= unityStepLength - 0.002)
+        //{
+        //    float currentTime = Time.fixedTime;
 
-            // If this is the first timestamp we log, record it as the start
-            if (!firstTimestampLogged)
-            {
-                firstLoggedTime = currentTime;
-                firstTimestampLogged = true;
-            }
+        //    // If this is the first timestamp we log, record it as the start
+        //    if (!firstTimestampLogged)
+        //    {
+        //        firstLoggedTime = currentTime;
+        //        firstTimestampLogged = true;
+        //    }
 
-            // Log time adjusted by first logged time
-            float logTime = currentTime - firstLoggedTime;
-            LogVehicleData(logTime);
-            fixedTimeAccum = 0f;
-        }
+        //    // Log time adjusted by first logged time
+        //    float logTime = currentTime - firstLoggedTime;
+        //    LogVehicleData(logTime);
+        //    fixedTimeAccum = 0f;
+        //}
     }
 
     private void LogVehicleData(float relativeLogTime)
     {
-        if (writer == null) return;
+        //if (writer == null) return;
 
-        foreach (var kvp in vehicleObjects)
-        {
-            string vehicleId = kvp.Key;
-            GameObject vehicleObj = kvp.Value;
-            if (vehicleObj == null) continue;
+        //foreach (var kvp in vehicleObjects)
+        //{
+        //    string vehicleId = kvp.Key;
+        //    GameObject vehicleObj = kvp.Value;
+        //    if (vehicleObj == null) continue;
 
-            Vector3 pos = vehicleObj.transform.position;
-            writer.WriteLine($"{relativeLogTime:F3};{vehicleId};{pos.x:F2};{pos.y:F2};{pos.z:F2}");
-        }
+        //    Vector3 pos = vehicleObj.transform.position;
+        //    writer.WriteLine($"{relativeLogTime:F3};{vehicleId};{pos.x:F2};{pos.y:F2};{pos.z:F2}");
+        //}
     }
 
     private void OnDestroy()
     {
-        if (writer != null)
-        {
-            writer.Flush();
-            writer.Close();
-            writer = null;
-        }
+        //if (writer != null)
+        //{
+        //    writer.Flush();
+        //    writer.Close();
+        //    writer = null;
+        //}
     }
 
     public void EnqueueMainThreadAction(Action action)
