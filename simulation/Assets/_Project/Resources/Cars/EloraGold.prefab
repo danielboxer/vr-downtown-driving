@@ -48,9 +48,41 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: -6136715244604635164, guid: 7709d19ef209c9f408ec0ef90083c70c, type: 3}
+      propertyPath: m_Layer
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: -3967322923135906127, guid: 7709d19ef209c9f408ec0ef90083c70c, type: 3}
+      propertyPath: m_Layer
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: -3300277157058532812, guid: 7709d19ef209c9f408ec0ef90083c70c, type: 3}
+      propertyPath: m_Layer
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 635547659545568360, guid: 7709d19ef209c9f408ec0ef90083c70c, type: 3}
+      propertyPath: m_Layer
+      value: 3
+      objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 7709d19ef209c9f408ec0ef90083c70c, type: 3}
       propertyPath: m_Name
       value: EloraGold
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 7709d19ef209c9f408ec0ef90083c70c, type: 3}
+      propertyPath: m_Layer
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 1800320807437547829, guid: 7709d19ef209c9f408ec0ef90083c70c, type: 3}
+      propertyPath: m_Layer
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 5959013795354366880, guid: 7709d19ef209c9f408ec0ef90083c70c, type: 3}
+      propertyPath: m_Layer
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 8948458998355892771, guid: 7709d19ef209c9f408ec0ef90083c70c, type: 3}
+      propertyPath: m_Layer
+      value: 3
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -121,6 +153,7 @@ MonoBehaviour:
   - {fileID: 1334739179705862965}
   - {fileID: 7882657324995732502}
   wheelRadius: 0.32
+  minSpeedToAnimate: 0.05
 --- !u!65 &5070992622299383227
 BoxCollider:
   m_ObjectHideFlags: 0

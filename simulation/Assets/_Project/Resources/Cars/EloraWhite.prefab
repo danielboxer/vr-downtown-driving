@@ -48,9 +48,41 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: -6136715244604635164, guid: 30cbf30f0deb36946926e577f1961f54, type: 3}
+      propertyPath: m_Layer
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: -3967322923135906127, guid: 30cbf30f0deb36946926e577f1961f54, type: 3}
+      propertyPath: m_Layer
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: -3300277157058532812, guid: 30cbf30f0deb36946926e577f1961f54, type: 3}
+      propertyPath: m_Layer
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 635547659545568360, guid: 30cbf30f0deb36946926e577f1961f54, type: 3}
+      propertyPath: m_Layer
+      value: 3
+      objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 30cbf30f0deb36946926e577f1961f54, type: 3}
       propertyPath: m_Name
       value: EloraWhite
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 30cbf30f0deb36946926e577f1961f54, type: 3}
+      propertyPath: m_Layer
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 1800320807437547829, guid: 30cbf30f0deb36946926e577f1961f54, type: 3}
+      propertyPath: m_Layer
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 5959013795354366880, guid: 30cbf30f0deb36946926e577f1961f54, type: 3}
+      propertyPath: m_Layer
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 8948458998355892771, guid: 30cbf30f0deb36946926e577f1961f54, type: 3}
+      propertyPath: m_Layer
+      value: 3
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -142,6 +174,7 @@ MonoBehaviour:
   - {fileID: 2265336955793809342}
   - {fileID: 6958403172655034525}
   wheelRadius: 0.32
+  minSpeedToAnimate: 0.05
 --- !u!4 &6079555461094994066 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1558014556574266721, guid: 30cbf30f0deb36946926e577f1961f54, type: 3}

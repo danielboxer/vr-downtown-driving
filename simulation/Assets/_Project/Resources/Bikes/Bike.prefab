@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 891667499113259335}
   - component: {fileID: 1540085360501195634}
   - component: {fileID: 5862597813049980601}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Bike
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -130,9 +130,53 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: -2764206201270749828, guid: da2e992f6554f8e4b941f3b403806c74, type: 3}
+      propertyPath: m_Layer
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: -2303811227998679930, guid: da2e992f6554f8e4b941f3b403806c74, type: 3}
+      propertyPath: m_Layer
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: -1865654804784528927, guid: da2e992f6554f8e4b941f3b403806c74, type: 3}
+      propertyPath: m_Layer
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: -1838999648383611715, guid: da2e992f6554f8e4b941f3b403806c74, type: 3}
+      propertyPath: m_Layer
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 635547659545568360, guid: da2e992f6554f8e4b941f3b403806c74, type: 3}
+      propertyPath: m_Layer
+      value: 3
+      objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: da2e992f6554f8e4b941f3b403806c74, type: 3}
       propertyPath: m_Name
       value: 'Bike '
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: da2e992f6554f8e4b941f3b403806c74, type: 3}
+      propertyPath: m_Layer
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 1504140425449929876, guid: da2e992f6554f8e4b941f3b403806c74, type: 3}
+      propertyPath: m_Layer
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 2516609131796833829, guid: da2e992f6554f8e4b941f3b403806c74, type: 3}
+      propertyPath: m_Layer
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 3442337337786662152, guid: da2e992f6554f8e4b941f3b403806c74, type: 3}
+      propertyPath: m_Layer
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 4956684105340891082, guid: da2e992f6554f8e4b941f3b403806c74, type: 3}
+      propertyPath: m_Layer
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 6740989123359108604, guid: da2e992f6554f8e4b941f3b403806c74, type: 3}
+      propertyPath: m_Layer
+      value: 3
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -163,7 +207,7 @@ MonoBehaviour:
   - {fileID: 3245829768375621924}
   - {fileID: 1809624490582260520}
   wheelRadius: 0.32
-  spinAxis: {x: 1, y: 0, z: 0}
+  minSpeedToAnimate: 0.05
 --- !u!4 &1809624490582260520 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 231307791906999473, guid: da2e992f6554f8e4b941f3b403806c74, type: 3}
