@@ -405,6 +405,12 @@ public class SimulationController : MonoBehaviour
                         }
                     }
 
+                    if (prefabToInstantiate == null)
+                    {
+                        Debug.LogWarning($"No valid prefab for vehicle type '{vehicle.type}' (id: {vehicle.vehicle_id}), skipping.");
+                        continue;
+                    }
+
                     GameObject newVehicle = GameObject.Instantiate(prefabToInstantiate, newPosition, newRotation);
                     newVehicle.name = vehicle.vehicle_id;
                     VehicleController vc = newVehicle.GetComponent<VehicleController>();
