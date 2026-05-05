@@ -27,7 +27,7 @@ DEFAULTS = {
     "steplength": 0.1,
     "lateral_resolution": 0.3,
     "zoom": 150.0,  # (bigger value → closer)
-    "subscribe_radius": 250.0,  # ★ NEW (TraCI context radius)
+    "subscribe_radius": 120.0,  # ★ NEW (TraCI context radius)
 }
 VERSION = "Sumo2Unity v2.0.0"
 
