@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Threading;
 using UnityEngine;
 using System;
+using Stopwatch = System.Diagnostics.Stopwatch;
 
 [System.Serializable]
 public class CommonMessage
@@ -36,6 +37,11 @@ public class ExchangeData : MonoBehaviour
     // Thread for background communication
     private Thread _communicationThread;
     private bool _isRunning = false;
+
+    // Sending ego data every 1 ms is unnecessary for a 0.1 s SUMO step and can
+    // waste CPU/queue bandwidth. Keep it comfortably above the SUMO step rate.
+    private double _nextVehicleSendTime;
+    private static readonly double StopwatchToSeconds = 1.0 / Stopwatch.Frequency;
 
 
     public void Start()
@@ -83,14 +89,22 @@ public class ExchangeData : MonoBehaviour
                 {
                     try
                     {
+                        double nowSeconds = Stopwatch.GetTimestamp() * StopwatchToSeconds;
+
                         // --- Send Data to SUMO ---
-                        string vehicleDataJson = _SimulationController.GetVehicleDataJson();
+                        if (_SimulationController != null && nowSeconds >= _nextVehicleSendTime)
+                        {
+                            string vehicleDataJson = _SimulationController.GetVehicleDataJson();
 
-                        // TrySendFrame may fail if SUMO is not running yet (HWM full);
-                        // keep the thread alive so we can still receive messages.
-                        dealerSocket.TrySendFrame(vehicleDataJson);
+                            // TrySendFrame may fail if SUMO is not running yet (HWM full);
+                            // keep the thread alive so we can still receive messages.
+                            dealerSocket.TrySendFrame(vehicleDataJson);
 
-                        // Send any queued commands (e.g. RESTART_SIMULATION from a keypress)
+                            float step = Mathf.Max(0.02f, _SimulationController.unityStepLength * 0.5f);
+                            _nextVehicleSendTime = nowSeconds + Mathf.Min(step, 0.1f);
+                        }
+
+                        // Send any queued commands immediately (e.g. RESTART_SIMULATION from a keypress)
                         while (_commandQueue.TryDequeue(out string commandJson))
                             dealerSocket.TrySendFrame(commandJson);
 

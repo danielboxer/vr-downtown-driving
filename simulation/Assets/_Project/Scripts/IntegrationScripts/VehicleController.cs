@@ -1,5 +1,5 @@
-using UnityEngine;
 using System.Collections.Generic;
+using UnityEngine;
 
 public class VehicleController : MonoBehaviour
 {
@@ -13,26 +13,35 @@ public class VehicleController : MonoBehaviour
     private float curTime;
 
     private float curLong, curVert, curLat;
-    // set at runtime, after the Inspector value is known
-    private float stepLen;
-    private float turnThresholdDeg;
-
-    private const float FadeTime = 0.05f;          // how long to ease out spin
-
-    private Vector3 residualAngularVel;           // ★ keeps turn’s leftover spin
-    private float residualTimer;                // ★ fade-out countdown
 
     /// <summary>True after a collision detaches this vehicle from SUMO control.</summary>
     public bool IsDetached { get; private set; }
 
+    /// <summary>Estimated world-space velocity used by wheel animation and crash handoff.</summary>
+    public Vector3 EstimatedVelocity { get; private set; }
+
+    /// <summary>SUMO-reported forward speed for this vehicle.</summary>
+    public float CurrentLongitudinalSpeed => curLong;
+
+    /// <summary>Whether this vehicle is currently close enough for high-detail behaviours.</summary>
+    public bool IsHighDetail { get; private set; } = true;
+
     // ── Horn audio ──
     [HideInInspector] public List<AudioClip> hornClips = new List<AudioClip>();
     [HideInInspector] public float hornVolume = 1f;
-    [HideInInspector] public float hornTriggerDelay = 3f;   // seconds stopped before honking
-    [HideInInspector] public float hornCooldown = 5f;       // min seconds between honks
-    [HideInInspector] public float hornTriggerDistance = 18f; // max metres to ego car
-    [HideInInspector] public float hornHonkChance = 0.4f;   // probability per cooldown window
-    [HideInInspector] public float hornAmbientChance = 0.1f; // probability when ego not nearby
+    [HideInInspector] public float hornTriggerDelay = 3f;
+    [HideInInspector] public float hornCooldown = 5f;
+    [HideInInspector] public float hornTriggerDistance = 18f;
+    [HideInInspector] public float hornHonkChance = 0.4f;
+    [HideInInspector] public float hornAmbientChance = 0.1f;
+
+    [Header("NPC Performance")]
+    [SerializeField] private float colliderDistance = 55f;
+    [SerializeField] private float highDetailDistance = 45f;
+    [SerializeField] private float hornCheckInterval = 0.5f;
+    [SerializeField] private float movementSharpness = 14f;
+    [SerializeField] private float rotationSharpness = 14f;
+    [SerializeField] private bool disableCollidersWhenFar = true;
 
     private AudioSource _hornSource;
     private float _stoppedTimer;
@@ -40,6 +49,85 @@ public class VehicleController : MonoBehaviour
     private Transform _egoTransform;
     private SimulationController _simController;
     private bool _wasAtRedLight;
+    private Collider[] _colliders;
+    private bool _collidersEnabled = true;
+    private float _nextDetailCheckTime;
+    private float _nextHornCheckTime;
+
+    private const float DetailCheckInterval = 0.25f;
+
+    private void Awake()
+    {
+        EnsureComponents();
+        ResolveSimulationController();
+        ConfigureAsSumoControlled();
+
+        curPos = lastPos = transform.position;
+        curRot = lastRot = transform.rotation;
+        lastTime = curTime = Time.time;
+    }
+
+    private void Start()
+    {
+        // Re-apply once Start runs so inspector-modified Rigidbody values do not
+        // leave NPC traffic as expensive dynamic bodies.
+        if (!IsDetached)
+            ConfigureAsSumoControlled();
+    }
+
+    /// <summary>
+    /// Allows SimulationController to push one central set of performance settings
+    /// to pooled/spawned NPCs without requiring every prefab to be edited.
+    /// </summary>
+    public void ConfigurePerformance(
+        float npcColliderDistance,
+        float npcHighDetailDistance,
+        float npcHornCheckInterval,
+        float npcMovementSharpness,
+        float npcRotationSharpness,
+        bool npcDisableCollidersWhenFar)
+    {
+        colliderDistance = Mathf.Max(0f, npcColliderDistance);
+        highDetailDistance = Mathf.Max(0f, npcHighDetailDistance);
+        hornCheckInterval = Mathf.Max(0.05f, npcHornCheckInterval);
+        movementSharpness = Mathf.Max(1f, npcMovementSharpness);
+        rotationSharpness = Mathf.Max(1f, npcRotationSharpness);
+        disableCollidersWhenFar = npcDisableCollidersWhenFar;
+    }
+
+    /// <summary>
+    /// Resets this instance when it is borrowed from the pool or first spawned.
+    /// </summary>
+    public void ResetForSumoControl(Vector3 pos, Quaternion rot,
+                                    float longSpd, float vertSpd, float latSpd)
+    {
+        EnsureComponents();
+        ResolveSimulationController();
+
+        IsDetached = false;
+        ConfigureAsSumoControlled();
+
+        transform.SetPositionAndRotation(pos, rot);
+        rb.position = pos;
+        rb.rotation = rot;
+
+        curPos = lastPos = pos;
+        curRot = lastRot = rot;
+        curTime = lastTime = Time.time;
+        curLong = longSpd;
+        curVert = vertSpd;
+        curLat = latSpd;
+        EstimatedVelocity = rot * (Vector3.right * longSpd) + Vector3.up * vertSpd + rot * (Vector3.forward * latSpd);
+
+        _stoppedTimer = 0f;
+        _lastHornTime = -99f;
+        _wasAtRedLight = false;
+        _nextDetailCheckTime = 0f;
+        _nextHornCheckTime = Time.time + Random.Range(0f, hornCheckInterval);
+
+        SetColliderState(true);
+        UpdateDetailState(force: true);
+    }
 
     /// <summary>
     /// Detach this NPC from SUMO control and apply a collision impulse.
@@ -48,14 +136,21 @@ public class VehicleController : MonoBehaviour
     public void Detach(Vector3 impactImpulse, Vector3 contactPoint)
     {
         if (IsDetached) return;
-        IsDetached = true;
+        EnsureComponents();
 
+        IsDetached = true;
+        SetColliderState(true);
+
+        rb.isKinematic = false;
         rb.useGravity = true;
         rb.linearDamping = 0.5f;
         rb.angularDamping = 0.5f;
+        rb.interpolation = RigidbodyInterpolation.Interpolate;
+        rb.collisionDetectionMode = CollisionDetectionMode.Discrete;
+        rb.linearVelocity = EstimatedVelocity;
 
         // Cap by resulting velocity (not impulse magnitude) to handle
-        // low-mass Rigidbodies that would otherwise reach extreme speeds
+        // low-mass Rigidbodies that would otherwise reach extreme speeds.
         const float maxPostCollisionSpeed = 8f;
         float resultingSpeed = impactImpulse.magnitude / Mathf.Max(rb.mass, 0.01f);
         if (resultingSpeed > maxPostCollisionSpeed)
@@ -64,153 +159,157 @@ public class VehicleController : MonoBehaviour
         rb.AddForceAtPosition(impactImpulse, contactPoint, ForceMode.Impulse);
     }
 
-    private void Start()
-    {
-        rb.isKinematic = false;
-        rb.useGravity = false;
-        rb.linearDamping = 1f;
-        rb.interpolation = RigidbodyInterpolation.Interpolate;
-        rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
-
-        curPos = lastPos = transform.position;
-        curRot = lastRot = transform.rotation;
-        lastTime = curTime = Time.time;
-
-        // Dedicated audio source for the horn
-        _hornSource = gameObject.AddComponent<AudioSource>();
-        _hornSource.playOnAwake = false;
-        _hornSource.loop = false;
-        _hornSource.spatialBlend = 1f;
-        _hornSource.rolloffMode = AudioRolloffMode.Linear;
-        _hornSource.maxDistance = 50f;
-    }
-
     public void UpdateTarget(Vector3 pos, Quaternion rot,
                              float longSpd, float vertSpd, float latSpd)
     {
-        lastPos = curPos; lastRot = curRot; lastTime = curTime;
-        curPos = pos; curRot = rot; curTime = Time.time;
+        lastPos = curPos;
+        lastRot = curRot;
+        lastTime = curTime;
 
-        curLong = longSpd; curVert = vertSpd; curLat = latSpd;
-    }
-    void Awake()
-    {
-        // Initialize rb here so Detach() is safe to call before Start runs
-        rb = GetComponent<Rigidbody>() ?? gameObject.AddComponent<Rigidbody>();
+        curPos = pos;
+        curRot = rot;
+        curTime = Time.time;
 
-        // Look for the first SimulationController in the scene
-        SimulationController sim = FindFirstObjectByType<SimulationController>();
-
-        if (sim == null)
-        {
-            Debug.LogError("SimulationController not found!");
-            return;
-        }
-
-        _simController = sim;
-        stepLen = sim.unityStepLength;                 // ← value set in Inspector
-        turnThresholdDeg = Mathf.Clamp(stepLen * 40f, 0.25f, 10f);
-
-        // Cache ego vehicle for proximity checks (available after RegisterEgoVehicle is called)
-        if (sim.egoVehicle != null)
-            _egoTransform = sim.egoVehicle.transform;
-    }
-    private void FixedUpdate()
-    {
-        // Detached vehicles are pure physics objects, no SUMO control
-        if (IsDetached) return;
+        curLong = longSpd;
+        curVert = vertSpd;
+        curLat = latSpd;
 
         float dt = curTime - lastTime;
-        if (dt <= 0f)
+        EstimatedVelocity = dt > 0.0001f
+            ? (curPos - lastPos) / dt
+            : rot * (Vector3.right * longSpd) + Vector3.up * vertSpd + rot * (Vector3.forward * latSpd);
+    }
+
+    private void FixedUpdate()
+    {
+        if (IsDetached) return;
+
+        MoveKinematicToLatestSumoTarget();
+        UpdateDetailState(force: false);
+
+        if (Time.time >= _nextHornCheckTime)
         {
-            rb.linearVelocity = Vector3.zero;
-            rb.angularVelocity = Vector3.zero;
-            rb.MoveRotation(curRot);
+            _nextHornCheckTime = Time.time + hornCheckInterval + Random.Range(0f, hornCheckInterval * 0.2f);
+            CheckHorn();
+        }
+    }
+
+    private void MoveKinematicToLatestSumoTarget()
+    {
+        float dt = Mathf.Max(Time.fixedDeltaTime, 0.0001f);
+        float posBlend = 1f - Mathf.Exp(-movementSharpness * dt);
+        float rotBlend = 1f - Mathf.Exp(-rotationSharpness * dt);
+
+        Vector3 previousPos = rb.position;
+        Vector3 nextPos = Vector3.Lerp(previousPos, curPos, posBlend);
+        Quaternion nextRot = Quaternion.Slerp(rb.rotation, curRot, rotBlend);
+
+        EstimatedVelocity = (nextPos - previousPos) / dt;
+        rb.MovePosition(nextPos);
+        rb.MoveRotation(nextRot);
+    }
+
+    private void ConfigureAsSumoControlled()
+    {
+        EnsureComponents();
+
+        rb.isKinematic = true;
+        rb.useGravity = false;
+        rb.linearDamping = 0f;
+        rb.angularDamping = 0f;
+        rb.interpolation = RigidbodyInterpolation.Interpolate;
+        rb.collisionDetectionMode = CollisionDetectionMode.Discrete;
+    }
+
+    private void EnsureComponents()
+    {
+        if (rb == null)
+            rb = GetComponent<Rigidbody>() ?? gameObject.AddComponent<Rigidbody>();
+
+        if (_colliders == null || _colliders.Length == 0)
+            _colliders = GetComponentsInChildren<Collider>(true);
+    }
+
+    private void ResolveSimulationController()
+    {
+        if (_simController == null)
+            _simController = FindFirstObjectByType<SimulationController>();
+
+        if (_egoTransform == null && _simController != null && _simController.egoVehicle != null)
+            _egoTransform = _simController.egoVehicle.transform;
+
+
+    }
+
+    private void UpdateDetailState(bool force)
+    {
+        if (!force && Time.time < _nextDetailCheckTime) return;
+        _nextDetailCheckTime = Time.time + DetailCheckInterval;
+
+        ResolveSimulationController();
+        if (_egoTransform == null)
+        {
+            IsHighDetail = true;
+            SetColliderState(true);
             return;
         }
 
-        float headingDelta = Quaternion.Angle(lastRot, curRot);   // degrees
+        float sqrDist = (_egoTransform.position - transform.position).sqrMagnitude;
+        float colliderSqr = colliderDistance * colliderDistance;
+        float highDetailSqr = highDetailDistance * highDetailDistance;
 
-        if (headingDelta < turnThresholdDeg)                      // straight
-        {
-            /* linear vel from local-axis speeds (ultra smooth) */
-            Vector3 vLong = curRot * (Vector3.right * curLong);
-            Vector3 vLat = curRot * (Vector3.forward * curLat);
-            Vector3 vUp = Vector3.up * curVert;
-            rb.linearVelocity = vLong + vLat + vUp;
+        IsHighDetail = sqrDist <= highDetailSqr;
 
-            /* damp residual spin, don't kill instantly */
-            if (residualTimer > 0f)
-            {
-                residualTimer -= Time.fixedDeltaTime;
-                float k = Mathf.Clamp01(residualTimer / FadeTime);
-                rb.angularVelocity = residualAngularVel * k;
-                if (k <= 0f) rb.MoveRotation(curRot);            // fully aligned
-            }
-            else
-            {
-                rb.angularVelocity = Vector3.zero;
-                rb.MoveRotation(curRot);
-            }
-        }
-        else                                                      // turning
+        if (disableCollidersWhenFar)
+            SetColliderState(sqrDist <= colliderSqr);
+        else
+            SetColliderState(true);
+    }
+
+    private void SetColliderState(bool enabled)
+    {
+        if (_colliders == null) return;
+        if (_collidersEnabled == enabled) return;
+
+        for (int i = 0; i < _colliders.Length; i++)
         {
-            rb.linearVelocity = (curPos - lastPos) / dt;
-            residualAngularVel = CalcAngularVel(lastRot, curRot, dt);
-            rb.angularVelocity = residualAngularVel;
-            residualTimer = FadeTime;
+            if (_colliders[i] != null)
+                _colliders[i].enabled = enabled;
         }
 
-        /* original ultra-smooth positional blend */
-        transform.localPosition =
-            Vector3.Lerp(transform.localPosition, curPos, 0.02f);
-
-        CheckHorn();
+        _collidersEnabled = enabled;
     }
 
     private void CheckHorn()
     {
-        if (hornClips == null || hornClips.Count == 0 || _hornSource == null) return;
+        if (hornClips == null || hornClips.Count == 0) return;
 
-        // Lazily resolve ego transform in case RegisterEgoVehicle ran after Awake
-        if (_egoTransform == null)
-        {
-            SimulationController sim = FindFirstObjectByType<SimulationController>();
-            if (sim != null && sim.egoVehicle != null)
-                _egoTransform = sim.egoVehicle.transform;
-        }
+        ResolveSimulationController();
 
-        // Ego not found yet — still allow ambient honking
-        // Track consecutive stopped time from SUMO commanded speed
+        // Track consecutive stopped time from SUMO commanded speed.
         const float stoppedThreshold = 0.5f;
         if (curLong < stoppedThreshold)
-            _stoppedTimer += Time.fixedDeltaTime;
+            _stoppedTimer += hornCheckInterval;
         else
             _stoppedTimer = 0f;
 
         if (_stoppedTimer < hornTriggerDelay) return;
         if (Time.time - _lastHornTime < hornCooldown) return;
 
-        // Don't honk when legitimately waiting at a red or yellow light
-        bool atRed = IsWaitingAtRedLight();
-        if (atRed) { _wasAtRedLight = true; return; }
-
-        // Light just turned green: reset stopped timer so they don't all honk at once
-        if (_wasAtRedLight)
+        bool egoInFront = false;
+        if (_egoTransform != null)
         {
-            _wasAtRedLight = false;
-            _stoppedTimer = 0f;
-            return;
+            Vector3 toEgo = _egoTransform.position - transform.position;
+            float triggerSqr = hornTriggerDistance * hornTriggerDistance;
+            if (toEgo.sqrMagnitude <= triggerSqr)
+            {
+                Vector3 dirToEgo = toEgo.sqrMagnitude > 0.0001f ? toEgo.normalized : Vector3.zero;
+                egoInFront = Vector3.Dot(transform.right, dirToEgo) >= 0.3f;
+            }
         }
 
-        // Only honk at ego-proximity chance; otherwise try the lower ambient chance
-        Vector3 toEgo = _egoTransform != null
-            ? _egoTransform.position - transform.position
-            : Vector3.one * float.MaxValue;
-        float dist = toEgo.magnitude;
-        bool egoInFront = dist <= hornTriggerDistance
-            && Vector3.Dot(transform.forward, toEgo.normalized) >= 0.3f;
-
+        // Filter before the expensive red-light query. Ambient horns remain possible,
+        // but only a small fraction of far stopped cars perform the stop-line check.
         float roll = Random.value;
         if (egoInFront)
         {
@@ -218,68 +317,46 @@ public class VehicleController : MonoBehaviour
         }
         else
         {
-            // General traffic impatience honk, less frequent
-            if (roll > hornAmbientChance) return;
+            if (hornAmbientChance <= 0f || roll > hornAmbientChance) return;
         }
 
+        // Don't honk when legitimately waiting at a red or yellow light.
+        bool atRed = IsWaitingAtRedLight();
+        if (atRed) { _wasAtRedLight = true; return; }
+
+        // Light just turned green: reset stopped timer so they don't all honk at once.
+        if (_wasAtRedLight)
+        {
+            _wasAtRedLight = false;
+            _stoppedTimer = 0f;
+            return;
+        }
+
+        EnsureHornSource();
         AudioClip clip = hornClips[Random.Range(0, hornClips.Count)];
         if (clip != null)
             _hornSource.PlayOneShot(clip, hornVolume);
         _lastHornTime = Time.time;
     }
 
+    private void EnsureHornSource()
+    {
+        if (_hornSource != null) return;
+
+        _hornSource = GetComponent<AudioSource>() ?? gameObject.AddComponent<AudioSource>();
+        _hornSource.playOnAwake = false;
+        _hornSource.loop = false;
+        _hornSource.spatialBlend = 1f;
+        _hornSource.rolloffMode = AudioRolloffMode.Linear;
+        _hornSource.maxDistance = 50f;
+    }
+
     private bool IsWaitingAtRedLight()
     {
-        if (_simController == null || _simController.junctions == null) return false;
+        if (_simController == null) return false;
 
-        Vector3 npcPos = transform.position;
         Vector3 npcDriveDir = curRot * Vector3.right;
-        const float maxDist = 50f;
-
-        float closestDist = float.MaxValue;
-        bool closestIsRed = false;
-
-        foreach (Transform junctionT in _simController.junctions.transform)
-        {
-            string state = _simController.GetTrafficLightState(junctionT.name);
-            if (state == null) continue;
-
-            foreach (Transform child in junctionT)
-            {
-                var sl = child.GetComponent<StopLineTrigger>();
-                if (sl == null) continue;
-
-                Vector3 toSl = child.position - npcPos;
-                float dist = toSl.magnitude;
-                if (dist > maxDist || dist < 0.01f) continue;
-
-                // NPC must be on the same approach as this stop line
-                // (driving in the same direction the stop line faces)
-                if (Vector3.Dot(npcDriveDir, child.forward) < 0.5f) continue;
-
-                // NPC must be behind or at the stop line, not past it
-                if (Vector3.Dot(npcDriveDir, toSl.normalized) < -0.2f) continue;
-
-                if (dist < closestDist)
-                {
-                    closestDist = dist;
-                    closestIsRed = false;
-                    if (sl.linkIndex < state.Length)
-                    {
-                        char c = state[sl.linkIndex];
-                        closestIsRed = (c == 'r' || c == 'R' || c == 'y' || c == 'Y');
-                    }
-                }
-            }
-        }
-        return closestIsRed;
+        return _simController.IsNpcWaitingAtRedOrYellowLight(transform.position, npcDriveDir, 50f);
     }
 
-    private static Vector3 CalcAngularVel(Quaternion from, Quaternion to, float dt)
-    {
-        Quaternion dq = to * Quaternion.Inverse(from);
-        dq.ToAngleAxis(out float angDeg, out Vector3 axis);
-        if (angDeg > 180f) angDeg -= 360f;
-        return axis.normalized * Mathf.Deg2Rad * angDeg / Mathf.Max(dt, 0.0001f);
-    }
 }

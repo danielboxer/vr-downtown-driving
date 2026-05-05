@@ -158,7 +158,13 @@ _restart_event = threading.Event()
 
 def run_sim(cfg: dict):
     import traci
-    from traci.constants import VAR_ANGLE, VAR_POSITION3D, VAR_TYPE
+    from traci.constants import (
+        VAR_ANGLE,
+        VAR_POSITION3D,
+        VAR_SPEED,
+        VAR_SPEED_LAT,
+        VAR_TYPE,
+    )
 
     # ---------- apply GUI parameters ----------
     IntegrationStartTime = cfg["IntegrationStartTime"]
@@ -376,7 +382,7 @@ def run_sim(cfg: dict):
                 ego,
                 traci.constants.CMD_GET_VEHICLE_VARIABLE,
                 subscribe_radius,
-                [VAR_POSITION3D, VAR_ANGLE, VAR_TYPE],
+                [VAR_POSITION3D, VAR_ANGLE, VAR_TYPE, VAR_SPEED, VAR_SPEED_LAT],
             )
 
             # warm-up done: update status and re-enable restart button on main thread
@@ -469,14 +475,22 @@ def run_sim(cfg: dict):
                     )
                     ctx_res = traci.vehicle.getContextSubscriptionResults(ego)
                     if ctx_res:
-                        for vid in ctx_res.keys():
+                        active_context_ids = set()
+                        for vid, vals in ctx_res.items():
                             if vid == ego:
                                 continue
-                            x, y, z = traci.vehicle.getPosition3D(vid)
-                            ang = traci.vehicle.getAngle(vid)
-                            vtype = traci.vehicle.getTypeID(vid)
-                            vlong = traci.vehicle.getSpeed(vid)
-                            vlat = traci.vehicle.getLateralSpeed(vid)
+
+                            pos = vals.get(VAR_POSITION3D)
+                            if pos is None:
+                                continue
+
+                            x, y, z = pos
+                            ang = vals.get(VAR_ANGLE, 0.0)
+                            vtype = vals.get(VAR_TYPE, "")
+                            vlong = vals.get(VAR_SPEED, 0.0)
+                            vlat = vals.get(VAR_SPEED_LAT, 0.0)
+                            active_context_ids.add(vid)
+
                             if vid in last_pos_z:
                                 pz, pt = last_pos_z[vid]
                                 dt = sim_t - pt
@@ -495,6 +509,12 @@ def run_sim(cfg: dict):
                                     "lat_speed": round(vlat, 2),
                                 }
                             )
+
+                        # Prevent this vertical-speed cache from growing forever as
+                        # vehicles leave the ego subscription radius.
+                        for stale_vid in list(last_pos_z.keys()):
+                            if stale_vid not in active_context_ids:
+                                last_pos_z.pop(stale_vid, None)
                 vjson = json.dumps(
                     {"type": "vehicles", "vehicles": vdata}, separators=(",", ":")
                 )
