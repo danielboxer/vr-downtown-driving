@@ -28,4 +28,4 @@ Select all downtown textures:
 - Aniso Level: 8
 - Filter Mode: Trilinear
 
-Optimize textures: https://www.youtube.com/watch?v=BeB9Cx_msKA
+Optimize textures and meshes: https://www.youtube.com/watch?v=BeB9Cx_msKA
