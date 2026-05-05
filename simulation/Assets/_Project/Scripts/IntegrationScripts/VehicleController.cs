@@ -286,6 +286,15 @@ public class VehicleController : MonoBehaviour
 
         ResolveSimulationController();
 
+        // Skip all horn logic for NPCs too far from the ego to be heard.
+        const float maxHornCheckDistSqr = 30f * 30f;
+        if (_egoTransform != null &&
+            (_egoTransform.position - transform.position).sqrMagnitude > maxHornCheckDistSqr)
+        {
+            _stoppedTimer = 0f;
+            return;
+        }
+
         // Track consecutive stopped time from SUMO commanded speed.
         const float stoppedThreshold = 0.5f;
         if (curLong < stoppedThreshold)
