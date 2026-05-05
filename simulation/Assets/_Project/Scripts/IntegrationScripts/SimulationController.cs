@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using System;
 using System.Collections.Concurrent;
-using System.IO;
-using System.Text;
 
 public class SimulationController : MonoBehaviour
 {
@@ -23,8 +21,6 @@ public class SimulationController : MonoBehaviour
     private Rigidbody egoRigidbody;
     private float long_speed;
     private readonly ConcurrentQueue<Action> mainThreadActions = new ConcurrentQueue<Action>();
-
-    private StreamWriter writer;
 
     [Header("Unity Step Length (seconds)")]
     public float unityStepLength = 0.10f;
@@ -66,12 +62,6 @@ public class SimulationController : MonoBehaviour
     [Range(0f, 1f)]
     [Tooltip("Probability (0-1) that a stopped NPC randomly honks with no ego nearby (general traffic impatience).")]
     public float npcHornAmbientChance = 0.1f;
-
-    private float fixedTimeAccum = 0f; // Accumulator for FixedUpdate logging
-
-    // Timestamp offset for logs
-    private bool firstTimestampLogged = false;
-    private float firstLoggedTime = 0f;
 
     [Header("Add all Junction GameObjects")]
     public GameObject junctions;           // drag 'Junctions' root here, or leave empty to auto-find
@@ -202,28 +192,6 @@ public class SimulationController : MonoBehaviour
         return closestIsRedOrYellow;
     }
 
-    /// <summary>Finds (or creates) SUMO2Unity\Results next to the project.</summary>
-    private static string LocateOrCreateResultsFolder()
-    {
-        // projectRoot = folder that *contains* "Assets"
-        string projectRoot = Directory.GetParent(Application.dataPath).FullName;
-        DirectoryInfo dir = new DirectoryInfo(projectRoot);
-
-        while (dir != null)
-        {
-            string candidate = Path.Combine(dir.FullName, "Results");
-            if (Directory.Exists(candidate))
-                return candidate;
-
-            dir = dir.Parent;                       // walk upward
-        }
-
-        // Not found – create it next to the project
-        string fallback = Path.Combine(projectRoot, "Results");
-        Directory.CreateDirectory(fallback);
-        return fallback;
-    }
-
     private void Start()
     {
         vehiclePrefab = Resources.Load("Cars/EloraGold") as GameObject;
@@ -292,58 +260,6 @@ public class SimulationController : MonoBehaviour
         {
             Debug.LogError($"Exception in Update(): {ex.Message}\n{ex.StackTrace}");
         }
-    }
-
-    private void FixedUpdate()
-    {
-        //// Only log if we have started and not stopped recording
-        //if (!RecordingManager.startRecordingFromZero)
-        //{
-        //    return;
-        //}
-
-        //fixedTimeAccum += Time.fixedDeltaTime;
-        //if (fixedTimeAccum >= unityStepLength - 0.002)
-        //{
-        //    float currentTime = Time.fixedTime;
-
-        //    // If this is the first timestamp we log, record it as the start
-        //    if (!firstTimestampLogged)
-        //    {
-        //        firstLoggedTime = currentTime;
-        //        firstTimestampLogged = true;
-        //    }
-
-        //    // Log time adjusted by first logged time
-        //    float logTime = currentTime - firstLoggedTime;
-        //    LogVehicleData(logTime);
-        //    fixedTimeAccum = 0f;
-        //}
-    }
-
-    private void LogVehicleData(float relativeLogTime)
-    {
-        //if (writer == null) return;
-
-        //foreach (var kvp in vehicleObjects)
-        //{
-        //    string vehicleId = kvp.Key;
-        //    GameObject vehicleObj = kvp.Value;
-        //    if (vehicleObj == null) continue;
-
-        //    Vector3 pos = vehicleObj.transform.position;
-        //    writer.WriteLine($"{relativeLogTime:F3};{vehicleId};{pos.x:F2};{pos.y:F2};{pos.z:F2}");
-        //}
-    }
-
-    private void OnDestroy()
-    {
-        //if (writer != null)
-        //{
-        //    writer.Flush();
-        //    writer.Close();
-        //    writer = null;
-        //}
     }
 
     public void EnqueueMainThreadAction(Action action)
@@ -423,10 +339,6 @@ public class SimulationController : MonoBehaviour
                 RecordingManager.startRecordingFromZero = true;
                 RecordingManager.recordingStartTime = Time.time;
                 Debug.Log("Received START_RECORDING command from SUMO. Starting logs from zero now.");
-
-                // Reset offset logging variables when we start recording
-                firstTimestampLogged = false;
-                firstLoggedTime = 0f;
             }
             else if (common.command == "STOP_RECORDING")
             {
