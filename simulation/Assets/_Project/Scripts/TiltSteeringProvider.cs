@@ -4,7 +4,7 @@ using UnityEngine.InputSystem.XR;
 
 /// <summary>
 /// Reads the vector between the left and right XR controllers and maps its
-/// continuous rotation around a vehicle-relative axis to a –1…+1 steering
+/// continuous rotation around a vehicle-relative axis to a -1…+1 steering
 
 /// value. Attach to each ego vehicle alongside the UserControl script.
 /// CarUserControl / BikeUserControl will use <see cref="SteerValue"/> when
@@ -75,7 +75,7 @@ public class TiltSteeringProvider : MonoBehaviour
     private static readonly Color ProjectedLineColor = Color.black;
     private const float ProjectedLineWidth = 0.004f;
 
-    /// <summary>Current steering value from –1 (full left) to +1 (full right).</summary>
+    /// <summary>Current steering value from -1 (full left) to +1 (full right).</summary>
     public float SteerValue { get; private set; }
 
     /// <summary>True when both XR controllers are detected and the controller vector is usable.</summary>
