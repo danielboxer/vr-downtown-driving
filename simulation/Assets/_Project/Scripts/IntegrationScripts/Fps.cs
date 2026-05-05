@@ -1,10 +1,7 @@
 ﻿using UnityEngine;
-using System;
-using System.IO;
 
 /// <summary>
-///   FPS recorder & on‑screen display.
-///   Writes FPS_Report.txt into SUMO2Unity\SUMOData next to the Unity project.
+///   FPS on-screen display.
 /// </summary>
 public class Fps : MonoBehaviour
 {
@@ -14,16 +11,6 @@ public class Fps : MonoBehaviour
     private float smoothingFactor = 0.1f;       // weight of recent frames
     [SerializeField] private int fontSize = 25;          // GUI font size
 
-    // ────────────────────────────────────────────────────────────  logging fields
-    private float logInterval;             // set from SimulationController
-    private string filePath;                // full path to FPS_Report.txt
-    private StreamWriter fpsWriter;
-    private float timeAccum;               // time since last log
-    private float flushAccum;
-
-    private bool firstFpsTimestampLogged;
-    private float firstFpsLoggedTime;
-
     // ───────────────────────────────────────────────────────────────  GUI fields
     private float latestSmoothedFps;
     private float displayedFps;
@@ -32,32 +19,6 @@ public class Fps : MonoBehaviour
 
     // ────────────────────────────────────────────────────────────  references
     private ExchangeData _ExchangeData;
-    private SimulationController simController;
-
-    // ─────────────────────────────────────────────────────────  helper: find path
-    /// <summary>Walks up from Assets until it finds SUMO2UnityPY\SUMOData.</summary>
-    /// <summary>Finds (or creates) SUMO2Unity\Results next to the project.</summary>
-    private static string LocateOrCreateResultsFolder()
-    {
-        // projectRoot = folder that *contains* "Assets"
-        string projectRoot = Directory.GetParent(Application.dataPath).FullName;
-        DirectoryInfo dir = new DirectoryInfo(projectRoot);
-
-        while (dir != null)
-        {
-            string candidate = Path.Combine(dir.FullName, "Results");
-            if (Directory.Exists(candidate))
-                return candidate;
-
-            dir = dir.Parent;                       // walk upward
-        }
-
-        // Not found – create it next to the project
-        string fallback = Path.Combine(projectRoot, "Results");
-        Directory.CreateDirectory(fallback);
-        return fallback;
-    }
-
 
     // ────────────────────────────────────────────────────────────────────────────
     private void Start()
@@ -71,18 +32,6 @@ public class Fps : MonoBehaviour
         // --------------------------------------------------------  other setup
         _ExchangeData = GetComponent<ExchangeData>() ?? gameObject.AddComponent<ExchangeData>();
 
-
-        // --- get the SimulationController in the scene ----------------
-        SimulationController sim = FindFirstObjectByType<SimulationController>();
-        if (sim == null)
-        {
-            Debug.LogError("SimulationController not found!");
-            return;
-        }
-
-        //logInterval = sim.unityStepLength;   // value you set in Inspector
-
-
         displayedFps = 0f;           // avoid showing 0 initially
         GUI.depth = 2;
     }
@@ -92,10 +41,6 @@ public class Fps : MonoBehaviour
     {
         currentFps = 1f / Time.unscaledDeltaTime;
         smoothedFps = (smoothingFactor * currentFps) + ((1f - smoothingFactor) * smoothedFps);
-
-        // Reset smoothing whenever recording starts afresh
-        if (RecordingManager.startRecordingFromZero && firstFpsTimestampLogged == false)
-            smoothedFps = currentFps;
 
         latestSmoothedFps = smoothedFps;
 
@@ -109,54 +54,6 @@ public class Fps : MonoBehaviour
     }
 
     // ────────────────────────────────────────────────────────────────────────────
-    private void FixedUpdate()
-    {
-        //timeAccum += Time.fixedDeltaTime;
-        //flushAccum += Time.fixedDeltaTime;
-
-        //if (timeAccum >= logInterval - 0.002f)
-        //{
-        //    if (RecordingManager.startRecordingFromZero)
-        //        LogFpsToFile();
-
-        //    timeAccum = 0f;
-        //}
-
-        //// Flush occasionally instead of forcing a disk write every sample.
-        //if (flushAccum >= 2f)
-        //{
-        //    fpsWriter?.Flush();
-        //    flushAccum = 0f;
-        //}
-    }
-
-    // ────────────────────────────────────────────────────────────────────────────
-    private void LogFpsToFile()
-    {
-        //if (!RecordingManager.startRecordingFromZero)
-        //    return;
-
-        //if (!firstFpsTimestampLogged)
-        //{
-        //    firstFpsLoggedTime = Time.time;
-        //    firstFpsTimestampLogged = true;
-        //}
-
-        //float offsetTime = Time.time - firstFpsLoggedTime;
-        //fpsWriter?.WriteLine($"{offsetTime:F3};{latestSmoothedFps:F2}");
-    }
-
-    // ────────────────────────────────────────────────────────────────────────────
-    private void OnDestroy()
-    {
-        //if (fpsWriter != null)
-        //{
-        //    fpsWriter.Flush();
-        //    fpsWriter.Close();
-        //    fpsWriter = null;
-        //}
-    }
-
     private void OnGUI()
     {
         GUIStyle style = new GUIStyle
