@@ -121,6 +121,7 @@ public class SplineTreePlacer : MonoBehaviour
 
             if (markStatic)
             {
+#pragma warning disable CS0618 // NavigationStatic/OffMeshLinkGeneration deprecated but still functional
                 GameObjectUtility.SetStaticEditorFlags(tree,
                     StaticEditorFlags.OccluderStatic |
                     StaticEditorFlags.OccludeeStatic |
@@ -129,6 +130,7 @@ public class SplineTreePlacer : MonoBehaviour
                     StaticEditorFlags.OffMeshLinkGeneration |
                     StaticEditorFlags.ContributeGI |
                     StaticEditorFlags.ReflectionProbeStatic);
+#pragma warning restore CS0618
             }
 #else
             GameObject tree = Instantiate(prefabToUse, pos, rot, container.transform);

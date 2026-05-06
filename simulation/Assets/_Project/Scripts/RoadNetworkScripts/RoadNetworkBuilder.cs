@@ -505,6 +505,7 @@ public class RoadNetworkBuilder : MonoBehaviour
     // ContributeGI intentionally excluded — procedural road meshes are too
     // numerous to UV-unwrap for lightmaps (causes crash/huge atlas counts).
     // Polygon buildings/terrain get ContributeGI separately in BuildPolygonGameObject.
+#pragma warning disable CS0618 // NavigationStatic/OffMeshLinkGeneration deprecated but still functional
     private const StaticEditorFlags RoadStaticFlags =
         StaticEditorFlags.OccluderStatic |
         StaticEditorFlags.OccludeeStatic |
@@ -512,6 +513,7 @@ public class RoadNetworkBuilder : MonoBehaviour
         StaticEditorFlags.NavigationStatic |
         StaticEditorFlags.OffMeshLinkGeneration |
         StaticEditorFlags.ReflectionProbeStatic;
+#pragma warning restore CS0618
 
     private static void SetStaticRecursively(GameObject obj)
     {
