@@ -32,8 +32,6 @@ public class SimulationController : MonoBehaviour
     public int prewarmVehiclesPerModel = 8;
     [Tooltip("Maximum inactive vehicles kept per prefab. Extra returns are destroyed.")]
     public int maxPoolSizePerModel = 80;
-    [Tooltip("NPC colliders are enabled only within this distance from the ego vehicle.")]
-    public float npcColliderDistance = 55f;
     [Tooltip("Distance used by NPC scripts to decide if expensive/high-detail behaviour is allowed.")]
     public float npcHighDetailDistance = 45f;
     [Tooltip("How often each NPC evaluates honking/red-light checks. Higher is cheaper.")]
@@ -42,8 +40,6 @@ public class SimulationController : MonoBehaviour
     public float npcMovementSharpness = 14f;
     [Tooltip("How quickly SUMO NPC visuals chase the latest rotation sample.")]
     public float npcRotationSharpness = 14f;
-    [Tooltip("Disable NPC colliders when they are far from the ego vehicle.")]
-    public bool disableNpcCollidersWhenFar = true;
 
     [Header("NPC Horn Audio")]
     [Tooltip("Up to 3 short horn clips; a random one plays each honk.")]
@@ -742,12 +738,10 @@ public class SimulationController : MonoBehaviour
         vc.hornHonkChance = npcHornHonkChance;
         vc.hornAmbientChance = npcHornAmbientChance;
         vc.ConfigurePerformance(
-            npcColliderDistance,
             npcHighDetailDistance,
             npcHornCheckInterval,
             npcMovementSharpness,
-            npcRotationSharpness,
-            disableNpcCollidersWhenFar);
+            npcRotationSharpness);
     }
 
     public static class JsonHelper

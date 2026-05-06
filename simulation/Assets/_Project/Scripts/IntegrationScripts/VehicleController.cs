@@ -36,12 +36,10 @@ public class VehicleController : MonoBehaviour
     [HideInInspector] public float hornAmbientChance = 0.1f;
 
     [Header("NPC Performance")]
-    [SerializeField] private float colliderDistance = 55f;
     [SerializeField] private float highDetailDistance = 45f;
     [SerializeField] private float hornCheckInterval = 0.5f;
     [SerializeField] private float movementSharpness = 14f;
     [SerializeField] private float rotationSharpness = 14f;
-    [SerializeField] private bool disableCollidersWhenFar = true;
 
     private AudioSource _hornSource;
     private float _stoppedTimer;
@@ -80,19 +78,15 @@ public class VehicleController : MonoBehaviour
     /// to pooled/spawned NPCs without requiring every prefab to be edited.
     /// </summary>
     public void ConfigurePerformance(
-        float npcColliderDistance,
         float npcHighDetailDistance,
         float npcHornCheckInterval,
         float npcMovementSharpness,
-        float npcRotationSharpness,
-        bool npcDisableCollidersWhenFar)
+        float npcRotationSharpness)
     {
-        colliderDistance = Mathf.Max(0f, npcColliderDistance);
         highDetailDistance = Mathf.Max(0f, npcHighDetailDistance);
         hornCheckInterval = Mathf.Max(0.05f, npcHornCheckInterval);
         movementSharpness = Mathf.Max(1f, npcMovementSharpness);
         rotationSharpness = Mathf.Max(1f, npcRotationSharpness);
-        disableCollidersWhenFar = npcDisableCollidersWhenFar;
     }
 
     /// <summary>
@@ -255,15 +249,10 @@ public class VehicleController : MonoBehaviour
         }
 
         float sqrDist = (_egoTransform.position - transform.position).sqrMagnitude;
-        float colliderSqr = colliderDistance * colliderDistance;
         float highDetailSqr = highDetailDistance * highDetailDistance;
 
         IsHighDetail = sqrDist <= highDetailSqr;
-
-        if (disableCollidersWhenFar)
-            SetColliderState(sqrDist <= colliderSqr);
-        else
-            SetColliderState(true);
+        SetColliderState(true);
     }
 
     private void SetColliderState(bool enabled)
