@@ -10,6 +10,7 @@ Assets/Resources.meta
 
 # unity build
 build/
+installer/
 
 # rider
 .idea/
