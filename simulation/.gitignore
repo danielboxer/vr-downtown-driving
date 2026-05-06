@@ -4,6 +4,13 @@ vehicle_data_report.txt
 rtf_report.txt
 Results/
 
+# generated on unity build
+Assets/Resources/
+Assets/Resources.meta
+
+# unity build
+build/
+
 # rider
 .idea/
 

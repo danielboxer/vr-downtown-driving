@@ -1,4 +1,5 @@
-﻿// ============================== 
+﻿#if UNITY_EDITOR
+// ============================== 
 // RoadNetworkEditorWindow.cs
 // (full version incl. 2-slide banners for windows 1-3)
 // ==============================
@@ -525,4 +526,5 @@ public class PerformanceFunctionsWindow : EditorWindow
 
     private void OnInspectorUpdate() => Repaint();
 }
+#endif // UNITY_EDITOR
 
