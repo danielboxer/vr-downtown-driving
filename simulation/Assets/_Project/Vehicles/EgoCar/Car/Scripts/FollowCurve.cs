@@ -88,7 +88,9 @@ public class FollowCurve : MonoBehaviour
     [ReadOnly, SerializeField] private float _dbgLateralOffset;
     [ReadOnly, SerializeField] private float _dbgClosestT;
     [ReadOnly, SerializeField] private float _dbgDistanceToSpline;
+#pragma warning disable CS0414 // assigned for Inspector display only
     [ReadOnly, SerializeField] private bool _dbgIsActive;
+#pragma warning restore CS0414
 
     // ──────────────────────────────────────────────────────────────
     //  Unity lifecycle
