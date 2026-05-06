@@ -2,6 +2,20 @@
 
 The simulation extends the Sumo2Unity project. See their documentation [here](https://github.com/SimuTraffX-Lab/SUMO2Unity/blob/main/README.md).
 
+## Building the Unity project
+
+First install IL2CPP module
+
+1. Open Unity Hub
+2. Go to Installs
+4. Click the Manage button next to your Unity version
+5. Click Add modules
+6. Check Windows Build Support (IL2CPP)
+7. Click Install
+
+Download Inno Setup which is used for packaging the Unity build into a single file: https://jrsoftware.org/isinfo.php
+
+
 ## Scenarios
 
 Six scenarios across two vehicle modes. Select one in the tool before starting Unity.
