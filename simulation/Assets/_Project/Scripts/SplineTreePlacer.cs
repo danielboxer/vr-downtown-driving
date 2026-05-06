@@ -11,8 +11,10 @@ public class SplineTreePlacer : MonoBehaviour
     public Spline targetSpline;
 
     [Header("Trees")]
-    [Tooltip("Tree prefabs to randomly choose from. Pick uniformly at random each placement.")]
+    [Tooltip("Tree prefabs to randomly choose from.")]
     public GameObject[] treePrefabs;
+    [Tooltip("Relative spawn weight for each prefab (same length as Tree Prefabs). Higher = more frequent. Leave empty for equal weights.")]
+    public float[] treeWeights;
     [Tooltip("Arc-length spacing between consecutive trees (meters).")]
     public float spacing = 8f;
 
@@ -72,7 +74,24 @@ public class SplineTreePlacer : MonoBehaviour
             return;
         }
 
-        // 2. Walk along the arc and place trees
+        // 2. Build cumulative weight table for weighted random prefab selection
+        float[] cumWeights = new float[treePrefabs.Length];
+        float weightSum = 0f;
+        for (int i = 0; i < treePrefabs.Length; i++)
+        {
+            float w = (treeWeights != null && i < treeWeights.Length) ? Mathf.Max(0f, treeWeights[i]) : 1f;
+            weightSum += w;
+            cumWeights[i] = weightSum;
+        }
+        if (weightSum <= 0f)
+        {
+            // All weights zero or not set: fall back to uniform
+            for (int i = 0; i < treePrefabs.Length; i++)
+                cumWeights[i] = i + 1f;
+            weightSum = treePrefabs.Length;
+        }
+
+        // 3. Walk along the arc and place trees
         Random.InitState(randomSeed);
 
         // Parent the container one level outside the spline so the generated trees are not
@@ -104,8 +123,13 @@ public class SplineTreePlacer : MonoBehaviour
 
             Quaternion rot = Quaternion.Euler(0f, Random.Range(-rotationJitter, rotationJitter), 0f);
 
-            // Pick a random prefab from the list (skip null entries)
-            int prefabIdx = Random.Range(0, treePrefabs.Length);
+            // Pick a prefab using weighted random selection (skip null entries)
+            float rnd = Random.value * weightSum;
+            int prefabIdx = treePrefabs.Length - 1;
+            for (int i = 0; i < cumWeights.Length; i++)
+            {
+                if (rnd <= cumWeights[i]) { prefabIdx = i; break; }
+            }
             GameObject prefabToUse = treePrefabs[prefabIdx];
             if (prefabToUse == null)
             {
@@ -117,7 +141,9 @@ public class SplineTreePlacer : MonoBehaviour
             GameObject tree = (GameObject)PrefabUtility.InstantiatePrefab(prefabToUse);
             tree.transform.SetParent(container.transform);
             tree.transform.position = pos;
-            tree.transform.rotation = rot;
+            // Compose jitter with the prefab's baked rotation so the prefab's
+            // native orientation (e.g. a 90-degree X offset) is preserved.
+            tree.transform.rotation = rot * prefabToUse.transform.rotation;
 
             if (markStatic)
             {
@@ -133,7 +159,7 @@ public class SplineTreePlacer : MonoBehaviour
 #pragma warning restore CS0618
             }
 #else
-            GameObject tree = Instantiate(prefabToUse, pos, rot, container.transform);
+            GameObject tree = Instantiate(prefabToUse, pos, rot * prefabToUse.transform.rotation, container.transform);
 #endif
             tree.name = $"Tree_{placed}";
             placed++;
