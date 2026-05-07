@@ -41,12 +41,17 @@ public class ExchangeData : MonoBehaviour
     // Sending ego data every 1 ms is unnecessary for a 0.1 s SUMO step and can
     // waste CPU/queue bandwidth. Keep it comfortably above the SUMO step rate.
     private double _nextVehicleSendTime;
+    private double _sendInterval;
     private static readonly double StopwatchToSeconds = 1.0 / Stopwatch.Frequency;
 
 
     public void Start()
     {
         _SimulationController = GetComponent<SimulationController>();
+
+        // Pre-compute the send interval (unityStepLength doesn't change at runtime)
+        float step = Mathf.Max(0.02f, _SimulationController.unityStepLength * 0.5f);
+        _sendInterval = Mathf.Min(step, 0.1f);
 
         // Start the communication thread
         _isRunning = true;
@@ -100,8 +105,7 @@ public class ExchangeData : MonoBehaviour
                             // keep the thread alive so we can still receive messages.
                             dealerSocket.TrySendFrame(vehicleDataJson);
 
-                            float step = Mathf.Max(0.02f, _SimulationController.unityStepLength * 0.5f);
-                            _nextVehicleSendTime = nowSeconds + Mathf.Min(step, 0.1f);
+                            _nextVehicleSendTime = nowSeconds + _sendInterval;
                         }
 
                         // Send any queued commands immediately (e.g. RESTART_SIMULATION from a keypress)

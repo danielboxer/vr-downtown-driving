@@ -26,7 +26,7 @@ public class VehicleController : MonoBehaviour
     /// <summary>Whether this vehicle is currently close enough for high-detail behaviours.</summary>
     public bool IsHighDetail { get; private set; } = true;
 
-    // ── Horn audio ──
+    // ── Horn audio (fallback when no ScriptableObject is assigned) ──
     [HideInInspector] public List<AudioClip> hornClips = new List<AudioClip>();
     [HideInInspector] public float hornVolume = 1f;
     [HideInInspector] public float hornTriggerDelay = 3f;
@@ -41,6 +41,8 @@ public class VehicleController : MonoBehaviour
     [SerializeField] private float movementSharpness = 14f;
     [SerializeField] private float rotationSharpness = 14f;
 
+    private float highDetailDistanceSqr = 45f * 45f;
+
     private AudioSource _hornSource;
     private float _stoppedTimer;
     private float _lastHornTime = -99f;
@@ -51,6 +53,7 @@ public class VehicleController : MonoBehaviour
     private bool _collidersEnabled = true;
     private float _nextDetailCheckTime;
     private float _nextHornCheckTime;
+    private bool _egoTransformResolved;
 
     private const float DetailCheckInterval = 0.25f;
 
@@ -74,6 +77,29 @@ public class VehicleController : MonoBehaviour
     }
 
     /// <summary>
+    /// Assigns a shared ScriptableObject config. VehicleController reads values
+    /// from the config at runtime instead of per-instance field copies.
+    /// </summary>
+    public void SetConfig(NpcVehicleConfig config)
+    {
+        if (config == null) return;
+
+        highDetailDistance = config.highDetailDistance;
+        highDetailDistanceSqr = config.highDetailDistanceSqr;
+        hornCheckInterval = config.hornCheckInterval;
+        movementSharpness = config.movementSharpness;
+        rotationSharpness = config.rotationSharpness;
+
+        hornClips = config.hornClips;
+        hornVolume = config.hornVolume;
+        hornTriggerDelay = config.hornTriggerDelay;
+        hornCooldown = config.hornCooldown;
+        hornTriggerDistance = config.hornTriggerDistance;
+        hornHonkChance = config.hornHonkChance;
+        hornAmbientChance = config.hornAmbientChance;
+    }
+
+    /// <summary>
     /// Allows SimulationController to push one central set of performance settings
     /// to pooled/spawned NPCs without requiring every prefab to be edited.
     /// </summary>
@@ -84,6 +110,7 @@ public class VehicleController : MonoBehaviour
         float npcRotationSharpness)
     {
         highDetailDistance = Mathf.Max(0f, npcHighDetailDistance);
+        highDetailDistanceSqr = highDetailDistance * highDetailDistance;
         hornCheckInterval = Mathf.Max(0.05f, npcHornCheckInterval);
         movementSharpness = Mathf.Max(1f, npcMovementSharpness);
         rotationSharpness = Mathf.Max(1f, npcRotationSharpness);
@@ -118,8 +145,8 @@ public class VehicleController : MonoBehaviour
         _wasAtRedLight = false;
         _nextDetailCheckTime = 0f;
         _nextHornCheckTime = Time.time + Random.Range(0f, hornCheckInterval);
+        _egoTransformResolved = false;
 
-        SetColliderState(true);
         UpdateDetailState(force: true);
     }
 
@@ -229,10 +256,11 @@ public class VehicleController : MonoBehaviour
         if (_simController == null)
             _simController = FindFirstObjectByType<SimulationController>();
 
-        if (_egoTransform == null && _simController != null && _simController.egoVehicle != null)
+        if (!_egoTransformResolved && _simController != null && _simController.egoVehicle != null)
+        {
             _egoTransform = _simController.egoVehicle.transform;
-
-
+            _egoTransformResolved = true;
+        }
     }
 
     private void UpdateDetailState(bool force)
@@ -240,19 +268,17 @@ public class VehicleController : MonoBehaviour
         if (!force && Time.time < _nextDetailCheckTime) return;
         _nextDetailCheckTime = Time.time + DetailCheckInterval;
 
-        ResolveSimulationController();
+        if (!_egoTransformResolved)
+            ResolveSimulationController();
+
         if (_egoTransform == null)
         {
             IsHighDetail = true;
-            SetColliderState(true);
             return;
         }
 
         float sqrDist = (_egoTransform.position - transform.position).sqrMagnitude;
-        float highDetailSqr = highDetailDistance * highDetailDistance;
-
-        IsHighDetail = sqrDist <= highDetailSqr;
-        SetColliderState(true);
+        IsHighDetail = sqrDist <= highDetailDistanceSqr;
     }
 
     private void SetColliderState(bool enabled)
