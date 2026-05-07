@@ -15,6 +15,7 @@ public class SimulationController : MonoBehaviour
 
     private Transform pooledVehiclesRoot;
     private string vehicleDataJson = "{}";
+    private string lastValidVehicleDataJson = "{}";
     private readonly object vehicleDataLock = new object();
     private readonly string egoVehicleId = "f_0.0";
     [HideInInspector] public GameObject egoVehicle;
@@ -267,8 +268,9 @@ public class SimulationController : MonoBehaviour
     {
         if (!vehicleObjects.ContainsKey(egoVehicleId) || egoVehicle == null)
         {
-            UnityEngine.Debug.LogWarning("Ego vehicle not found. Sending empty JSON.");
-            return "{}";
+            // Return the last valid ego data so Python keeps calling moveToXY
+            // and SUMO does not remove f_0.0 from the simulation.
+            return lastValidVehicleDataJson;
         }
 
         if (egoRigidbody == null)
@@ -298,6 +300,7 @@ public class SimulationController : MonoBehaviour
         egoVehicleData.lat_speed = lateral_speed;
 
         string jsonData = JsonHelper.ToJson(new Vehicle[] { egoVehicleData });
+        lastValidVehicleDataJson = jsonData;
         return jsonData;
     }
 
