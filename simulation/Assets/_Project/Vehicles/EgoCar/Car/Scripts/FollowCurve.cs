@@ -216,9 +216,11 @@ public class FollowCurve : MonoBehaviour
         float blended = Mathf.Lerp(playerSteering, splineSteering, effectiveWeight);
 
         // Scene-view debug lines
+#if UNITY_EDITOR
         Debug.DrawLine(transform.position, closestPoint, Color.cyan);   // nearest spline point
         Debug.DrawLine(transform.position, lookAheadPoint, Color.yellow); // look-ahead target
         Debug.DrawRay(transform.position, carForward * 3f, Color.blue);   // car forward
+#endif
 
         return blended;
     }
