@@ -16,6 +16,7 @@ public class Fps : MonoBehaviour
     private float displayedFps;
     private const float guiUpdateInterval = 0.5f;
     private float guiTimer;
+    private GUIStyle _fpsStyle;
 
     // ────────────────────────────────────────────────────────────  references
     private ExchangeData _ExchangeData;
@@ -56,12 +57,15 @@ public class Fps : MonoBehaviour
     // ────────────────────────────────────────────────────────────────────────────
     private void OnGUI()
     {
-        GUIStyle style = new GUIStyle
+        if (_fpsStyle == null)
         {
-            fontSize = fontSize,
-            normal = { textColor = Color.white }
-        };
+            _fpsStyle = new GUIStyle
+            {
+                fontSize = fontSize,
+                normal = { textColor = Color.white }
+            };
+        }
 
-        GUI.Label(new Rect(5, 5, 200, 25), "FPS: " + Mathf.Round(displayedFps), style);
+        GUI.Label(new Rect(5, 5, 200, 25), "FPS: " + Mathf.Round(displayedFps), _fpsStyle);
     }
 }

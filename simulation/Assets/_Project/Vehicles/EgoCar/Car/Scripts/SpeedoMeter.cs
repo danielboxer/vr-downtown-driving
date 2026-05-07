@@ -15,6 +15,7 @@ public class Speedometer : MonoBehaviour
     private Text m_text;
     private float timeSinceLastUpdate = 0f;
     private float m_Speed = 0f;
+    private int _lastDisplayedSpeed = -1;
 
     [Tooltip("Seconds per flash half-cycle for the turn signal arrow. Lower = faster. Match to your blinker sound interval.")]
     public float signalFlashInterval = 0.5f;
@@ -78,8 +79,13 @@ public class Speedometer : MonoBehaviour
                 }
                 else
                 {
-                    // Format to always show two digits, e.g. "05", "10"
-                    m_text.text = string.Format("{0:00} km/h", m_Speed);
+                    // Only allocate a new string when the displayed value actually changes
+                    int speedInt = (int)m_Speed;
+                    if (speedInt != _lastDisplayedSpeed)
+                    {
+                        m_text.text = string.Format("{0:00} km/h", speedInt);
+                        _lastDisplayedSpeed = speedInt;
+                    }
                 }
             }
 
