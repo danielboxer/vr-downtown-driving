@@ -32,9 +32,11 @@ ArchitecturesInstallIn64BitMode=x64compatible
 DisableProgramGroupPage=yes
 ; Remove the following line to run in administrative install mode (install for all users).
 PrivilegesRequired=lowest
-OutputDir=C:\Users\dleeb\Desktop\thesis\vr-downtown-driving\simulation\installer
-OutputBaseFilename=VRDowntownDriving Setup (x86)
+OutputDir={#SourcePath}build\installer
+OutputBaseFilename=VRDowntownDriving Setup (x64)
 SolidCompression=yes
+Compression=lzma2
+MinVersion=10.0
 WizardStyle=modern
 
 [Languages]
@@ -44,13 +46,13 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "C:\Users\dleeb\Desktop\thesis\vr-downtown-driving\simulation\build\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\dleeb\Desktop\thesis\vr-downtown-driving\simulation\build\D3D12\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "C:\Users\dleeb\Desktop\thesis\vr-downtown-driving\simulation\build\VRDowntownDriving_Data\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "C:\Users\dleeb\Desktop\thesis\vr-downtown-driving\simulation\build\baselib.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\dleeb\Desktop\thesis\vr-downtown-driving\simulation\build\GameAssembly.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\dleeb\Desktop\thesis\vr-downtown-driving\simulation\build\UnityCrashHandler64.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\dleeb\Desktop\thesis\vr-downtown-driving\simulation\build\UnityPlayer.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#SourcePath}build\Windows\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#SourcePath}build\Windows\D3D12\*"; DestDir: "{app}\D3D12"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#SourcePath}build\Windows\VRDowntownDriving_Data\*"; DestDir: "{app}\VRDowntownDriving_Data"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#SourcePath}build\Windows\baselib.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#SourcePath}build\Windows\GameAssembly.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#SourcePath}build\Windows\UnityCrashHandler64.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#SourcePath}build\Windows\UnityPlayer.dll"; DestDir: "{app}"; Flags: ignoreversion
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]
