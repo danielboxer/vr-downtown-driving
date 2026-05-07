@@ -196,20 +196,21 @@ namespace UnityStandardAssets.Vehicles.Car
 
         private void CapSpeed()
         {
-            float speed = m_Rigidbody.linearVelocity.magnitude;
+            Vector3 vel = m_Rigidbody.linearVelocity;
+            float speed = vel.magnitude;
             switch (m_SpeedType)
             {
                 case SpeedType.MPH:
 
                     speed *= 2.23693629f;
                     if (speed > m_Topspeed)
-                        m_Rigidbody.linearVelocity = (m_Topspeed / 2.23693629f) * m_Rigidbody.linearVelocity.normalized;
+                        m_Rigidbody.linearVelocity = (m_Topspeed / 2.23693629f) / (speed / 2.23693629f) * vel;
                     break;
 
                 case SpeedType.KPH:
                     speed *= 3.6f;
                     if (speed > m_Topspeed)
-                        m_Rigidbody.linearVelocity = (m_Topspeed / 3.6f) * m_Rigidbody.linearVelocity.normalized;
+                        m_Rigidbody.linearVelocity = (m_Topspeed / 3.6f) / (speed / 3.6f) * vel;
                     break;
             }
         }
@@ -296,8 +297,7 @@ namespace UnityStandardAssets.Vehicles.Car
         // this is used to add more grip in relation to speed
         private void AddDownForce()
         {
-            m_WheelColliders[0].attachedRigidbody.AddForce(-transform.up * m_Downforce *
-                                                         m_WheelColliders[0].attachedRigidbody.linearVelocity.magnitude);
+            m_Rigidbody.AddForce(-transform.up * m_Downforce * m_Rigidbody.linearVelocity.magnitude);
         }
 
 
