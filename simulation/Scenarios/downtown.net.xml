@@ -1,40 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on 2026-04-24 21:53:05 by Eclipse SUMO netedit Version 1.22.0
-<neteditConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/neteditConfiguration.xsd">
-
-    <input>
-        <additional-files value="C:\Users\dleeb\Desktop\thesis\vr-downtown-driving\simulation\Scenarios\downtown.poly.xml"/>
-        <route-files value="C:\Users\dleeb\Desktop\thesis\vr-downtown-driving\simulation\Scenarios\vtypes.rou.xml"/>
-        <sumo-net-file value="C:\Users\dleeb\Desktop\thesis\vr-downtown-driving\simulation\Scenarios\downtown.net.xml"/>
-    </input>
-
-    <output>
-        <output-file value="C:\Users\dleeb\Desktop\thesis\vr-downtown-driving\simulation\Scenarios\downtown.net.xml"/>
-        <output.street-names value="true"/>
-    </output>
-
-    <processing>
-        <geometry.min-radius.fix.railways value="false"/>
-        <geometry.max-grade.fix value="false"/>
-        <offset.disable-normalization value="true"/>
-        <lefthand value="0"/>
-    </processing>
-
-    <junctions>
-        <no-turnarounds value="true"/>
-        <junctions.corner-detail value="5"/>
-        <junctions.limit-turn-speed value="5.50"/>
-        <rectangular-lane-cut value="0"/>
-    </junctions>
-
-    <pedestrian>
-        <walkingareas value="0"/>
-    </pedestrian>
-
-</neteditConfiguration>
--->
-
 <net version="1.20" junctionCornerDetail="5" limitTurnSpeed="5.50" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/net_file.xsd">
 
     <location netOffset="0.00,0.00" convBoundary="2.35,0.00,606.12,623.90" origBoundary="-79.384007,43.654534,-79.376494,43.660561" projParameter="+proj=utm +zone=17 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"/>
