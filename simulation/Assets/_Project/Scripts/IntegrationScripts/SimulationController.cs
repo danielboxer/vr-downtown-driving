@@ -21,44 +21,33 @@ public class SimulationController : MonoBehaviour
     [HideInInspector] public GameObject egoVehicle;
     private Rigidbody egoRigidbody;
     private float long_speed;
+
+    // Separate queue for SUMO messages avoids closure/delegate allocation per message.
+    private readonly ConcurrentQueue<string> _sumoMessageQueue = new ConcurrentQueue<string>();
     private readonly ConcurrentQueue<Action> mainThreadActions = new ConcurrentQueue<Action>();
+
+    // Pre-allocated buffers for CollectVehicleData (avoids per-frame GC)
+    private readonly Vehicle _egoVehicleBuffer = new Vehicle();
+    private readonly double[] _egoPositionBuffer = new double[3];
+    private readonly Vehicle[] _egoVehicleArray = new Vehicle[1];
+
+    // Cached component references
+    private ScenarioManager _scenarioManager;
 
     [Header("Unity Step Length (seconds)")]
     public float unityStepLength = 0.10f;
 
-    [Header("NPC Pooling & Detail")]
+    [Header("NPC Config (optional, overrides per-field settings below)")]
+    [Tooltip("Shared ScriptableObject for NPC vehicle settings. If assigned, the per-field settings below are ignored.")]
+    public NpcVehicleConfig npcConfig;
+
+    [Header("NPC Pooling")]
     [Tooltip("Reuse NPC vehicle GameObjects instead of Instantiate/Destroy every time SUMO context changes.")]
     public bool useVehiclePooling = true;
     [Tooltip("How many inactive vehicles to create per configured vehicle prefab at startup.")]
     public int prewarmVehiclesPerModel = 8;
     [Tooltip("Maximum inactive vehicles kept per prefab. Extra returns are destroyed.")]
     public int maxPoolSizePerModel = 80;
-    [Tooltip("Distance used by NPC scripts to decide if expensive/high-detail behaviour is allowed.")]
-    public float npcHighDetailDistance = 45f;
-    [Tooltip("How often each NPC evaluates honking/red-light checks. Higher is cheaper.")]
-    public float npcHornCheckInterval = 0.5f;
-    [Tooltip("How quickly SUMO NPC visuals chase the latest position sample.")]
-    public float npcMovementSharpness = 14f;
-    [Tooltip("How quickly SUMO NPC visuals chase the latest rotation sample.")]
-    public float npcRotationSharpness = 14f;
-
-    [Header("NPC Horn Audio")]
-    [Tooltip("Up to 3 short horn clips; a random one plays each honk.")]
-    public List<AudioClip> npcHornClips = new List<AudioClip>();
-    [Range(0f, 2f)]
-    public float npcHornVolume = 1f;
-    [Tooltip("Seconds an NPC must be stationary before honking.")]
-    public float npcHornTriggerDelay = 3f;
-    [Tooltip("Minimum seconds between honks from the same NPC.")]
-    public float npcHornCooldown = 5f;
-    [Tooltip("Distance in metres within which the ego car triggers honking.")]
-    public float npcHornTriggerDistance = 18f;
-    [Range(0f, 1f)]
-    [Tooltip("Probability (0-1) that a qualifying NPC actually honks each cooldown window.")]
-    public float npcHornHonkChance = 0.4f;
-    [Range(0f, 1f)]
-    [Tooltip("Probability (0-1) that a stopped NPC randomly honks with no ego nearby (general traffic impatience).")]
-    public float npcHornAmbientChance = 0.1f;
 
     [Header("Add all Junction GameObjects")]
     public GameObject junctions;           // drag 'Junctions' root here, or leave empty to auto-find
@@ -199,6 +188,8 @@ public class SimulationController : MonoBehaviour
             return;
         }
 
+        _scenarioManager = GetComponent<ScenarioManager>();
+
         // Ensure ExchangeData component is present (added here if not already on the GameObject)
         if (GetComponent<ExchangeData>() == null)
             gameObject.AddComponent<ExchangeData>();
@@ -248,20 +239,18 @@ public class SimulationController : MonoBehaviour
                 vehicleDataJson = data;
             }
 
+            // Drain SUMO messages (no closure allocation per message)
+            while (_sumoMessageQueue.TryDequeue(out string msg))
+                HandleMessage(msg);
+
+            // Drain any other main-thread actions
             while (mainThreadActions.TryDequeue(out var action))
-            {
                 action();
-            }
         }
         catch (Exception ex)
         {
             Debug.LogError($"Exception in Update(): {ex.Message}\n{ex.StackTrace}");
         }
-    }
-
-    public void EnqueueMainThreadAction(Action action)
-    {
-        mainThreadActions.Enqueue(action);
     }
 
     public string CollectVehicleData()
@@ -281,25 +270,21 @@ public class SimulationController : MonoBehaviour
 
         Vector3 position = egoVehicle.transform.position;
         float unroundangle = egoVehicle.transform.rotation.eulerAngles.y;
-        double angle = Math.Round(unroundangle, 2);
-        double x = Math.Round(position.x, 2);
-        double y = Math.Round(position.z, 2);
-        double z = Math.Round(position.y, 2);
-        string type = "ego";
 
-        float vertical_speed = (float)Math.Round(egoVelocity.y, 2);
-        float lateral_speed = (float)Math.Round(egoVelocity.z, 2);
+        _egoPositionBuffer[0] = Math.Round(position.x, 2);
+        _egoPositionBuffer[1] = Math.Round(position.z, 2);
+        _egoPositionBuffer[2] = Math.Round(position.y, 2);
 
-        Vehicle egoVehicleData = new Vehicle();
-        egoVehicleData.vehicle_id = egoVehicleId;
-        egoVehicleData.position = new double[] { x, y, z };
-        egoVehicleData.angle = angle;
-        egoVehicleData.type = type;
-        egoVehicleData.long_speed = (float)Math.Round(long_speed, 2);
-        egoVehicleData.vert_speed = vertical_speed;
-        egoVehicleData.lat_speed = lateral_speed;
+        _egoVehicleBuffer.vehicle_id = egoVehicleId;
+        _egoVehicleBuffer.position = _egoPositionBuffer;
+        _egoVehicleBuffer.angle = Math.Round(unroundangle, 2);
+        _egoVehicleBuffer.type = "ego";
+        _egoVehicleBuffer.long_speed = (float)Math.Round(long_speed, 2);
+        _egoVehicleBuffer.vert_speed = (float)Math.Round(egoVelocity.y, 2);
+        _egoVehicleBuffer.lat_speed = (float)Math.Round(egoVelocity.z, 2);
 
-        string jsonData = JsonHelper.ToJson(new Vehicle[] { egoVehicleData });
+        _egoVehicleArray[0] = _egoVehicleBuffer;
+        string jsonData = JsonHelper.ToJson(_egoVehicleArray);
         lastValidVehicleDataJson = jsonData;
         return jsonData;
     }
@@ -312,76 +297,99 @@ public class SimulationController : MonoBehaviour
         }
     }
 
+    public void EnqueueOnMainThread(string message)
+    {
+        _sumoMessageQueue.Enqueue(message);
+    }
+
+    public void EnqueueMainThreadAction(Action action)
+    {
+        mainThreadActions.Enqueue(action);
+    }
+
+    // Constants for fast type detection without full JSON deserialization.
+    // Python sends JSON with separators=(",",":") so the prefix is always {"type":"<type>"
+    private const string TypeKeyVehicles = "\"type\":\"vehicles\"";
+    private const string TypeKeyTrafficlights = "\"type\":\"trafficlights\"";
+    private const string TypeKeyConfig = "\"type\":\"config\"";
+    private const string TypeKeyCommand = "\"type\":\"command\"";
+
     public void HandleMessage(string message)
     {
-        CommonMessage common = JsonUtility.FromJson<CommonMessage>(message);
+        if (string.IsNullOrEmpty(message)) return;
 
-        if (common == null || string.IsNullOrEmpty(common.type))
-        {
-            Debug.LogError("Received message with no type field or invalid JSON.");
-            return;
-        }
-
-        if (common.type == "config")
-        {
-            ConfigMessage cfg = JsonUtility.FromJson<ConfigMessage>(message);
-            Debug.Log($"Received config: scenario={cfg.scenario}");
-            var scenarioManager = GetComponent<ScenarioManager>();
-            if (scenarioManager != null)
-                scenarioManager.ApplyScenario(cfg.scenario);
-            return;
-        }
-        else if (common.type == "command")
-        {
-            if (common.command == "START_RECORDING")
-            {
-                RecordingManager.startRecordingFromZero = true;
-                RecordingManager.recordingStartTime = Time.time;
-                Debug.Log("Received START_RECORDING command from SUMO. Starting logs from zero now.");
-            }
-            else if (common.command == "STOP_RECORDING")
-            {
-                // Stop recording
-                RecordingManager.startRecordingFromZero = false;
-                Debug.Log("Received STOP_RECORDING command from SUMO. Stopping logs.");
-
-                // Remove all surrounding cars except ego
-                vehiclesToRemove.Clear();
-                foreach (string vid in vehicleObjects.Keys)
-                {
-                    if (vid != egoVehicleId)
-                        vehiclesToRemove.Add(vid);
-                }
-
-                for (int i = 0; i < vehiclesToRemove.Count; i++)
-                    RemoveNpcVehicle(vehiclesToRemove[i], keepDetachedDebris: false);
-            }
-
-            return; // No further vehicle parsing needed
-        }
-        else if (common.type == "vehicles")
+        // Fast path: detect message type via string search (avoids a full JSON
+        // deserialization just to read the "type" field).
+        if (message.IndexOf(TypeKeyVehicles, StringComparison.Ordinal) >= 0)
         {
             HandleVehiclesMessage(message);
         }
-        else if (common.type == "trafficlights")
+        else if (message.IndexOf(TypeKeyTrafficlights, StringComparison.Ordinal) >= 0)
         {
-            var wrapper = JsonUtility.FromJson<TrafficLightsWrapper>(message);
-            if (wrapper == null || wrapper.lights == null) return;
-
-            foreach (var tl in wrapper.lights)
+            HandleTrafficLightsMessage(message);
+        }
+        else if (message.IndexOf(TypeKeyConfig, StringComparison.Ordinal) >= 0)
+        {
+            ConfigMessage cfg = JsonUtility.FromJson<ConfigMessage>(message);
+            if (cfg != null && !string.IsNullOrEmpty(cfg.scenario))
             {
-                // only repaint if state actually changed
-                if (!_lastTlState.TryGetValue(tl.junction_id, out var prev)
-                 || prev != tl.state)
-                {
-                    ChangeTrafficStatus(tl.junction_id, tl.state);
-                    _lastTlState[tl.junction_id] = tl.state;
-                }
+                Debug.Log($"Received config: scenario={cfg.scenario}");
+                if (_scenarioManager != null)
+                    _scenarioManager.ApplyScenario(cfg.scenario);
             }
+        }
+        else if (message.IndexOf(TypeKeyCommand, StringComparison.Ordinal) >= 0)
+        {
+            CommonMessage common = JsonUtility.FromJson<CommonMessage>(message);
+            if (common != null)
+                HandleCommandMessage(common.command);
         }
         else
         {
-            Debug.LogWarning("Received message with unknown type: " + common.type);
+            Debug.LogWarning("Received message with unknown type: " + message);
+        }
+    }
+
+    private void HandleCommandMessage(string command)
+    {
+        if (command == "START_RECORDING")
+        {
+            RecordingManager.startRecordingFromZero = true;
+            RecordingManager.recordingStartTime = Time.time;
+            Debug.Log("Received START_RECORDING command from SUMO. Starting logs from zero now.");
+        }
+        else if (command == "STOP_RECORDING")
+        {
+            RecordingManager.startRecordingFromZero = false;
+            Debug.Log("Received STOP_RECORDING command from SUMO. Stopping logs.");
+
+            // Remove all surrounding cars except ego
+            vehiclesToRemove.Clear();
+            foreach (string vid in vehicleObjects.Keys)
+            {
+                if (vid != egoVehicleId)
+                    vehiclesToRemove.Add(vid);
+            }
+
+            for (int i = 0; i < vehiclesToRemove.Count; i++)
+                RemoveNpcVehicle(vehiclesToRemove[i], keepDetachedDebris: false);
+        }
+    }
+
+    private void HandleTrafficLightsMessage(string message)
+    {
+        var wrapper = JsonUtility.FromJson<TrafficLightsWrapper>(message);
+        if (wrapper == null || wrapper.lights == null) return;
+
+        foreach (var tl in wrapper.lights)
+        {
+            // only repaint if state actually changed
+            if (!_lastTlState.TryGetValue(tl.junction_id, out var prev)
+             || prev != tl.state)
+            {
+                ChangeTrafficStatus(tl.junction_id, tl.state);
+                _lastTlState[tl.junction_id] = tl.state;
+            }
         }
     }
 
@@ -454,11 +462,6 @@ public class SimulationController : MonoBehaviour
                 vehiclePrefabById.Add(vehicle.vehicle_id, prefabToInstantiate);
             }
         }
-    }
-
-    public void EnqueueOnMainThread(string message)
-    {
-        EnqueueMainThreadAction(() => HandleMessage(message));
     }
 
     private void ChangeTrafficStatus(string junctionID, string state)
@@ -733,18 +736,8 @@ public class SimulationController : MonoBehaviour
     {
         if (vc == null) return;
 
-        vc.hornClips = npcHornClips;
-        vc.hornVolume = npcHornVolume;
-        vc.hornTriggerDelay = npcHornTriggerDelay;
-        vc.hornCooldown = npcHornCooldown;
-        vc.hornTriggerDistance = npcHornTriggerDistance;
-        vc.hornHonkChance = npcHornHonkChance;
-        vc.hornAmbientChance = npcHornAmbientChance;
-        vc.ConfigurePerformance(
-            npcHighDetailDistance,
-            npcHornCheckInterval,
-            npcMovementSharpness,
-            npcRotationSharpness);
+        if (npcConfig != null)
+            vc.SetConfig(npcConfig);
     }
 
     public static class JsonHelper
