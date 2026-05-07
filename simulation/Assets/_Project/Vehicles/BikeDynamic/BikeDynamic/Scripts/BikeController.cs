@@ -215,8 +215,7 @@ namespace UnityStandardAssets.Bike
 
         private void AddDownForce()
         {
-            m_WheelColliders[0].attachedRigidbody.AddForce(-transform.up * m_Downforce *
-                                                           m_WheelColliders[0].attachedRigidbody.linearVelocity.magnitude);
+            m_Rigidbody.AddForce(-transform.up * m_Downforce * m_Rigidbody.linearVelocity.magnitude);
         }
 
         private void TractionControl()
