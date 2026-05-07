@@ -123,6 +123,7 @@ public class VehicleController : MonoBehaviour
                                     float longSpd, float vertSpd, float latSpd)
     {
         EnsureComponents();
+        EnsureHornSource();
         ResolveSimulationController();
 
         IsDetached = false;
