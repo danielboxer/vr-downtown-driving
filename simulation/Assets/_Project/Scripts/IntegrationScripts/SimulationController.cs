@@ -307,6 +307,25 @@ public class SimulationController : MonoBehaviour
         mainThreadActions.Enqueue(action);
     }
 
+    /// <summary>
+    /// Removes all NPC vehicles from the scene (returns them to pool or destroys).
+    /// Does not touch the ego vehicle. Call on scenario change or simulation restart.
+    /// </summary>
+    public void ClearAllNpcVehicles()
+    {
+        vehiclesToRemove.Clear();
+        foreach (string id in vehicleObjects.Keys)
+        {
+            if (id != egoVehicleId)
+                vehiclesToRemove.Add(id);
+        }
+
+        for (int i = 0; i < vehiclesToRemove.Count; i++)
+            RemoveNpcVehicle(vehiclesToRemove[i], keepDetachedDebris: false);
+
+        vehiclesToRemove.Clear();
+    }
+
     // Constants for fast type detection without full JSON deserialization.
     // Python sends JSON with separators=(",",":") so the prefix is always {"type":"<type>"
     private const string TypeKeyVehicles = "\"type\":\"vehicles\"";
