@@ -239,6 +239,10 @@ public class ScenarioManager : MonoBehaviour
         _scenarioActive = true;
         Debug.Log($"ScenarioManager: Applying scenario '{scenario}'");
 
+        // Remove all active NPC vehicles before switching scenario.
+        if (_simController != null)
+            _simController.ClearAllNpcVehicles();
+
         // Disable everything first
         if (egoCar != null) egoCar.SetActive(false);
         if (egoBike != null) egoBike.SetActive(false);
