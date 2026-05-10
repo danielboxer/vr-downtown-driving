@@ -368,7 +368,12 @@ public class VehicleController : MonoBehaviour
     {
         if (_hornSource != null) return;
 
-        _hornSource = GetComponent<AudioSource>() ?? gameObject.AddComponent<AudioSource>();
+        // Use explicit if-check instead of ?? so Unity's custom == operator
+        // handles fake-null (invalid/destroyed) components correctly.
+        _hornSource = GetComponent<AudioSource>();
+        if (_hornSource == null)
+            _hornSource = gameObject.AddComponent<AudioSource>();
+        if (_hornSource == null) return;
         _hornSource.playOnAwake = false;
         _hornSource.loop = false;
         _hornSource.spatialBlend = 1f;
