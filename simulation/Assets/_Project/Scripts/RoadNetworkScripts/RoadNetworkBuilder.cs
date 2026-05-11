@@ -1093,10 +1093,17 @@ public class RoadNetworkBuilder : MonoBehaviour
                 // Flip the mirror along the local X axis
                 mirror.transform.localScale = new Vector3(-1f, 1f, 1f);
 
-                // Optional pole collider on the mirror
+                // Optional pole collider on the mirror. The mirror has localScale (-1,1,1) for the
+                // visual flip, so attach the collider to a child that counter-scales back to (1,1,1)
+                // to avoid the "negative size BoxCollider" warning from the physics engine.
                 if (addTrafficLightColliders)
                 {
-                    var mirrorCol = mirror.AddComponent<BoxCollider>();
+                    GameObject mirrorColHost = new GameObject("Collider");
+                    mirrorColHost.transform.SetParent(mirror.transform);
+                    mirrorColHost.transform.localPosition = Vector3.zero;
+                    mirrorColHost.transform.localRotation = Quaternion.identity;
+                    mirrorColHost.transform.localScale = new Vector3(-1f, 1f, 1f); // cancels parent -1 X
+                    var mirrorCol = mirrorColHost.AddComponent<BoxCollider>();
                     mirrorCol.size = trafficLightColliderSize;
                     mirrorCol.center = trafficLightColliderCenter;
                 }
