@@ -584,7 +584,6 @@ public class SimulationController : MonoBehaviour
             });
         }
 
-        Debug.Log($"[SimulationController] Cached {stopLineCache.Count} stop-line triggers.");
     }
 
     private string FindNearestJunctionName(Transform t)

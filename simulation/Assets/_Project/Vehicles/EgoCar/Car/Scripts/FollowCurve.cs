@@ -111,8 +111,7 @@ public class FollowCurve : MonoBehaviour
         spline = assignedSpline ?? targetSpline;
         if (spline != null)
             Debug.Log($"FollowCurve: Using spline '{spline.gameObject.name}', base weight = {splineWeight:F2}");
-        else
-            Debug.LogWarning("FollowCurve: No spline assigned — using player input only.");
+
     }
 
     // ──────────────────────────────────────────────────────────────
