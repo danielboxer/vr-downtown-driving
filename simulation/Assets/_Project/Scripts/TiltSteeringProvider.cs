@@ -93,7 +93,6 @@ public class TiltSteeringProvider : MonoBehaviour
     private const float MinProjectedVectorSqrMagnitude = 0.0001f;
 
     private InputAction _keyboardSteerAction;
-    private InputAction _calibrateAction;
 
     private float _centerAngle;
     private float _currentUnwrappedAngle;
@@ -124,7 +123,6 @@ public class TiltSteeringProvider : MonoBehaviour
         {
             var map = inputActions.FindActionMap(actionMapName, false);
             _keyboardSteerAction = map?.FindAction("Steer", false);
-            _calibrateAction = map?.FindAction("Calibrate", false);
         }
     }
 
@@ -140,7 +138,6 @@ public class TiltSteeringProvider : MonoBehaviour
         SteeringWheelAngle = 0f;
         SetLineVisible(false);
         _keyboardSteerAction?.Enable();
-        _calibrateAction?.Enable();
     }
 
     private void OnDisable()
@@ -151,7 +148,6 @@ public class TiltSteeringProvider : MonoBehaviour
         SteeringWheelAngle = 0f;
         SetLineVisible(false);
         _keyboardSteerAction?.Disable();
-        _calibrateAction?.Disable();
     }
 
     private void Update()
@@ -198,13 +194,6 @@ public class TiltSteeringProvider : MonoBehaviour
 
         // Auto-calibrate on first valid two-controller vector after enable.
         if (!_calibrated && calibrateOnEnable)
-        {
-            SetCenter(currentAngle);
-        }
-
-        // Manual calibration: use the Calibrate action
-        bool calibrateHeld = _calibrateAction?.IsPressed() ?? false;
-        if (calibrateHeld)
         {
             SetCenter(currentAngle);
         }

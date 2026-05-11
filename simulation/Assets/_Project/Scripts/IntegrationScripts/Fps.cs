@@ -62,7 +62,7 @@ public class Fps : MonoBehaviour
             _fpsStyle = new GUIStyle
             {
                 fontSize = fontSize,
-                normal = { textColor = Color.white }
+                normal = { textColor = Color.black }
             };
         }
 
