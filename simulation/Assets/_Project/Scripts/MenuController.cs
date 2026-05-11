@@ -110,9 +110,16 @@ public class MenuController : MonoBehaviour
     /// <summary>Launches the Sumo2UnityTool PyInstaller binary in a separate process.</summary>
     public void OnOpenScenarioManager()
     {
-        if (string.IsNullOrEmpty(scenarioManagerExePath))
+        // Use the Inspector-assigned path if set, otherwise fall back to a path
+        // relative to the Unity build directory (sibling of the game .exe).
+        string exePath = !string.IsNullOrEmpty(scenarioManagerExePath)
+            ? scenarioManagerExePath
+            : System.IO.Path.GetFullPath(
+                System.IO.Path.Combine(Application.dataPath, "..", "Sumo2UnityTool.exe"));
+
+        if (!System.IO.File.Exists(exePath))
         {
-            Debug.LogWarning("[MenuController] scenarioManagerExePath is not set.");
+            Debug.LogWarning($"[MenuController] Scenario Manager executable not found at: {exePath}");
             return;
         }
 
@@ -120,7 +127,7 @@ public class MenuController : MonoBehaviour
         {
             Process.Start(new ProcessStartInfo
             {
-                FileName = scenarioManagerExePath,
+                FileName = exePath,
                 UseShellExecute = true
             });
         }
