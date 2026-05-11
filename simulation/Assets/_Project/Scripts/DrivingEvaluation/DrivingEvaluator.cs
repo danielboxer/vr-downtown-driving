@@ -219,8 +219,6 @@ public class DrivingEvaluator : MonoBehaviour
             : null;
 
         _egoRb = egoVehicle.GetComponent<Rigidbody>();
-
-        Debug.Log($"[DrivingEvaluator] Evaluation started — scenario: {scenario}, mode: {_vehicleMode}");
     }
 
     /// <summary>
