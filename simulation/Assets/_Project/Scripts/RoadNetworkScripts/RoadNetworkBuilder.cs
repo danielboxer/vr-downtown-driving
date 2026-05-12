@@ -694,16 +694,20 @@ public class RoadNetworkBuilder : MonoBehaviour
             int vi = i * vertsPerSeg;
             int ti = i * trisPerSeg;
 
-            // Place vertices along cross-section profile, scaling offsets by width taper
+            // Place vertices along cross-section profile.
+            // Width taper is applied only to the road-side (inner slope, offset <= 0);
+            // the outer portion keeps its full offset so the mesh never degenerates.
             for (int p = 0; p < profileCount; p++)
             {
                 float offset = profile[p].x;
                 float hFrac = profile[p].y;
+                float scaledOffsetA = offset <= 0f ? offset * wA : offset;
+                float scaledOffsetB = offset <= 0f ? offset * wB : offset;
 
                 verts[vi + p * 2] = new Vector3(
-                    a.x + outDir.x * (offset * wA), hA * hFrac, a.z + outDir.z * (offset * wA));
+                    a.x + outDir.x * scaledOffsetA, hA * hFrac, a.z + outDir.z * scaledOffsetA);
                 verts[vi + p * 2 + 1] = new Vector3(
-                    b.x + outDir.x * (offset * wB), hB * hFrac, b.z + outDir.z * (offset * wB));
+                    b.x + outDir.x * scaledOffsetB, hB * hFrac, b.z + outDir.z * scaledOffsetB);
             }
 
             // Build quads between adjacent profile strips
