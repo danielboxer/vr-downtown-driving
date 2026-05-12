@@ -98,7 +98,10 @@ public class FollowCurve : MonoBehaviour
 
     private void Start()
     {
-        RefreshSpline();
+        // Only fall back to targetSpline if ScenarioManager hasn't already
+        // assigned one (it calls RefreshSpline before Start runs on late-activate).
+        if (spline == null)
+            RefreshSpline();
     }
 
     /// <summary>
@@ -111,7 +114,6 @@ public class FollowCurve : MonoBehaviour
         spline = assignedSpline ?? targetSpline;
         if (spline != null)
             Debug.Log($"FollowCurve: Using spline '{spline.gameObject.name}', base weight = {splineWeight:F2}");
-
     }
 
     // ──────────────────────────────────────────────────────────────

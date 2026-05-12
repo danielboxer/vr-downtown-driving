@@ -9,6 +9,7 @@ namespace UnityStandardAssets.Bike
     {
         private BikeController m_Bike; // the bike controller we want to use
         private TiltSteeringProvider m_TiltSteering; // Optional tilt-based steering
+        private FollowCurve m_FollowCurve; // Steering influence blending (spline guide)
         public GameObject m_Wheel;
 
         [Header("Input Actions")]
@@ -68,7 +69,9 @@ namespace UnityStandardAssets.Bike
             // get the bike controller
             m_Bike = GetComponent<BikeController>();
             m_TiltSteering = GetComponent<TiltSteeringProvider>();
+            m_FollowCurve = GetComponent<FollowCurve>();
             _rb = GetComponent<Rigidbody>();
+
 
             // Resolve actions from the asset by name
             if (inputActions != null)
@@ -172,6 +175,11 @@ namespace UnityStandardAssets.Bike
             float h = _steerInput;
             float accel = _accelInput;
             float brake = _brakeInput;
+
+            // If FollowCurve is attached and enabled, blend the player's raw
+            // steering input with the spline-following autopilot value.
+            if (m_FollowCurve != null && m_FollowCurve.enabled)
+                h = m_FollowCurve.GetBlendedSteering(h, m_Bike.m_MaximumSteerAngle);
 
             // Determine the road-wheel steering angle based on input.
             float targetAngle = h * m_Bike.m_MaximumSteerAngle;
