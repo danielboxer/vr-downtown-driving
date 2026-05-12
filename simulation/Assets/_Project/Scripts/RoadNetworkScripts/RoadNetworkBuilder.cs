@@ -304,7 +304,10 @@ public class RoadNetworkBuilder : MonoBehaviour
         {
             if (string.IsNullOrEmpty(et.From))
             {
-                Debug.LogWarning($"Edge {et.Id} has no 'from'. Skipping.");
+                // Internal junction edges (id starts with ':') have no 'from' by design — skip silently.
+                // Only warn for regular edges where a missing 'from' is unexpected.
+                if (!et.Id.StartsWith(":"))
+                    Debug.LogWarning($"Edge {et.Id} has no 'from'. Skipping.");
                 continue;
             }
 
