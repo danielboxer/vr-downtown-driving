@@ -1,7 +1,7 @@
 [project]
-name = "Sumo2UnityTool"
+name = "ScenarioManager"
 version = "0.1.0"
-description = "Sumo2Unity tool for running the SUMO simulation and communicating to Unity"
+description = "Tool for running SUMO simulations and communicating to Unity"
 readme = "README.md"
 requires-python = ">=3.12"
 
