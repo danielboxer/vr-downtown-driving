@@ -718,6 +718,7 @@ GameObject:
   - component: {fileID: 3323033579634127223}
   - component: {fileID: 2483689335993353849}
   - component: {fileID: 3704634321560435116}
+  - component: {fileID: 6415660769480549401}
   m_Layer: 0
   m_Name: EgoBike
   m_TagString: Player
@@ -865,6 +866,11 @@ MonoBehaviour:
   actionMapName: Driving
   steerSmoothing: 5
   autoAccelRamp: 0.1
+  autoDecelRamp: 0.5
+  triggerDeadzone: 0.05
+  brakeStart: 0.65
+  fullBrakeThreshold: 0.95
+  stoppedSpeedThreshold: 0.5
 --- !u!114 &2483689335993353849
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -914,6 +920,36 @@ MonoBehaviour:
   drawProjectedControllerLine: 1
   projectedControllerLineRenderer: {fileID: 0}
   drawDebugLine: 1
+--- !u!114 &6415660769480549401
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3049986642694483780}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9934f99454a59be45bb74a9ab07a6ff2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FollowCurve
+  splineWeight: 0.8
+  lookAheadMeters: 10
+  lateralCorrectionGain: 0.3
+  maxLateralCorrection: 0.3
+  activationDistance: 10
+  fullBlendDistance: 5
+  enableTurnTightening: 1
+  turnStartT: 0.4
+  turnPeakT: 0.6
+  turnEndT: 0.8
+  turnPeakWeight: 1
+  targetSpline: {fileID: 0}
+  _dbgEffectiveWeight: 0
+  _dbgSplineSteer: 0
+  _dbgLateralOffset: 0
+  _dbgClosestT: 0
+  _dbgDistanceToSpline: 0
+  _dbgIsActive: 0
 --- !u!1 &4181878413488772468
 GameObject:
   m_ObjectHideFlags: 0
