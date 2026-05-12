@@ -864,7 +864,7 @@ MonoBehaviour:
   inputActions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   actionMapName: Driving
   steerSmoothing: 5
-  autoAccelRamp: 0.4
+  autoAccelRamp: 0.1
 --- !u!114 &2483689335993353849
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1046,7 +1046,7 @@ Camera:
     width: 1
     height: 1
   near clip plane: 0.05
-  far clip plane: 500
+  far clip plane: 600
   field of view: 60
   orthographic: 0
   orthographic size: 5
