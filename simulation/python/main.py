@@ -22,23 +22,39 @@ import zmq  # pip install pyzmq
 # ════════════════════════════════════════════════════════════════
 DEFAULTS = {
     "IntegrationStartTime": 540,
-    "ExperimentStartTime": 600,
     "ExperimentEndTime": 0,  # 0 = no time limit; set to a positive value (seconds) to stop after that sim time
+    "subscribe_radius": 120.0,
+}
+# Fields below are hidden from the GUI but still passed to run_sim unchanged.
+_HIDDEN_DEFAULTS = {
+    "ExperimentStartTime": 600,
     "steplength": 0.1,
     "lateral_resolution": 0.3,
-    "zoom": 150.0,  # (bigger value → closer)
-    "subscribe_radius": 120.0,  # ★ NEW (TraCI context radius)
+    "zoom": 150.0,  # SUMO GUI camera zoom (bigger = closer)
 }
 VERSION = "Sumo2Unity v2.0.0"
 
 
 # ═════════════════ GUI  SET-UP ══════════════════════════════════
 root = tk.Tk()
-root.title("Sumo2Unity Tool")
+root.title("Scenario Manager")
 root.resizable(True, True)
+root.minsize(420, 0)
 
-ttk.Label(root, text=VERSION, font=("TkDefaultFont", 12, "bold")).grid(
-    row=0, column=0, columnspan=4, pady=(6, 12)
+# Set window icon from the project Assets folder
+_icon_path = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "..", "Assets", "icon.png"
+)
+if os.path.isfile(_icon_path):
+    root.iconphoto(True, tk.PhotoImage(file=_icon_path))
+
+_style = ttk.Style()
+root.option_add("*Font", ("Segoe UI", 10))
+_style.configure("TEntry", padding=4)
+_style.configure("TButton", padding=6)
+
+ttk.Label(root, text="Scenario Manager", font=("Segoe UI", 12, "bold")).grid(
+    row=0, column=0, columnspan=4, pady=(12, 8)
 )
 
 root.columnconfigure(1, weight=1)
@@ -76,9 +92,9 @@ _default_scenario = (
 )
 scenario_dir_var = tk.StringVar(value=_default_scenario)
 
-ttk.Label(root, text="Scenario").grid(row=1, column=0, sticky="e", padx=6, pady=3)
+ttk.Label(root, text="Scenario").grid(row=1, column=0, sticky="e", padx=6, pady=6)
 _combo = ttk.Combobox(root, values=_scenario_names, state="readonly")
-_combo.grid(row=1, column=1, sticky="we", padx=6, pady=3)
+_combo.grid(row=1, column=1, sticky="we", padx=6, pady=6)
 if _scenario_names:
     _combo.set(_scenario_names[0])
 
@@ -105,7 +121,7 @@ def browse_scenario():
 
 
 ttk.Button(root, text="Browse…", command=browse_scenario).grid(
-    row=1, column=2, padx=6, pady=3
+    row=1, column=2, padx=6, pady=6
 )
 
 
@@ -113,40 +129,38 @@ def _get_scenario_dir() -> str:
     return scenario_dir_var.get().strip()
 
 
+_FIELD_LABELS = {
+    "IntegrationStartTime": "Unity Start Time",
+    "ExperimentEndTime": "Scenario End Time",
+    "subscribe_radius": "Subscribe Radius (m)",
+}
+
 entries, row = {}, 2
 for k, v in DEFAULTS.items():
-    label_text = (
-        "zoom (bigger value → closer)"
-        if k == "zoom"
-        else "subscribe radius (m)"
-        if k == "subscribe_radius"
-        else k
-    )
-    ttk.Label(root, text=label_text).grid(row=row, column=0, sticky="e", padx=6, pady=3)
+    label_text = _FIELD_LABELS.get(k, k)
+    ttk.Label(root, text=label_text).grid(row=row, column=0, sticky="e", padx=6, pady=6)
     e = ttk.Entry(root)
     e.insert(0, str(v))
-    e.grid(row=row, column=1, sticky="we", padx=6, pady=3)
+    e.grid(row=row, column=1, sticky="we", padx=6, pady=6)
     entries[k] = e
     row += 1
 
-# ── NEW OPTIONS ────────────────────────────────────────────────
+ttk.Separator(root, orient="horizontal").grid(
+    row=row, column=0, columnspan=4, sticky="ew", pady=(6, 2), padx=6
+)
+row += 1
+
 use_gui_var = tk.BooleanVar(value=True)
-rtf_var = tk.BooleanVar(value=False)
-free_cam_var = tk.BooleanVar(value=True)  # ★ NEW (Free-cam)
+free_cam_var = tk.BooleanVar(value=True)
 
 ttk.Checkbutton(root, text="Run SUMO with GUI", variable=use_gui_var).grid(
-    row=row, column=0, columnspan=2, sticky="w", padx=6, pady=3
+    row=row, column=0, columnspan=2, sticky="w", padx=6, pady=2
 )
 row += 1
-ttk.Checkbutton(root, text="Calculate RTF", variable=rtf_var).grid(
-    row=row, column=0, columnspan=2, sticky="w", padx=6, pady=3
+ttk.Checkbutton(root, text="Free camera", variable=free_cam_var).grid(
+    row=row, column=0, columnspan=2, sticky="w", padx=6, pady=2
 )
 row += 1
-ttk.Checkbutton(
-    root, text="Free camera (no follow ego vehicle)", variable=free_cam_var
-).grid(row=row, column=0, columnspan=2, sticky="w", padx=6, pady=3)
-row += 1  # ★ NEW
-# ────────────────────────────────────────────────────────────────
 
 
 # ═════════════════ SIMULATION (run_sim) ═════════════════════════
@@ -167,10 +181,10 @@ def run_sim(cfg: dict):
     steplength = cfg["steplength"]
     lateral_resolution = cfg["lateral_resolution"]
     zoom_level = cfg["zoom"]
-    subscribe_radius = cfg["subscribe_radius"]  # ★ NEW
+    subscribe_radius = cfg["subscribe_radius"]
     use_gui = cfg["use_gui"]
     calc_rtf = cfg["calc_rtf"]
-    free_cam = cfg["free_cam"]  # ★ NEW
+    free_cam = cfg["free_cam"]
 
     # ---------- logging ----------
     logging.basicConfig(
@@ -260,12 +274,12 @@ def run_sim(cfg: dict):
     # ---------- gui camera helper ----------
     ego = "f_0.0"
 
-    if use_gui and not free_cam:  # ★ NEW
+    if use_gui and not free_cam:
         view_id = "View #0"
         traci.gui.trackVehicle(view_id, ego)
         traci.gui.setSchema(view_id, "real world")
 
-    # ★ updated helper respects free_cam flag
+    # helper respects free_cam flag
     def cam_follow(view_id, veh_id):
         if free_cam:
             return
@@ -307,7 +321,6 @@ def run_sim(cfg: dict):
 
     # ---------- helpers ----------
     last_pos_z = {}
-    prof = {k: [] for k in ("Unity", "Step", "Collect", "Send", "DataProc", "Total")}
 
     def sleep_precise(d):
         t0 = time.perf_counter()
@@ -399,11 +412,9 @@ def run_sim(cfg: dict):
                 )
                 and not _restart_event.is_set()
             ):
-                loop_t0 = time.perf_counter()
                 sim_t = traci.simulation.getTime()
 
                 # ❶ Unity → SUMO positions
-                t0 = time.perf_counter()
                 while not u_q.empty():
                     msg = u_q.get()
                     # Handle RESTART_SIMULATION command sent from Unity
@@ -427,12 +438,9 @@ def run_sim(cfg: dict):
                                 )
                             except traci.exceptions.TraCIException:
                                 pass  # ego not yet inserted in SUMO; skip until it appears
-                prof["Unity"].append(time.perf_counter() - t0)
 
                 # ❷ SUMO step
-                t0 = time.perf_counter()
                 traci.simulationStep()
-                prof["Step"].append(time.perf_counter() - t0)
                 if use_gui:
                     cam_follow("View #0", ego)
 
@@ -451,7 +459,7 @@ def run_sim(cfg: dict):
                     last_sim, last_wall = sim_t, start_wall_t
 
                 # ❺ collect ego + context vehicles
-                t0 = time.perf_counter()
+
                 vlist = traci.vehicle.getIDList()
                 vdata = []
                 if ego in vlist:
@@ -498,7 +506,6 @@ def run_sim(cfg: dict):
                 vjson = json.dumps(
                     {"type": "vehicles", "vehicles": vdata}, separators=(",", ":")
                 )
-                prof["Collect"].append(time.perf_counter() - t0)
 
                 # ❻ traffic lights once per second
                 if sim_t - last_tl_t >= TL_INT:
@@ -518,9 +525,7 @@ def run_sim(cfg: dict):
                     last_tl_t = sim_t
 
                 # ❼ publish vehicles
-                t0 = time.perf_counter()
                 pub.send_string(vjson)
-                prof["Send"].append(time.perf_counter() - t0)
 
                 # ❽ incremental RTF (if enabled)
                 if calc_rtf and rtf_started and sim_t >= ExperimentStartTime:
@@ -538,7 +543,6 @@ def run_sim(cfg: dict):
                 # ❾ step pacing
                 sleep_precise(max(0.0, next_step - time.perf_counter()))
                 next_step += STEP
-                prof["Total"].append(time.perf_counter() - loop_t0)
 
             # end of main loop (inner)
 
@@ -625,8 +629,9 @@ def start_clicked():
             k: (int(v.get()) if "Time" in k else float(v.get()))
             for k, v in entries.items()
         }
+        cfg.update(_HIDDEN_DEFAULTS)
         cfg["use_gui"] = bool(use_gui_var.get())
-        cfg["calc_rtf"] = bool(rtf_var.get())
+        cfg["calc_rtf"] = False
         cfg["free_cam"] = bool(free_cam_var.get())
         cfg["scenario_dir"] = _get_scenario_dir()
     except ValueError:
