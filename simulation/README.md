@@ -34,30 +34,32 @@ Six scenarios across two vehicle modes. Select one in the tool before starting U
 
 **Car**
 
-| Action             | Keyboard   | VR                           |
-| ------------------ | ---------- | ---------------------------- |
-| Steer              | A / D      | Tilt controller              |
-| Accelerate         | W          | Right trigger                |
-| Brake              | S          | Left trigger                 |
-| Handbrake          | Space      |                              |
-| Left signal        | Q          | Left thumbstick left         |
-| Right signal       | E          | Left thumbstick right        |
-| Cancel signal      |            | Left thumbstick down         |
-| Drive / Reverse    | G (toggle) | Right thumbstick up / down   |
-| Calibrate steering | C (hold)   | Left secondary button (hold) |
-| Horn               | H          | Right thumbstick click       |
+| Action          | Keyboard   | VR                         |
+| --------------- | ---------- | -------------------------- |
+| Steer           | A / D      | Tilt controller            |
+| Accelerate      | W          | Right trigger              |
+| Brake           | S          | Left trigger               |
+| Handbrake       | Space      |                            |
+| Left signal     | 1          | Left thumbstick left       |
+| Right signal    | 2          | Left thumbstick right      |
+| Cancel signal   | 3          | Left thumbstick down       |
+| Drive / Reverse | G (toggle) | Right thumbstick up / down |
+| Horn            | H          | Right thumbstick click     |
+| Menu            | Escape     |                            |
+
+Steering auto-calibrates when controllers are first detected. Use the in-game menu to re-calibrate manually.
 
 
 **Bike**
 
-| Action    | Keyboard | VR                     |
-| --------- | -------- | ---------------------- |
-| Steer     | A / D    | Tilt controller        |
-| Brake     | S        | Both triggers (analog) |
-| Reverse   | R        | X button               |
-| Calibrate | C (hold) | Y button (hold)        |
+| Action  | Keyboard | VR                     |
+| ------- | -------- | ---------------------- |
+| Steer   | A / D    | Tilt controller        |
+| Brake   | S        | Both triggers (analog) |
+| Reverse | R        | X button               |
+| Menu    | Escape   |                        |
 
-Speed ramps up automatically when the brakes are released.
+Speed ramps up automatically after the first trigger press. Squeezing a trigger harder slows the bike; holding a full squeeze while stopped deactivates auto-acceleration (squeeze again to restart).
 
 ## Running
 
