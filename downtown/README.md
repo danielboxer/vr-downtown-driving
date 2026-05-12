@@ -1,31 +1,38 @@
-Export to fbx:
+# Downtown Toronto 3D Model
 
-Path Mode: Copy, Embed Textures
+Geo-accurate digital twin of the Yonge and Dundas intersection in Toronto. Modeled in Blender and used directly in the Unity simulation.
 
-Limit to: Selected Objects
+The exported FBX is located [here](../simulation/Assets/downtown/). The `.blend` source file is not included in this repository.
 
-Apply Scalings: FBX All
+## Modeling Pipeline
 
-after importing,
-Model > Generate Lightmap UVs
+- Reference geometry: Blosm (OpenStreetMap import)
+- Height calibration: Google 3D Tiles as reference
+- Textures: own photography processed with Krita and Stable Diffusion AI inpainting
+- UV mapping: projection mapping onto extruded OSM geometry
+- Two blocks of Yonge and one block of Dundas done photorealistically; remaining buildings use PBR facade variants
 
-Min Lightmap Resolution: 4
+## FBX Export Settings (Blender)
 
-Materials > Extract Textures, Extract Materials
+- Path Mode: Copy, Embed Textures
+- Limit to: Selected Objects
+- Apply Scalings: FBX All
 
-Add mesh collider to all buildings
+## Unity Import Settings
 
-Set as static
+After importing the FBX:
 
-Bake lightmap
+- Model tab: enable **Generate Lightmap UVs**, Min Lightmap Resolution 4
+- Materials tab: **Extract Textures**, **Extract Materials**
+- Add MeshCollider to all buildings
+- Mark as **Static**
+- Bake lightmap (Window > Rendering > Lighting > Generate Lighting)
+- Bake occlusion culling (Window > Rendering > Occlusion Culling > Bake)
 
-Bake occlusion culling
+### Texture Settings
 
-Set downtown textures to turn on mipmap streaming
+Select all downtown textures and apply:
 
-Select all downtown textures:
 - Stream Mipmap Levels: On
 - Aniso Level: 8
 - Filter Mode: Trilinear
-
-Optimize textures and meshes: https://www.youtube.com/watch?v=BeB9Cx_msKA
