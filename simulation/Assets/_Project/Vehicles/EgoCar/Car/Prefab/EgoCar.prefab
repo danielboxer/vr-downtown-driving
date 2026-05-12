@@ -1316,7 +1316,7 @@ MonoBehaviour:
   calibrateOnEnable: 0
   drawProjectedControllerLine: 1
   projectedControllerLineRenderer: {fileID: 0}
-  drawDebugLine: 1
+  drawDebugLine: 0
 --- !u!1 &2861148910917411302
 GameObject:
   m_ObjectHideFlags: 0
