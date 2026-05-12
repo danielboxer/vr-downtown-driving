@@ -53,8 +53,6 @@ namespace UnityStandardAssets.Vehicles.Car
         // Whether the car is currently in reverse gear (toggled by GearChange action)
         private bool _isReverse;
 
-        [Header("Gear Change Audio")]
-        [Tooltip("Assign the gear-change clip on the CarAudio component instead.")]
         // Gear change audio is routed through CarAudio.PlayGearChange() for consistency.
 
         // Cached input values (read in Update, used in FixedUpdate)

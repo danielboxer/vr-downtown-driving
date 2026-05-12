@@ -208,7 +208,6 @@ def run_sim(cfg: dict):
         return matches[0] if matches else None
 
     sumocfg_file = _glob_one(scenario_dir, "*.sumocfg")
-    poly_file = _glob_one(parent_dir, "*.poly.xml")
 
     sumo_bin = "sumo-gui" if use_gui else "sumo"
 
@@ -226,6 +225,7 @@ def run_sim(cfg: dict):
         ]
     else:
         # Fallback: build command from discovered files (legacy behaviour)
+        poly_file = _glob_one(parent_dir, "*.poly.xml")
         net_file = _glob_one(parent_dir, "*.net.xml")
         route_file = _glob_one(scenario_dir, "*.rou.xml")
 
@@ -331,9 +331,7 @@ def run_sim(cfg: dict):
     # ---------- constants / RTF path ----------
     STEP = steplength
     TL_INT = 1.0
-    res_dir = os.path.join(
-        os.path.abspath(os.path.join(scenario_dir, os.pardir)), "Results"
-    )
+    res_dir = os.path.join(parent_dir, "Results")
     rtf_f = None
 
     try:
@@ -447,7 +445,10 @@ def run_sim(cfg: dict):
                 # ❸ send START_RECORDING after warm-up (independent of RTF)
                 if sim_t >= ExperimentStartTime and not start_rec_sent:
                     pub.send_string(
-                        json.dumps({"type": "command", "command": "START_RECORDING"})
+                        json.dumps(
+                            {"type": "command", "command": "START_RECORDING"},
+                            separators=(",", ":"),
+                        )
                     )
                     start_rec_sent = True
 
@@ -472,7 +473,6 @@ def run_sim(cfg: dict):
                             "position": (round(x, 2), round(y, 2), round(z, 2)),
                             "angle": round(ang, 2),
                             "type": vtype,
-                            "timestamp": round(time.time(), 2),
                         }
                     )
                     ctx_res = traci.vehicle.getContextSubscriptionResults(ego)
@@ -551,7 +551,10 @@ def run_sim(cfg: dict):
                 if start_rec_sent:
                     try:
                         pub.send_string(
-                            json.dumps({"type": "command", "command": "STOP_RECORDING"})
+                            json.dumps(
+                                {"type": "command", "command": "STOP_RECORDING"},
+                                separators=(",", ":"),
+                            )
                         )
                     except Exception:
                         pass
@@ -582,7 +585,10 @@ def run_sim(cfg: dict):
         if start_rec_sent:
             try:
                 pub.send_string(
-                    json.dumps({"type": "command", "command": "STOP_RECORDING"})
+                    json.dumps(
+                        {"type": "command", "command": "STOP_RECORDING"},
+                        separators=(",", ":"),
+                    )
                 )
             except Exception:
                 pass
