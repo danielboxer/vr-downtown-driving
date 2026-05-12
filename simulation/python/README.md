@@ -1,4 +1,4 @@
-# Sumo2UnityTool
+# Scenario Manager
 
 GUI for selecting and changing scenarios. There is a dropdown that allows you to run different SUMO scenarios.
 
@@ -18,5 +18,5 @@ uv run main.py
 ## Build Executable
 
 ```bash
-uv run pyinstaller --onefile --windowed main.py -n Sumo2UnityTool
+uv run pyinstaller --onefile --windowed main.py -n ScenarioManager
 ```

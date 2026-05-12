@@ -9,10 +9,10 @@ Usage examples:
     python generate_random_trips.py test_random_trips --flows 8 --period 2
 
     # Augment busy_downtown_car with extra random trips on top of its existing flows
-    python generate_random_trips.py busy_downtown_car --base-file Sumo2Unity.rou.xml
+    python generate_random_trips.py busy_downtown_car --base-file busy_downtown_car.rou.xml
 
     # No bikes, custom output file
-    python generate_random_trips.py downtown_car --no-bikes --output Sumo2Unity_random.rou.xml
+    python generate_random_trips.py downtown_car --no-bikes --output downtown_car_random.rou.xml
 """
 
 import argparse
@@ -315,21 +315,23 @@ def main() -> None:
         help=(
             "Existing route file to augment. "
             "Its trips/flows are preserved under '<!-- Existing flows / trips -->'. "
-            "Defaults to Sumo2Unity.rou.xml in the scenario folder if it exists."
+            "Defaults to {scenario}.rou.xml in the scenario folder if it exists."
         ),
     )
     parser.add_argument(
         "--output",
         metavar="PATH",
-        help="Output route file path (default: Sumo2Unity.rou.xml in scenario folder)",
+        help="Output route file path (default: {scenario}.rou.xml in scenario folder)",
     )
     args = parser.parse_args()
 
     rng = random.Random(args.seed)
     scenario_dir, net_file = resolve_scenario(args.scenario)
 
-    base_path = args.base_file or os.path.join(scenario_dir, "Sumo2Unity.rou.xml")
-    output_path = args.output or os.path.join(scenario_dir, "Sumo2Unity.rou.xml")
+    scenario_name = os.path.basename(scenario_dir)
+    default_rou = os.path.join(scenario_dir, scenario_name + ".rou.xml")
+    base_path = args.base_file or default_rou
+    output_path = args.output or default_rou
 
     base_entries = read_base_file(base_path) if args.base_file else []
     if base_entries:

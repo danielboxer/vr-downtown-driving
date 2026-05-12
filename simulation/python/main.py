@@ -1,5 +1,4 @@
 # ────────────────────────────────────────────────────────────────
-#  Sumo2UnityTool_combined.py
 #  GUI  +  SUMO ⇆ Unity simulation  (one file)
 #  Version : Sumo2Unity v2.0.0
 #  Author  : Ahmad Mohammadi, PhD – York University
@@ -32,7 +31,6 @@ _HIDDEN_DEFAULTS = {
     "lateral_resolution": 0.3,
     "zoom": 150.0,  # SUMO GUI camera zoom (bigger = closer)
 }
-VERSION = "Sumo2Unity v2.0.0"
 
 
 # ═════════════════ GUI  SET-UP ══════════════════════════════════
@@ -60,9 +58,15 @@ ttk.Label(root, text="Scenario Manager", font=("Segoe UI", 12, "bold")).grid(
 root.columnconfigure(1, weight=1)
 
 # ── Scenario folder picker ─────────────────────────────────────
-_SCENARIOS_ROOT = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "..", "Scenarios")
-)
+# When running as a PyInstaller bundle, __file__ points inside a temp extraction
+# dir, so we derive the path from sys.executable instead. In dev mode (plain
+# script), __file__ is simulation/python/main.py so ../Scenarios is correct.
+if getattr(sys, "frozen", False):
+    _SCENARIOS_ROOT = os.path.join(os.path.dirname(sys.executable), "Scenarios")
+else:
+    _SCENARIOS_ROOT = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "..", "Scenarios")
+    )
 
 # Collect all scenario subfolders that contain a .rou.xml file
 _scenario_names = sorted(
@@ -194,7 +198,9 @@ def run_sim(cfg: dict):
 
     # ---------- SUMO paths ----------
     if "SUMO_HOME" not in os.environ:
-        sys.exit("Set SUMO_HOME env variable.")
+        logger.error("SUMO_HOME is not set; cannot start simulation.")
+        root.after(0, _on_sim_finished)
+        return
     sys.path.append(os.path.join(os.environ["SUMO_HOME"], "tools"))
 
     scenario_dir = cfg["scenario_dir"]
@@ -630,6 +636,13 @@ def _on_sim_finished():
 
 def start_clicked():
     global _sim_thread
+    if "SUMO_HOME" not in os.environ:
+        messagebox.showerror(
+            "SUMO Not Found",
+            "SUMO_HOME environment variable is not set.\n\n"
+            "Install SUMO (https://sumo.dlr.de) and restart the application.",
+        )
+        return
     try:
         cfg = {
             k: (int(v.get()) if "Time" in k else float(v.get()))

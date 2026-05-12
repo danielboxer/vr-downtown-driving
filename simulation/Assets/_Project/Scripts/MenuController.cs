@@ -22,7 +22,7 @@ public class MenuController : MonoBehaviour
     public Sprite closeMenuSprite;
 
     [Header("Scenario Manager EXE")]
-    [Tooltip("Absolute path to the Sumo2UnityTool executable. Populate once the PyInstaller binary is built.")]
+    [Tooltip("Absolute path to the ScenarioManager executable. Populate once the PyInstaller binary is built.")]
     public string scenarioManagerExePath = "";
 
     [Header("Input")]
@@ -107,7 +107,7 @@ public class MenuController : MonoBehaviour
         RefreshUI();
     }
 
-    /// <summary>Launches the Sumo2UnityTool PyInstaller binary in a separate process.</summary>
+    /// <summary>Launches the ScenarioManager PyInstaller binary in a separate process.</summary>
     public void OnOpenScenarioManager()
     {
         // Use the Inspector-assigned path if set, otherwise fall back to a path
@@ -115,7 +115,7 @@ public class MenuController : MonoBehaviour
         string exePath = !string.IsNullOrEmpty(scenarioManagerExePath)
             ? scenarioManagerExePath
             : System.IO.Path.GetFullPath(
-                System.IO.Path.Combine(Application.dataPath, "..", "Sumo2UnityTool.exe"));
+                System.IO.Path.Combine(Application.dataPath, "..", "ScenarioManager.exe"));
 
         if (!System.IO.File.Exists(exePath))
         {

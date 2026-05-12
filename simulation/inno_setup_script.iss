@@ -53,6 +53,8 @@ Source: "{#SourcePath}build\Windows\baselib.dll"; DestDir: "{app}"; Flags: ignor
 Source: "{#SourcePath}build\Windows\GameAssembly.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#SourcePath}build\Windows\UnityCrashHandler64.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#SourcePath}build\Windows\UnityPlayer.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#SourcePath}build\ScenarioManager.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#SourcePath}Scenarios\*"; DestDir: "{app}\Scenarios"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]
