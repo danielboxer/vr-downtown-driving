@@ -7,7 +7,7 @@
 
     <input>
         <additional-files value="../downtown.poly.xml"/>
-        <route-files value="Sumo2Unity.rou.xml"/>
+        <route-files value="calibration_bike.rou.xml"/>
         <sumo-net-file value="../downtown.net.xml"/>
     </input>
 

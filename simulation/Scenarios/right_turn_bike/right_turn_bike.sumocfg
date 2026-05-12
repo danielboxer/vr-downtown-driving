@@ -6,8 +6,8 @@
 <sumoConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
 
     <input>
-        <net-file value="../downtown.net.xml"/>
-        <route-files value="Sumo2Unity.rou.xml"/>
+        <net-file value="../right_turn.net.xml"/>
+        <route-files value="right_turn_bike.rou.xml"/>
         <additional-files value="../downtown.poly.xml"/>
     </input>
 
