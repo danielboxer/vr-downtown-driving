@@ -4,8 +4,8 @@
 
 #define MyAppName "VRDowntownDriving"
 #define MyAppVersion "0.1"
-#define MyAppPublisher "Daniel"
-#define MyAppURL "https://github.com/DanielBoxer"
+#define MyAppPublisher "TMU"
+#define MyAppURL "https://github.com/danielboxer/vr-downtown-driving"
 #define MyAppExeName "VRDowntownDriving.exe"
 
 [Setup]
