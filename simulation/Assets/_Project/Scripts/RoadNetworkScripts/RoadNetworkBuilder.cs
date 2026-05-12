@@ -666,7 +666,7 @@ public class RoadNetworkBuilder : MonoBehaviour
         var verts = new Vector3[segCount * vertsPerSeg];
         var tris = new int[segCount * trisPerSeg];
 
-        // Distance-based height taper at strip ends
+        // Distance-based height and width taper at strip ends
         const float taperDist = 2.0f;
         float[] cumDist = new float[edgePts.Length];
         cumDist[0] = 0f;
@@ -679,11 +679,13 @@ public class RoadNetworkBuilder : MonoBehaviour
             Vector3 a = edgePts[i];
             Vector3 b = edgePts[i + 1];
 
-            // Taper height near strip endpoints
+            // Taper height and width near strip endpoints
             float dA = Mathf.Min(cumDist[i], totalLen - cumDist[i]);
             float dB = Mathf.Min(cumDist[i + 1], totalLen - cumDist[i + 1]);
             float hA = Mathf.Clamp01(dA / taperDist) * sidewalkHeight;
             float hB = Mathf.Clamp01(dB / taperDist) * sidewalkHeight;
+            float wA = Mathf.Clamp01(dA / taperDist);
+            float wB = Mathf.Clamp01(dB / taperDist);
 
             // Unit outward perpendicular for this segment
             Vector3 dir = (b - a).normalized;
@@ -692,16 +694,16 @@ public class RoadNetworkBuilder : MonoBehaviour
             int vi = i * vertsPerSeg;
             int ti = i * trisPerSeg;
 
-            // Place vertices along cross-section profile
+            // Place vertices along cross-section profile, scaling offsets by width taper
             for (int p = 0; p < profileCount; p++)
             {
                 float offset = profile[p].x;
                 float hFrac = profile[p].y;
 
                 verts[vi + p * 2] = new Vector3(
-                    a.x + outDir.x * offset, hA * hFrac, a.z + outDir.z * offset);
+                    a.x + outDir.x * (offset * wA), hA * hFrac, a.z + outDir.z * (offset * wA));
                 verts[vi + p * 2 + 1] = new Vector3(
-                    b.x + outDir.x * offset, hB * hFrac, b.z + outDir.z * offset);
+                    b.x + outDir.x * (offset * wB), hB * hFrac, b.z + outDir.z * (offset * wB));
             }
 
             // Build quads between adjacent profile strips
