@@ -88,9 +88,6 @@ public class DrivingEvaluator : MonoBehaviour
     [Tooltip("Optional voice prompt played after missing turn-signal warnings.")]
     [SerializeField] private AudioClip turnSignalVoiceClip;
 
-    [Tooltip("Optional voice prompt played when the driver exits the intersection on the wrong road.")]
-    [SerializeField] private AudioClip wrongWayVoiceClip;
-
     [Tooltip("Optional voice prompt played after a non-curb vehicle collision. Plays through the voice queue after the crash sound.")]
     [SerializeField] private AudioClip collisionVoiceClip;
 
@@ -166,7 +163,6 @@ public class DrivingEvaluator : MonoBehaviour
     // determine whether the car turned right, left, or took the wrong road.
     private string _lastStopLineJunctionId;
     private Vector3 _lastStopLineApproachDir;
-    private Vector3 _lastStopLinePosition;
 
     // Bundles the warning tone and optional voice clip for a single evaluator event.
     private struct PendingWarning
@@ -212,7 +208,6 @@ public class DrivingEvaluator : MonoBehaviour
 
         _lastStopLineJunctionId = null;
         _lastStopLineApproachDir = Vector3.zero;
-        _lastStopLinePosition = Vector3.zero;
 
         carUserControl = (_vehicleMode == VehicleMode.Car)
             ? egoVehicle.GetComponent<CarUserControl>()
@@ -306,25 +301,7 @@ public class DrivingEvaluator : MonoBehaviour
     {
         if (!_evaluationEnabled) return;
 
-        // ── 1. Wrong-way detection via stop lines ── (disabled)
-        /*
-        if (_lastStopLineJunctionId == trigger.junctionId &&
-            _lastStopLineApproachDir != Vector3.zero)
-        {
-            float parallelism = Mathf.Abs(
-                Vector3.Dot(trigger.transform.forward, _lastStopLineApproachDir));
-            if (parallelism < 0.3f)
-            {
-                LogEvent(trigger.junctionId, "WrongWayEntry", "");
-                QueueWarning(wrongWayVoiceClip);
-                Debug.LogWarning(
-                    $"[DrivingEvaluator] WRONG WAY at junction {trigger.junctionId}!");
-                return; // this stop line belongs to cross-traffic; skip red-light check
-            }
-        }
-        */
-
-        // ── 2. Update approach tracking ──
+        // ── 1. Update approach tracking ──
         // Only update when velocity is aligned with this stop line's direction so a
         // mid-intersection clip from an adjacent road does not overwrite the true approach.
         bool velocityAligned = _egoRb == null ||
@@ -334,10 +311,9 @@ public class DrivingEvaluator : MonoBehaviour
         {
             _lastStopLineJunctionId = trigger.junctionId;
             _lastStopLineApproachDir = trigger.transform.forward;
-            _lastStopLinePosition = trigger.transform.position;
         }
 
-        // ── 3. Red light check (always performed) ──
+        // ── 2. Red light check (always performed) ──
         if (simController != null)
         {
             string state = simController.GetTrafficLightState(trigger.junctionId);

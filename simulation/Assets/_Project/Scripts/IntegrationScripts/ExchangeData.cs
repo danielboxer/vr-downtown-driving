@@ -61,15 +61,12 @@ public class ExchangeData : MonoBehaviour
 
     void OnDestroy()
     {
-        // Stop the communication thread
+        // Stop the communication thread; NetMQConfig.Cleanup() runs in the thread's finally block
         _isRunning = false;
         if (_communicationThread != null && _communicationThread.IsAlive)
         {
             _communicationThread.Join();
         }
-
-        NetMQConfig.Cleanup();
-        Debug.Log("ExchangeData thread terminated gracefully.");
     }
 
     private void Run()
