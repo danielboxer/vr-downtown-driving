@@ -33,7 +33,7 @@ QualitySettings:
     realtimeGICPUUsage: 25
     adaptiveVsyncExtraA: 0
     adaptiveVsyncExtraB: 0
-    lodBias: 1
+    lodBias: 2
     meshLodThreshold: 1
     maximumLODLevel: 0
     enableLODCrossFade: 0
