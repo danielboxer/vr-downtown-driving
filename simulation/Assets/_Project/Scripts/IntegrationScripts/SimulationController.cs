@@ -207,12 +207,6 @@ public class SimulationController : MonoBehaviour
         BuildStopLineCache();
         CreatePoolRoot();
         PrewarmVehiclePools();
-
-        // Open log file in Results folder
-        //string sumoDataDir = LocateOrCreateResultsFolder();
-        //string logPath = Path.Combine(sumoDataDir, "vehicle_data_report.txt");
-        //writer = new StreamWriter(logPath, append: false, Encoding.UTF8);
-        //writer.WriteLine("timestep_time;vehicle_id;vehicle_x;vehicle_y;vehicle_z");
     }
 
     /// <summary>
