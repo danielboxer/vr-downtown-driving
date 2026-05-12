@@ -919,7 +919,7 @@ MonoBehaviour:
   calibrateOnEnable: 0
   drawProjectedControllerLine: 1
   projectedControllerLineRenderer: {fileID: 0}
-  drawDebugLine: 1
+  drawDebugLine: 0
 --- !u!114 &6415660769480549401
 MonoBehaviour:
   m_ObjectHideFlags: 0

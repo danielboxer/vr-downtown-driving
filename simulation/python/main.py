@@ -237,9 +237,11 @@ def run_sim(cfg: dict):
 
         if not net_file:
             logger.error("No *.net.xml found in %s", parent_dir)
+            root.after(0, _on_sim_finished)
             return
         if not route_file:
             logger.error("No *.rou.xml found in %s", scenario_dir)
+            root.after(0, _on_sim_finished)
             return
 
         sumo_cmd = [
@@ -300,9 +302,26 @@ def run_sim(cfg: dict):
     # ---------- ZMQ sockets ----------
     ctx = zmq.Context()
     pub = ctx.socket(zmq.PUB)
-    pub.bind("tcp://*:5556")
     rout = ctx.socket(zmq.ROUTER)
-    rout.bind("tcp://*:5557")
+    try:
+        pub.bind("tcp://*:5556")
+        rout.bind("tcp://*:5557")
+    except zmq.ZMQError as e:
+        logger.error(
+            "Failed to bind ZMQ sockets (ports 5556/5557 may already be in use): %s", e
+        )
+        try:
+            traci.close()
+        except Exception:
+            pass
+        try:
+            pub.close()
+            rout.close()
+            ctx.term()
+        except Exception:
+            pass
+        root.after(0, _on_sim_finished)
+        return
 
     # scenario config message (sent repeatedly during warm-up)
     scenario_name = os.path.basename(scenario_dir)
