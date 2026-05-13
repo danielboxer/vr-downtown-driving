@@ -133,6 +133,9 @@ def _get_scenario_dir() -> str:
     return scenario_dir_var.get().strip()
 
 
+_sumo_installed = "SUMO_HOME" in os.environ
+
+
 _FIELD_LABELS = {
     "IntegrationStartTime": "Unity Start Time",
     "ExperimentEndTime": "Scenario End Time",
@@ -159,6 +162,11 @@ free_cam_var = tk.BooleanVar(value=True)
 
 ttk.Checkbutton(root, text="Run SUMO with GUI", variable=use_gui_var).grid(
     row=row, column=0, columnspan=2, sticky="w", padx=6, pady=2
+)
+_sumo_label_text = "SUMO: installed" if _sumo_installed else "SUMO: not found"
+_sumo_label_color = "#006600" if _sumo_installed else "#cc6600"
+ttk.Label(root, text=_sumo_label_text, foreground=_sumo_label_color).grid(
+    row=row, column=2, padx=6, pady=2, sticky="w"
 )
 row += 1
 ttk.Checkbutton(root, text="Free camera", variable=free_cam_var).grid(
@@ -653,14 +661,60 @@ def _on_sim_finished():
     start_btn.config(state="normal", text="Start simulation")
 
 
+def _send_scenario_to_unity(scenario_name: str):
+    """Send config message to Unity via ZMQ without starting SUMO.
+
+    Runs on a background thread. Binds port 5556 briefly, sends the config
+    message repeatedly for slow-joiner mitigation, then releases the socket.
+    """
+    config_msg = json.dumps(
+        {"type": "config", "scenario": scenario_name}, separators=(",", ":")
+    )
+    try:
+        ctx_temp = zmq.Context()
+        pub_temp = ctx_temp.socket(zmq.PUB)
+        pub_temp.bind("tcp://*:5556")
+        # Brief pause so Unity's subscriber can connect (ZMQ slow-joiner mitigation)
+        time.sleep(0.3)
+        for _ in range(15):
+            pub_temp.send_string(config_msg)
+            time.sleep(0.05)
+    except zmq.ZMQError as e:
+        root.after(0, lambda msg=str(e): status_var.set(f"Switch failed: {msg}"))
+        return
+    finally:
+        try:
+            pub_temp.close()
+            ctx_temp.term()
+        except Exception:
+            pass
+        root.after(0, lambda: start_btn.config(state="normal", text="Start simulation"))
+
+    notice = (
+        f"Switched to '{scenario_name}' in Unity "
+        "(SUMO not installed - no traffic simulation)."
+    )
+    root.after(0, lambda msg=notice: status_var.set(msg))
+
+
 def start_clicked():
     global _sim_thread
-    if "SUMO_HOME" not in os.environ:
-        messagebox.showerror(
-            "SUMO Not Found",
-            "SUMO_HOME environment variable is not set.\n\n"
-            "Install SUMO (https://sumo.dlr.de) and restart the application.",
-        )
+    if not _sumo_installed:
+        # SUMO absent: send the scenario config to Unity so it can switch
+        # vehicles/splines, but warn the user there will be no NPC traffic.
+        scenario_dir = _get_scenario_dir()
+        if not scenario_dir or not os.path.isdir(scenario_dir):
+            messagebox.showerror(
+                "Missing scenario", "Please select a valid scenario folder."
+            )
+            return
+        status_var.set("Sending scenario to Unity (SUMO not installed)...")
+        start_btn.config(state="disabled", text="Switching...")
+        threading.Thread(
+            target=_send_scenario_to_unity,
+            args=(os.path.basename(scenario_dir),),
+            daemon=True,
+        ).start()
         return
     try:
         cfg = {
