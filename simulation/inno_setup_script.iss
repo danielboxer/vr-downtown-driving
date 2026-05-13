@@ -33,7 +33,7 @@ DisableProgramGroupPage=yes
 ; Remove the following line to run in administrative install mode (install for all users).
 PrivilegesRequired=lowest
 OutputDir={#SourcePath}build\installer
-OutputBaseFilename=VRDowntownDriving Setup (x64)
+OutputBaseFilename=VRDowntownDriving Setup {#MyAppVersion} (x64)
 SolidCompression=yes
 Compression=lzma2
 MinVersion=10.0
