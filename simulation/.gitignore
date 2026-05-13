@@ -20,6 +20,9 @@ build/
 # python
 .venv/
 __pycache__
+python/dist/
+python/build/
+python/*.spec
 
 
 # --------------------------- Unity gitignore below ----------------------------------------
