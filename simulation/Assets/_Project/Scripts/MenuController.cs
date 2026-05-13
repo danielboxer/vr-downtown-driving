@@ -31,6 +31,8 @@ public class MenuController : MonoBehaviour
     [Header("Input Mode")]
     [Tooltip("The XR Interaction Simulator root GameObject. Place it in the scene disabled; auto-enabled when no real XR device is detected.")]
     public GameObject xrInteractionSimulator;
+    [Tooltip("The XR Interaction Simulator UI overlay. Toggle independently of the simulator itself.")]
+    public GameObject xrSimulatorHUD;
 
     [Header("Feedback")]
     [Tooltip("TMP text element inside the menu panel that shows brief action feedback.")]
@@ -68,6 +70,20 @@ public class MenuController : MonoBehaviour
         // Auto-enable the interaction simulator when no real XR device is running.
         if (xrInteractionSimulator != null)
             xrInteractionSimulator.SetActive(!XRSettings.isDeviceActive);
+
+        // Auto-find the simulator HUD if not manually assigned (it's instantiated as a
+        // child of the simulator prefab in Awake, so it exists by the time Start runs).
+        if (xrSimulatorHUD == null && xrInteractionSimulator != null)
+        {
+            foreach (Transform child in xrInteractionSimulator.transform)
+            {
+                if (child.name.StartsWith("XR Interaction Simulator UI"))
+                {
+                    xrSimulatorHUD = child.gameObject;
+                    break;
+                }
+            }
+        }
 
         // Panel starts hidden; FPS and toggle button start visible.
         _displayVisible = true;
@@ -107,6 +123,8 @@ public class MenuController : MonoBehaviour
         // Swap the button icon based on whether the menu is currently open.
         if (menuToggleButtonIcon != null)
             menuToggleButtonIcon.sprite = _menuOpen ? closeMenuSprite : openMenuSprite;
+        // Simulator HUD follows the same visibility as the rest of the display.
+        if (xrSimulatorHUD != null) xrSimulatorHUD.SetActive(_displayVisible);
     }
 
     // ── Button handlers ────────────────────────────────────────────────────────
@@ -123,6 +141,7 @@ public class MenuController : MonoBehaviour
     {
         _displayVisible = !_displayVisible;
         RefreshUI();
+        ShowFeedback(_displayVisible ? "Display on" : "Display hidden");
     }
 
     /// <summary>Launches the ScenarioManager PyInstaller binary in a separate process.</summary>
@@ -149,10 +168,12 @@ public class MenuController : MonoBehaviour
                 FileName = exePath,
                 UseShellExecute = true
             });
+            ShowFeedback("Scenario Manager launched");
         }
         catch (System.Exception ex)
         {
             Debug.LogError($"[MenuController] Failed to launch Scenario Manager: {ex.Message}");
+            ShowFeedback("Failed to launch Scenario Manager");
         }
     }
 
@@ -194,6 +215,21 @@ public class MenuController : MonoBehaviour
         else
         {
             Debug.LogWarning("[MenuController] No XR Interaction Simulator assigned.");
+        }
+    }
+
+    /// <summary>Hides or shows the XR Interaction Simulator HUD overlay without disabling the simulator input.</summary>
+    public void OnToggleSimulatorHUD()
+    {
+        if (xrSimulatorHUD != null)
+        {
+            bool next = !xrSimulatorHUD.activeSelf;
+            xrSimulatorHUD.SetActive(next);
+            ShowFeedback(next ? "Simulator HUD: ON" : "Simulator HUD: OFF");
+        }
+        else
+        {
+            Debug.LogWarning("[MenuController] No XR Simulator HUD assigned.");
         }
     }
 
