@@ -15,6 +15,29 @@ First install IL2CPP module
 
 Download Inno Setup which is used for packaging the Unity build into a single file: https://jrsoftware.org/isinfo.php
 
+### Release build
+
+After installing Inno Setup, use `build-installer.ps1` to package a release:
+
+1. In Unity: **File → Build** and set the output folder to `simulation/build/Windows/`
+   *(The script expects the Unity build at that exact path.)*
+2. In a PowerShell terminal from `simulation/`:
+
+```powershell
+.\build-installer.ps1
+```
+
+This builds `ScenarioManager.exe` with PyInstaller and then compiles the Inno Setup installer.
+The finished installer is placed in `simulation/build/installer/`.
+
+To skip the PyInstaller step (when only the Unity build changed):
+
+```powershell
+.\build-installer.ps1 -SkipPyInstaller
+```
+
+To release a new version, update `MyAppVersion` at the top of `inno_setup_script.iss` before running the script.
+
 
 ## Scenarios
 
