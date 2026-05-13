@@ -2,6 +2,7 @@ using System.Diagnostics;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
+using UnityEngine.XR;
 using Debug = UnityEngine.Debug;
 
 /// <summary>
@@ -24,6 +25,10 @@ public class MenuController : MonoBehaviour
     [Header("Scenario Manager EXE")]
     [Tooltip("Absolute path to the ScenarioManager executable. Populate once the PyInstaller binary is built.")]
     public string scenarioManagerExePath = "";
+
+    [Header("Input Mode")]
+    [Tooltip("The XR Interaction Simulator root GameObject. Place it in the scene disabled; auto-enabled when no real XR device is detected.")]
+    public GameObject xrInteractionSimulator;
 
     [Header("Input")]
     [Tooltip("Assign InputSystem_Actions asset. The ToggleMenu action is resolved from the Driving map.")]
@@ -50,6 +55,10 @@ public class MenuController : MonoBehaviour
         _scenarioManager = FindFirstObjectByType<ScenarioManager>();
         _tiltSteering = FindFirstObjectByType<TiltSteeringProvider>();
         _fpsDisplay = FindFirstObjectByType<Fps>();
+
+        // Auto-enable the interaction simulator when no real XR device is running.
+        if (xrInteractionSimulator != null)
+            xrInteractionSimulator.SetActive(!XRSettings.isDeviceActive);
 
         // Panel starts hidden; FPS and toggle button start visible.
         _displayVisible = true;
@@ -155,6 +164,15 @@ public class MenuController : MonoBehaviour
             _scenarioManager.RestartScenario();
         else
             Debug.LogWarning("[MenuController] No ScenarioManager found in scene.");
+    }
+
+    /// <summary>Toggles the XR Interaction Simulator on or off.</summary>
+    public void OnToggleInteractionSimulator()
+    {
+        if (xrInteractionSimulator != null)
+            xrInteractionSimulator.SetActive(!xrInteractionSimulator.activeSelf);
+        else
+            Debug.LogWarning("[MenuController] No XR Interaction Simulator assigned.");
     }
 
     /// <summary>Quits the application (also stops Play mode in the Editor).</summary>
