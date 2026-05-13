@@ -1314,7 +1314,7 @@ MonoBehaviour:
   inputActions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   actionMapName: Driving
   calibrateOnEnable: 0
-  drawProjectedControllerLine: 1
+  drawProjectedControllerLine: 0
   projectedControllerLineRenderer: {fileID: 0}
   drawDebugLine: 0
 --- !u!1 &2861148910917411302
