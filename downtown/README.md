@@ -18,6 +18,8 @@ The exported FBX is located [here](../simulation/Assets/downtown/). The `.blend`
 - Limit to: Selected Objects
 - Apply Scalings: FBX All
 
+- Use FBX Bundler addon to copy textures and make mask maps
+
 ## Unity Import Settings
 
 After importing the FBX:
@@ -28,6 +30,9 @@ After importing the FBX:
 - Mark as **Static**
 - Bake lightmap (Window > Rendering > Lighting > Generate Lighting)
 - Bake occlusion culling (Window > Rendering > Occlusion Culling > Bake)
+- Setup the mask maps for all PBR textures
+- For all PBR textures (with normal maps), press "Fix Now" on the normal maps
+- Increase smoothness of some buildings that are mostly windows
 
 ### Texture Settings
 
