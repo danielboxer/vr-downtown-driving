@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using TMPro;
+using UnityEngine;
 
 /// <summary>
 ///   FPS on-screen display.
@@ -9,17 +10,31 @@ public class Fps : MonoBehaviour
     private float currentFps;
     private float smoothedFps;
     private float smoothingFactor = 0.1f;       // weight of recent frames
-    [SerializeField] private int fontSize = 25;          // GUI font size
 
     // ───────────────────────────────────────────────────────────────  GUI fields
-    private float latestSmoothedFps;
     private float displayedFps;
     private const float guiUpdateInterval = 0.5f;
     private float guiTimer;
-    private GUIStyle _fpsStyle;
+
+    [Header("UI")]
+    [Tooltip("TMP Text element that displays the FPS counter.")]
+    [SerializeField] private TextMeshProUGUI fpsText;
 
     // ────────────────────────────────────────────────────────────  references
     private ExchangeData _ExchangeData;
+
+    // ────────────────────────────────────────────────────────────────────────────
+    private void OnEnable()
+    {
+        if (fpsText != null)
+            fpsText.gameObject.SetActive(true);
+    }
+
+    private void OnDisable()
+    {
+        if (fpsText != null)
+            fpsText.gameObject.SetActive(false);
+    }
 
     // ────────────────────────────────────────────────────────────────────────────
     private void Start()
@@ -34,7 +49,6 @@ public class Fps : MonoBehaviour
         _ExchangeData = GetComponent<ExchangeData>() ?? gameObject.AddComponent<ExchangeData>();
 
         displayedFps = 0f;           // avoid showing 0 initially
-        GUI.depth = 2;
     }
 
     // ────────────────────────────────────────────────────────────────────────────
@@ -43,29 +57,15 @@ public class Fps : MonoBehaviour
         currentFps = 1f / Time.unscaledDeltaTime;
         smoothedFps = (smoothingFactor * currentFps) + ((1f - smoothingFactor) * smoothedFps);
 
-        latestSmoothedFps = smoothedFps;
-
         // Slow the GUI refresh rate a little
         guiTimer += Time.deltaTime;
         if (guiTimer >= guiUpdateInterval)
         {
             displayedFps = smoothedFps;
             guiTimer = 0f;
-        }
-    }
 
-    // ────────────────────────────────────────────────────────────────────────────
-    private void OnGUI()
-    {
-        if (_fpsStyle == null)
-        {
-            _fpsStyle = new GUIStyle
-            {
-                fontSize = fontSize,
-                normal = { textColor = Color.black }
-            };
+            if (fpsText != null)
+                fpsText.text = "FPS: " + Mathf.Round(displayedFps);
         }
-
-        GUI.Label(new Rect(5, 5, 200, 25), "FPS: " + Mathf.Round(displayedFps), _fpsStyle);
     }
 }
