@@ -1,4 +1,6 @@
+using System.Collections;
 using System.Diagnostics;
+using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
@@ -30,11 +32,18 @@ public class MenuController : MonoBehaviour
     [Tooltip("The XR Interaction Simulator root GameObject. Place it in the scene disabled; auto-enabled when no real XR device is detected.")]
     public GameObject xrInteractionSimulator;
 
+    [Header("Feedback")]
+    [Tooltip("TMP text element inside the menu panel that shows brief action feedback.")]
+    public TextMeshProUGUI feedbackText;
+    [Tooltip("How long (seconds) before the feedback message fades out.")]
+    public float feedbackDuration = 2f;
+
     [Header("Input")]
     [Tooltip("Assign InputSystem_Actions asset. The ToggleMenu action is resolved from the Driving map.")]
     public InputActionAsset inputActions;
 
     private InputAction _toggleMenuAction;
+    private Coroutine _feedbackCoroutine;
     private ScenarioManager _scenarioManager;
     private TiltSteeringProvider _tiltSteering;
     private Fps _fpsDisplay;
@@ -129,6 +138,7 @@ public class MenuController : MonoBehaviour
         if (!System.IO.File.Exists(exePath))
         {
             Debug.LogWarning($"[MenuController] Scenario Manager executable not found at: {exePath}");
+            ShowFeedback("Scenario Manager not found");
             return;
         }
 
@@ -150,15 +160,21 @@ public class MenuController : MonoBehaviour
     public void OnCalibrateSteering()
     {
         if (_tiltSteering != null)
+        {
             _tiltSteering.Calibrate();
+            ShowFeedback("Steering calibrated");
+        }
         else
+        {
             Debug.LogWarning("[MenuController] No TiltSteeringProvider found in scene.");
+        }
     }
 
     /// <summary>Restarts the scenario and sends the SUMO restart command</summary>
     public void OnRestartScenario()
     {
         ExchangeData.SendCommand("{\"type\":\"command\",\"command\":\"RESTART_SIMULATION\"}");
+        ShowFeedback("Restarting...");
 
         if (_scenarioManager != null)
             _scenarioManager.RestartScenario();
@@ -170,9 +186,51 @@ public class MenuController : MonoBehaviour
     public void OnToggleInteractionSimulator()
     {
         if (xrInteractionSimulator != null)
-            xrInteractionSimulator.SetActive(!xrInteractionSimulator.activeSelf);
+        {
+            bool next = !xrInteractionSimulator.activeSelf;
+            xrInteractionSimulator.SetActive(next);
+            ShowFeedback(next ? "XR Simulator: ON" : "XR Simulator: OFF");
+        }
         else
+        {
             Debug.LogWarning("[MenuController] No XR Interaction Simulator assigned.");
+        }
+    }
+
+    /// <summary>Shows a brief feedback message in the menu panel, then fades it out.</summary>
+    public void ShowFeedback(string message)
+    {
+        if (feedbackText == null) return;
+
+        if (_feedbackCoroutine != null)
+            StopCoroutine(_feedbackCoroutine);
+        _feedbackCoroutine = StartCoroutine(FeedbackRoutine(message));
+    }
+
+    private IEnumerator FeedbackRoutine(string message)
+    {
+        feedbackText.text = message;
+
+        // hold for most of the duration, then fade alpha out
+        float holdTime = feedbackDuration * 0.7f;
+        float fadeTime = feedbackDuration * 0.3f;
+
+        yield return new WaitForSeconds(holdTime);
+
+        float elapsed = 0f;
+        Color c = feedbackText.color;
+        while (elapsed < fadeTime)
+        {
+            elapsed += Time.deltaTime;
+            c.a = Mathf.Lerp(1f, 0f, elapsed / fadeTime);
+            feedbackText.color = c;
+            yield return null;
+        }
+
+        feedbackText.text = "";
+        c.a = 1f;
+        feedbackText.color = c;
+        _feedbackCoroutine = null;
     }
 
     /// <summary>Quits the application (also stops Play mode in the Editor).</summary>
