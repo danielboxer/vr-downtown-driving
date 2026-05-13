@@ -30,14 +30,19 @@ After importing the FBX:
 - Mark as **Static**
 - Bake lightmap (Window > Rendering > Lighting > Generate Lighting)
 - Bake occlusion culling (Window > Rendering > Occlusion Culling > Bake)
+
+Material setup
+
 - Setup the mask maps for all PBR textures
 - For all PBR textures (with normal maps), press "Fix Now" on the normal maps
 - Increase smoothness of some buildings that are mostly windows
 
-### Texture Settings
+Texture setup:
 
 Select all downtown textures and apply:
 
 - Stream Mipmap Levels: On
-- Aniso Level: 8
 - Filter Mode: Trilinear
+
+Select all mask maps and uncheck sRGB
+
