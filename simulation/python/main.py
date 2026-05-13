@@ -72,7 +72,9 @@ else:
 _scenario_names = sorted(
     (
         name
-        for name in os.listdir(_SCENARIOS_ROOT)
+        for name in (
+            os.listdir(_SCENARIOS_ROOT) if os.path.isdir(_SCENARIOS_ROOT) else []
+        )
         if os.path.isdir(os.path.join(_SCENARIOS_ROOT, name))
         and any(
             f.endswith(".rou.xml")
