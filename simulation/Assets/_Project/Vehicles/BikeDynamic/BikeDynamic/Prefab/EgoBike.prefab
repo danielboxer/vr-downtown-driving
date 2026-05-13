@@ -917,7 +917,7 @@ MonoBehaviour:
   inputActions: {fileID: 0}
   actionMapName: Driving
   calibrateOnEnable: 0
-  drawProjectedControllerLine: 1
+  drawProjectedControllerLine: 0
   projectedControllerLineRenderer: {fileID: 0}
   drawDebugLine: 0
 --- !u!114 &6415660769480549401
