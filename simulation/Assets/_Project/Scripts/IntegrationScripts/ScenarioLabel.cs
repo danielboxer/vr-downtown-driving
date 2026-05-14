@@ -1,5 +1,6 @@
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 /// <summary>
 /// Displays the currently active scenario name on a TextMeshProUGUI element.
@@ -16,12 +17,17 @@ public class ScenarioLabel : MonoBehaviour
     [Tooltip("Text prepended to the scenario name, e.g. \"Scenario: \".")]
     [SerializeField] private string _prefix = "Scenario: ";
 
+    [Tooltip("Optional background panel Image. Assign the panel's Image component to toggle it with the label.")]
+    [SerializeField] private Image _background;
+
     private void OnEnable()
     {
         if (_scenarioManager != null)
             _scenarioManager.OnScenarioChanged += UpdateLabel;
         if (_label != null)
             _label.gameObject.SetActive(true);
+        if (_background != null)
+            _background.gameObject.SetActive(true);
     }
 
     private void OnDisable()
@@ -30,6 +36,8 @@ public class ScenarioLabel : MonoBehaviour
             _scenarioManager.OnScenarioChanged -= UpdateLabel;
         if (_label != null)
             _label.gameObject.SetActive(false);
+        if (_background != null)
+            _background.gameObject.SetActive(false);
     }
 
     private void Start()
@@ -41,7 +49,7 @@ public class ScenarioLabel : MonoBehaviour
 
     private void UpdateLabel(ScenarioId scenario)
     {
-        if (_label != null)
-            _label.text = _prefix + scenario.ToString().Replace('_', ' ');
+        if (_label == null) return;
+        _label.text = _prefix + scenario.ToString().Replace('_', ' ');
     }
 }
