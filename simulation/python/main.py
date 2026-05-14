@@ -418,6 +418,12 @@ def run_sim(cfg: dict):
             last_pos_z.clear()
             next_step = time.perf_counter() + STEP
             last_tl_t = 0.0
+            last_config_t = (
+                0.0  # tracks when config_msg was last broadcast (for reconnect)
+            )
+            ego_initial_route = (
+                None  # captured on first ego appearance; used to loop route
+            )
 
             # ---------- warm-up ----------
             while (
@@ -491,6 +497,31 @@ def run_sim(cfg: dict):
                             except traci.exceptions.TraCIException:
                                 pass  # ego not yet inserted in SUMO; skip until it appears
 
+                # Pre-step: reset ego route before SUMO removes the vehicle at route end.
+                # ego trips are intentionally short (few edges); without this SUMO would
+                # remove f_0.0 after it traverses its route, breaking context subscriptions.
+                # changeTarget re-routes from the vehicle's current position to a new
+                # destination using SUMO's internal router, avoiding invalid edge sequences.
+                if ego_initial_route is not None and len(ego_initial_route) > 1:
+                    try:
+                        if ego in traci.vehicle.getIDList():
+                            _ego_route = traci.vehicle.getRoute(ego)
+                            _ego_idx = traci.vehicle.getRouteIndex(ego)
+                            if _ego_idx >= len(_ego_route) - 1:
+                                # Pick the opposite end of the initial route as the new target
+                                # so SUMO computes a route away from the current position.
+                                # Requires len > 1 (from != to) to avoid changeTarget(x, x).
+                                _ego_current = traci.vehicle.getRoadID(ego)
+                                _ego_dest = (
+                                    ego_initial_route[0]
+                                    if _ego_current != ego_initial_route[0]
+                                    else ego_initial_route[-1]
+                                )
+                                if _ego_dest != _ego_current:
+                                    traci.vehicle.changeTarget(ego, _ego_dest)
+                    except traci.exceptions.TraCIException:
+                        pass  # ego not yet inserted; ignore
+
                 # ❷ SUMO step
                 traci.simulationStep()
                 if use_gui:
@@ -518,6 +549,9 @@ def run_sim(cfg: dict):
                 vlist = traci.vehicle.getIDList()
                 vdata = []
                 if ego in vlist:
+                    # Capture initial route once so the pre-step extender can reference it
+                    if ego_initial_route is None:
+                        ego_initial_route = list(traci.vehicle.getRoute(ego))
                     x, y, z = traci.vehicle.getPosition3D(ego)
                     ang = traci.vehicle.getAngle(ego)
                     vtype = traci.vehicle.getTypeID(ego)
@@ -578,7 +612,12 @@ def run_sim(cfg: dict):
                     )
                     last_tl_t = sim_t
 
-                # ❼ publish vehicles
+                # ❼ re-broadcast scenario config every 5 s so Unity can rejoin mid-run
+                if sim_t - last_config_t >= 5.0:
+                    pub.send_string(config_msg)
+                    last_config_t = sim_t
+
+                # ❽ publish vehicles
                 pub.send_string(vjson)
 
                 # ❽ incremental RTF (if enabled)
