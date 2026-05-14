@@ -1,6 +1,9 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.XR;
+using UnityEngine.XR;
+using UnityEngine.XR.Interaction.Toolkit.Inputs.Simulation;
 
 /// <summary>
 /// Reads the vector between the left and right XR controllers and maps its
@@ -57,6 +60,10 @@ public class TiltSteeringProvider : MonoBehaviour
     [Tooltip("Action map name containing the Steer action used for keyboard fallback.")]
     public string actionMapName = "Driving";
 
+    [Header("Headset Detection")]
+    [Tooltip("When enabled, tilt steering is suppressed unless a real XR headset is detected. Disable this when testing on desktop without a headset so keyboard steering still works.")]
+    public bool requireHeadset = true;
+
     [Header("Calibration")]
     [Tooltip("Auto-calibrate center the first time a valid two-controller vector arrives.")]
     public bool calibrateOnEnable = true;
@@ -93,6 +100,10 @@ public class TiltSteeringProvider : MonoBehaviour
     private const float MinProjectedVectorSqrMagnitude = 0.0001f;
 
     private InputAction _keyboardSteerAction;
+    private bool _headsetConnected;
+    private bool _simulatorActive;
+    // Reused buffer to avoid GC allocations during headset state refresh.
+    private static readonly List<UnityEngine.XR.InputDevice> _headsetCheckBuffer = new List<UnityEngine.XR.InputDevice>();
 
     private float _centerAngle;
     private float _currentUnwrappedAngle;
@@ -128,6 +139,12 @@ public class TiltSteeringProvider : MonoBehaviour
 
     private void OnEnable()
     {
+        // Capture headset/simulator state immediately and subscribe for future changes.
+        RefreshHeadsetState();
+        InputDevices.deviceConnected += OnXRDeviceChanged;
+        InputDevices.deviceDisconnected += OnXRDeviceChanged;
+        // The simulator presence doesn't change at runtime, so one check suffices.
+        _simulatorActive = FindFirstObjectByType<XRInteractionSimulator>() != null;
         _calibrated = false;
         _hasLastWrappedAngle = false;
         _currentUnwrappedAngle = 0f;
@@ -142,6 +159,8 @@ public class TiltSteeringProvider : MonoBehaviour
 
     private void OnDisable()
     {
+        InputDevices.deviceConnected -= OnXRDeviceChanged;
+        InputDevices.deviceDisconnected -= OnXRDeviceChanged;
         HasController = false;
         SteerValue = 0f;
         ControllerWheelAngle = 0f;
@@ -150,8 +169,37 @@ public class TiltSteeringProvider : MonoBehaviour
         _keyboardSteerAction?.Disable();
     }
 
+    private void OnXRDeviceChanged(UnityEngine.XR.InputDevice device)
+    {
+        // Re-check headset state only when the changed device is an HMD.
+        if ((device.characteristics & InputDeviceCharacteristics.HeadMounted) != 0)
+            RefreshHeadsetState();
+    }
+
+    private void RefreshHeadsetState()
+    {
+        _headsetCheckBuffer.Clear();
+        InputDevices.GetDevicesWithCharacteristics(InputDeviceCharacteristics.HeadMounted, _headsetCheckBuffer);
+        _headsetConnected = _headsetCheckBuffer.Count > 0 && _headsetCheckBuffer[0].isValid;
+    }
+
     private void Update()
     {
+        // Tilt steering is only valid when a real headset is present and the
+        // XR Interaction Simulator is not running. The simulator repositions
+        // virtual controllers whenever you look around, corrupting the tilt
+        // center. When either condition fails, CarUserControl falls back to
+        // keyboard steering.
+        if (requireHeadset && (_simulatorActive || !_headsetConnected))
+        {
+            HasController = false;
+            SteerValue = 0f;
+            ControllerWheelAngle = 0f;
+            SteeringWheelAngle = 0f;
+            SetLineVisible(false);
+            return;
+        }
+
         if (!TryReadControllerPositions(out Vector3 leftPosition, out Vector3 rightPosition) ||
             !TryCalculateWrappedAngle(leftPosition, rightPosition, out float wrappedAngle))
         {
