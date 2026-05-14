@@ -28,7 +28,7 @@ public class MenuController : MonoBehaviour
     public Sprite closeMenuSprite;
 
     [Header("Scenario Manager EXE")]
-    [Tooltip("Absolute path to the ScenarioManager executable. Populate once the PyInstaller binary is built.")]
+    [Tooltip("Absolute path override for ScenarioManager.exe. Leave empty to use automatic defaults: simulation/build/ScenarioManager.exe in the Editor, ScenarioManager.exe beside the game .exe in a build.")]
     public string scenarioManagerExePath = "";
 
     [Header("Input Mode")]
@@ -52,6 +52,7 @@ public class MenuController : MonoBehaviour
     private ScenarioManager _scenarioManager;
     private TiltSteeringProvider _tiltSteering;
     private Fps _fpsDisplay;
+    private ScenarioLabel _scenarioLabel;
     private Process _scenarioManagerProcess;
 
     // whether the HUD elements (FPS counter + toggle button) are shown
@@ -70,6 +71,7 @@ public class MenuController : MonoBehaviour
         _scenarioManager = FindFirstObjectByType<ScenarioManager>();
         _tiltSteering = FindFirstObjectByType<TiltSteeringProvider>();
         _fpsDisplay = FindFirstObjectByType<Fps>();
+        _scenarioLabel = FindFirstObjectByType<ScenarioLabel>();
 
         // Auto-enable the interaction simulator when no real XR device is running.
         if (xrInteractionSimulator != null)
@@ -124,6 +126,7 @@ public class MenuController : MonoBehaviour
         // Button is visible whenever the HUD is on; the icon switches between gear (closed) and X (open).
         if (menuToggleButton != null) menuToggleButton.SetActive(_displayVisible);
         if (_fpsDisplay != null) _fpsDisplay.enabled = _displayVisible;
+        if (_scenarioLabel != null) _scenarioLabel.enabled = _displayVisible;
         // Swap the button icon based on whether the menu is currently open.
         if (menuToggleButtonIcon != null)
             menuToggleButtonIcon.sprite = _menuOpen ? closeMenuSprite : openMenuSprite;
@@ -151,12 +154,26 @@ public class MenuController : MonoBehaviour
     /// <summary>Launches the ScenarioManager PyInstaller binary in a separate process.</summary>
     public void OnOpenScenarioManager()
     {
-        // Use the Inspector-assigned path if set, otherwise fall back to a path
-        // relative to the Unity build directory (sibling of the game .exe).
-        string exePath = !string.IsNullOrEmpty(scenarioManagerExePath)
-            ? scenarioManagerExePath
-            : System.IO.Path.GetFullPath(
+        // Absolute Inspector override takes priority.
+        // In the Editor, default to simulation/build/ScenarioManager.exe.
+        // In a standalone build, default to ScenarioManager.exe beside the game .exe.
+        bool hasAbsoluteOverride = !string.IsNullOrEmpty(scenarioManagerExePath)
+            && System.IO.Path.IsPathRooted(scenarioManagerExePath);
+        string exePath;
+        if (hasAbsoluteOverride)
+        {
+            exePath = scenarioManagerExePath;
+        }
+        else if (Application.isEditor)
+        {
+            exePath = System.IO.Path.GetFullPath(
+                System.IO.Path.Combine(Application.dataPath, "..", "build", "ScenarioManager.exe"));
+        }
+        else
+        {
+            exePath = System.IO.Path.GetFullPath(
                 System.IO.Path.Combine(Application.dataPath, "..", "ScenarioManager.exe"));
+        }
 
         // Don't open a second instance if one is already running.
         // Uses WaitForSingleObject on the stored handle — Process.GetProcessesByName is
