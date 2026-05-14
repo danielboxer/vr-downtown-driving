@@ -155,14 +155,17 @@ def _get_scenario_dir() -> str:
     return scenario_dir_var.get().strip()
 
 
+# Resolve SUMO home: prefer the env var, fall back to the default MSI install path.
+# This lets the exe work even when launched from Explorer right after install (before
+# the user logs out to propagate the new SUMO_HOME env var to Explorer).
+_DEFAULT_SUMO_HOME = "C:\\Program Files (x86)\\Eclipse\\Sumo"
+_sumo_home = os.environ.get("SUMO_HOME") or _DEFAULT_SUMO_HOME
+
 _sumo_installed = (
     # Check sumo binary is reachable via PATH
     shutil.which("sumo") is not None
-    # Or SUMO_HOME is set and its binary actually exists (guards against stale env vars)
-    or (
-        "SUMO_HOME" in os.environ
-        and os.path.isfile(os.path.join(os.environ["SUMO_HOME"], "bin", "sumo.exe"))
-    )
+    # Or the resolved SUMO_HOME directory contains the binary
+    or os.path.isfile(os.path.join(_sumo_home, "bin", "sumo.exe"))
 )
 
 
@@ -239,11 +242,14 @@ def run_sim(cfg: dict):
     logger = logging.getLogger(__name__)
 
     # ---------- SUMO paths ----------
-    if "SUMO_HOME" not in os.environ:
-        logger.error("SUMO_HOME is not set; cannot start simulation.")
+    # Use SUMO_HOME from environment if set, otherwise fall back to the default MSI path.
+    sumo_home = os.environ.get("SUMO_HOME") or _DEFAULT_SUMO_HOME
+    sumo_tools = os.path.join(sumo_home, "tools")
+    if not os.path.isdir(sumo_tools):
+        logger.error("SUMO tools not found at %s; cannot start simulation.", sumo_tools)
         root.after(0, _on_sim_finished)
         return
-    sys.path.append(os.path.join(os.environ["SUMO_HOME"], "tools"))
+    sys.path.append(sumo_tools)
 
     scenario_dir = cfg["scenario_dir"]
     parent_dir = os.path.abspath(os.path.join(scenario_dir, os.pardir))
@@ -258,12 +264,18 @@ def run_sim(cfg: dict):
     sumocfg_file = _glob_one(scenario_dir, "*.sumocfg")
 
     sumo_bin = "sumo-gui" if use_gui else "sumo"
+    # Build a full path to the binary so it works even when %SUMO_HOME%\bin is not in PATH
+    # (e.g., when the exe is launched from Explorer right after a SUMO install).
+    sumo_bin_path = os.path.join(sumo_home, "bin", sumo_bin + ".exe")
+    if not os.path.isfile(sumo_bin_path):
+        # Fall back to PATH lookup (handles non-standard SUMO installs)
+        sumo_bin_path = sumo_bin
 
     if sumocfg_file:
         # Use the scenario sumocfg so net/route/additional files are resolved
         # from the config rather than a fragile glob on the parent directory.
         sumo_cmd = [
-            sumo_bin,
+            sumo_bin_path,
             "-c",
             sumocfg_file,
             "--step-length",
@@ -287,7 +299,7 @@ def run_sim(cfg: dict):
             return
 
         sumo_cmd = [
-            sumo_bin,
+            sumo_bin_path,
             "-n",
             net_file,
             "-r",
