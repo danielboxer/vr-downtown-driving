@@ -55,6 +55,9 @@ Source: "{#SourcePath}build\Windows\UnityCrashHandler64.exe"; DestDir: "{app}"; 
 Source: "{#SourcePath}build\Windows\UnityPlayer.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#SourcePath}build\ScenarioManager.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#SourcePath}Scenarios\*"; DestDir: "{app}\Scenarios"; Flags: ignoreversion recursesubdirs createallsubdirs
+; SUMO is bundled so users do not need to install it separately.
+; The MSI is extracted to {tmp} and deleted after the installation completes.
+Source: "{#SourcePath}build\sumo-win64-1.22.0.msi"; DestDir: "{tmp}"; Flags: deleteafterinstall
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]
@@ -62,5 +65,7 @@ Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 
 [Run]
+; Install SUMO silently before launching the app.
+Filename: msiexec.exe; Parameters: "/i ""{tmp}\sumo-win64-1.22.0.msi"" /quiet /norestart"; StatusMsg: "Installing SUMO 1.22.0 (this may take a moment)..."; Flags: waituntilterminated
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
 
