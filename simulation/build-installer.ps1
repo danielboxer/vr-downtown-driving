@@ -2,12 +2,14 @@
 #   .\build-installer.ps1           - build PyInstaller exe + run Inno Setup
 #   .\build-installer.ps1 -onlyPy   - only build PyInstaller exe
 #   .\build-installer.ps1 -onlyInno - only run Inno Setup
+#   .\build-installer.ps1 -skipSumo - skip SUMO download (use existing file)
 #
 # Run AFTER Unity has exported its build to build\Windows\.
 
 param(
     [switch]$onlyPy,
-    [switch]$onlyInno
+    [switch]$onlyInno,
+    [switch]$skipSumo
 )
 
 $ErrorActionPreference = "Stop"
@@ -20,6 +22,12 @@ $InnoScript  = Join-Path $ScriptDir "inno_setup_script.iss"
 
 # Inno Setup compiler - adjust if installed to a non-default location
 $InnoCompiler = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+
+# SUMO MSI bundled into the installer; downloaded on demand if not already present
+$SumoVersion    = "1.22.0"
+$SumoMsi        = Join-Path $BuildDir "sumo-win64-$SumoVersion.msi"
+$SumoUrl        = "https://sumo.dlr.de/releases/$SumoVersion/sumo-win64-$SumoVersion.msi"
+$SumoSha256     = "60E0713D4F6F03D8F118DFCCC452F4B0FB9336B3680C8DBD5B61285FAA3DEAAB"
 
 # ── PyInstaller ────────────────────────────────────────────────────────────────
 $totalSteps = if ($onlyPy -or $onlyInno) { 1 } else { 2 }
@@ -68,6 +76,23 @@ if (-not $onlyPy) {
 
     if (-not (Test-Path $InnoScript)) {
         Write-Error "Inno Setup script not found: $InnoScript"
+    }
+
+    if (-not $skipSumo) {
+        # Download the SUMO MSI if it is not already cached in the build directory
+        if (-not (Test-Path $SumoMsi)) {
+            Write-Host "  Downloading SUMO $SumoVersion installer (~150 MB)..." -ForegroundColor DarkCyan
+            New-Item -ItemType Directory -Force -Path $BuildDir | Out-Null
+            Invoke-WebRequest -Uri $SumoUrl -OutFile $SumoMsi
+        }
+
+        # Verify the MSI against the known SHA-256 to detect corruption or tampering
+        $actualHash = (Get-FileHash -Algorithm SHA256 $SumoMsi).Hash
+        if ($actualHash -ne $SumoSha256) {
+            Remove-Item $SumoMsi -Force
+            Write-Error "SUMO MSI hash mismatch. Expected: $SumoSha256`nActual:   $actualHash`nThe file has been deleted; re-run to re-download."
+        }
+        Write-Host "  SUMO $SumoVersion verified." -ForegroundColor DarkCyan
     }
 
     & $InnoCompiler $InnoScript
