@@ -2,11 +2,11 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 ; Non-commercial use only
 
-#define MyAppName "VRDowntownDriving"
+#define MyAppName "VR Downtown Driving"
 #define MyAppVersion "0.1"
-#define MyAppPublisher "TMU"
+#define MyAppPublisher "Daniel Boxer"
 #define MyAppURL "https://github.com/danielboxer/vr-downtown-driving"
-#define MyAppExeName "VRDowntownDriving.exe"
+#define MyAppExeName "VR Downtown Driving.exe"
 
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application. Do not use the same AppId value in installers for other applications.
@@ -14,7 +14,7 @@
 AppId={{7E487450-545A-487D-B6DA-D3FF2274A6F1}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
-;AppVerName={#MyAppName} {#MyAppVersion}
+AppVerName={#MyAppName} {#MyAppVersion}
 AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
@@ -33,7 +33,7 @@ DisableProgramGroupPage=yes
 ; Remove the following line to run in administrative install mode (install for all users).
 PrivilegesRequired=lowest
 OutputDir={#SourcePath}build\installer
-OutputBaseFilename=VRDowntownDriving Setup {#MyAppVersion} (x64)
+OutputBaseFilename={#MyAppName} Setup {#MyAppVersion} (x64)
 SolidCompression=yes
 Compression=lzma2
 MinVersion=10.0
@@ -48,7 +48,7 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 [Files]
 Source: "{#SourcePath}build\Windows\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#SourcePath}build\Windows\D3D12\*"; DestDir: "{app}\D3D12"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "{#SourcePath}build\Windows\VRDowntownDriving_Data\*"; DestDir: "{app}\VRDowntownDriving_Data"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#SourcePath}build\Windows\VR Downtown Driving_Data\*"; DestDir: "{app}\VR Downtown Driving_Data"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "{#SourcePath}build\Windows\baselib.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#SourcePath}build\Windows\GameAssembly.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#SourcePath}build\Windows\UnityCrashHandler64.exe"; DestDir: "{app}"; Flags: ignoreversion
