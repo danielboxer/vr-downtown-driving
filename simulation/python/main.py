@@ -39,10 +39,14 @@ root.title("Scenario Manager")
 root.resizable(True, True)
 root.minsize(420, 0)
 
-# Set window icon from the project Assets folder
-_icon_path = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), "..", "Assets", "icon.png"
-)
+# Set window icon. When frozen by PyInstaller (--onefile), bundled data is
+# extracted to sys._MEIPASS; otherwise look next to the source file.
+if getattr(sys, "frozen", False):
+    _icon_path = os.path.join(sys._MEIPASS, "icon.png")
+else:
+    _icon_path = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "..", "Assets", "icon.png"
+    )
 if os.path.isfile(_icon_path):
     root.iconphoto(True, tk.PhotoImage(file=_icon_path))
 
