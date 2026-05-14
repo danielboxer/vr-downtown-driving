@@ -39,6 +39,10 @@ public class NpcVehicleConfig : ScriptableObject
     [Tooltip("How often each NPC evaluates honking/red-light checks.")]
     public float hornCheckInterval = 0.5f;
 
+    [Header("Collision Debris")]
+    [Tooltip("Seconds after a collision before the detached NPC debris is destroyed. Set 0 to never despawn.")]
+    public float detachedDespawnDelay = 90f;
+
     // Pre-computed squared distance for fast comparison (set in OnValidate/OnEnable)
     [System.NonSerialized] public float highDetailDistanceSqr;
 

@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -40,6 +41,9 @@ public class VehicleController : MonoBehaviour
     [SerializeField] private float hornCheckInterval = 0.5f;
     [SerializeField] private float movementSharpness = 14f;
     [SerializeField] private float rotationSharpness = 14f;
+
+    // Despawn delay is configured via NpcVehicleConfig and applied through SetConfig.
+    private float detachedDespawnDelay = 90f;
 
     private float highDetailDistanceSqr = 45f * 45f;
 
@@ -97,6 +101,7 @@ public class VehicleController : MonoBehaviour
         hornTriggerDistance = config.hornTriggerDistance;
         hornHonkChance = config.hornHonkChance;
         hornAmbientChance = config.hornAmbientChance;
+        detachedDespawnDelay = config.detachedDespawnDelay;
     }
 
     /// <summary>
@@ -179,6 +184,15 @@ public class VehicleController : MonoBehaviour
             impactImpulse = impactImpulse.normalized * maxPostCollisionSpeed * rb.mass;
 
         rb.AddForceAtPosition(impactImpulse, contactPoint, ForceMode.Impulse);
+
+        if (detachedDespawnDelay > 0f)
+            StartCoroutine(DespawnAfterDelay(detachedDespawnDelay));
+    }
+
+    private IEnumerator DespawnAfterDelay(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        Destroy(gameObject);
     }
 
     public void UpdateTarget(Vector3 pos, Quaternion rot,
