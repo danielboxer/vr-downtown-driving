@@ -117,9 +117,14 @@ _combo.bind("<<ComboboxSelected>>", _on_combo_select)
 
 
 def browse_scenario():
-    d = filedialog.askdirectory(
-        initialdir=_SCENARIOS_ROOT, title="Select scenario folder"
-    )
+    # Fall back to the exe's directory if the default scenarios folder doesn't exist.
+    if os.path.isdir(_SCENARIOS_ROOT):
+        start_dir = _SCENARIOS_ROOT
+    elif getattr(sys, "frozen", False):
+        start_dir = os.path.dirname(sys.executable)
+    else:
+        start_dir = os.path.dirname(os.path.abspath(__file__))
+    d = filedialog.askdirectory(initialdir=start_dir, title="Select scenario folder")
     if d:
         scenario_dir_var.set(d)
         # update combobox display if it matches a known scenario

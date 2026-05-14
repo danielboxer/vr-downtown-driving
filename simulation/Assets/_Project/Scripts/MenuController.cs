@@ -1,5 +1,8 @@
+using System;
 using System.Collections;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
+using System.Text;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -49,6 +52,7 @@ public class MenuController : MonoBehaviour
     private ScenarioManager _scenarioManager;
     private TiltSteeringProvider _tiltSteering;
     private Fps _fpsDisplay;
+    private Process _scenarioManagerProcess;
 
     // whether the HUD elements (FPS counter + toggle button) are shown
     private bool _displayVisible = true;
@@ -154,26 +158,37 @@ public class MenuController : MonoBehaviour
             : System.IO.Path.GetFullPath(
                 System.IO.Path.Combine(Application.dataPath, "..", "ScenarioManager.exe"));
 
+        // Don't open a second instance if one is already running.
+        // Uses WaitForSingleObject on the stored handle — Process.GetProcessesByName is
+        // also unreliable in Mono Unity standalone builds.
+        bool alreadyRunning = IsScenarioManagerRunning();
+        if (alreadyRunning)
+        {
+            ShowFeedback("Scenario Manager already open");
+            return;
+        }
+
         if (!System.IO.File.Exists(exePath))
         {
             Debug.LogWarning($"[MenuController] Scenario Manager executable not found at: {exePath}");
-            ShowFeedback("Scenario Manager not found");
+            ShowFeedback($"Not found: {exePath}");
             return;
         }
 
         try
         {
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = exePath,
-                UseShellExecute = true
-            });
-            ShowFeedback("Scenario Manager launched");
+            // Use P/Invoke CreateProcess directly — Mono's Process.Start is broken on
+            // Windows in Unity builds and silently fails even for simple executables.
+            bool launched = WinLaunchDetached(exePath, System.IO.Path.GetDirectoryName(exePath));
+            if (launched)
+                ShowFeedback("Scenario Manager launching...");
+            else
+                ShowFeedback($"Launch failed (error {Marshal.GetLastWin32Error()})");
         }
         catch (System.Exception ex)
         {
             Debug.LogError($"[MenuController] Failed to launch Scenario Manager: {ex.Message}");
-            ShowFeedback("Failed to launch Scenario Manager");
+            ShowFeedback($"Launch failed: {ex.Message}");
         }
     }
 
@@ -277,6 +292,68 @@ public class MenuController : MonoBehaviour
 #if UNITY_EDITOR
         UnityEditor.EditorApplication.isPlaying = false;
 #endif
+    }
+
+    // ── Win32 P/Invoke — bypasses Mono's broken Process.Start on Windows builds ──
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct STARTUPINFO
+    {
+        public int cb;
+        public IntPtr lpReserved, lpDesktop, lpTitle;
+        public uint dwX, dwY, dwXSize, dwYSize, dwXCountChars, dwYCountChars, dwFillAttribute, dwFlags;
+        public ushort wShowWindow, cbReserved2;
+        public IntPtr lpReserved2, hStdInput, hStdOutput, hStdError;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct PROCESS_INFORMATION
+    {
+        public IntPtr hProcess, hThread;
+        public uint dwProcessId, dwThreadId;
+    }
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool CreateProcess(
+        string lpApplicationName, StringBuilder lpCommandLine,
+        IntPtr lpProcessAttributes, IntPtr lpThreadAttributes,
+        bool bInheritHandles, uint dwCreationFlags,
+        IntPtr lpEnvironment, string lpCurrentDirectory,
+        ref STARTUPINFO lpStartupInfo, out PROCESS_INFORMATION lpProcessInformation);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool CloseHandle(IntPtr hObject);
+
+    // WAIT_TIMEOUT means the process is still running.
+    [DllImport("kernel32.dll")]
+    private static extern uint WaitForSingleObject(IntPtr hHandle, uint dwMilliseconds);
+
+    // Keep hProcess open so IsScenarioManagerRunning can poll it without using
+    // Mono's Process.GetProcessesByName (also unreliable in Unity standalone builds).
+    private static IntPtr _scenarioManagerHandle = IntPtr.Zero;
+
+    /// <summary>Launches <paramref name="exePath"/> as a detached process via Win32 CreateProcess.</summary>
+    private static bool WinLaunchDetached(string exePath, string workingDir)
+    {
+        var si = new STARTUPINFO { cb = Marshal.SizeOf<STARTUPINFO>() };
+        var cmdLine = new StringBuilder($"\"{exePath}\"");
+        bool ok = CreateProcess(null, cmdLine, IntPtr.Zero, IntPtr.Zero,
+            false, 0, IntPtr.Zero, workingDir, ref si, out var pi);
+        if (ok)
+        {
+            // Keep hProcess open so we can check if it's still running.
+            _scenarioManagerHandle = pi.hProcess;
+            CloseHandle(pi.hThread);
+        }
+        return ok;
+    }
+
+    /// <summary>Returns true if the last launched ScenarioManager process is still running.</summary>
+    private static bool IsScenarioManagerRunning()
+    {
+        if (_scenarioManagerHandle == IntPtr.Zero) return false;
+        const uint WAIT_TIMEOUT = 0x00000102;
+        return WaitForSingleObject(_scenarioManagerHandle, 0) == WAIT_TIMEOUT;
     }
 }
 
