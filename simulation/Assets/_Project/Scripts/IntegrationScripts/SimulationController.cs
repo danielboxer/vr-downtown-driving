@@ -37,8 +37,8 @@ public class SimulationController : MonoBehaviour
     [Header("Unity Step Length (seconds)")]
     public float unityStepLength = 0.10f;
 
-    [Header("NPC Config (optional, overrides per-field settings below)")]
-    [Tooltip("Shared ScriptableObject for NPC vehicle settings. If assigned, the per-field settings below are ignored.")]
+    [Header("NPC Config")]
+    [Tooltip("Required. Shared ScriptableObject for all NPC vehicle settings.")]
     public NpcVehicleConfig npcConfig;
 
     [Header("NPC Pooling")]
@@ -185,6 +185,12 @@ public class SimulationController : MonoBehaviour
         if (vehiclePrefab == null)
         {
             Debug.LogError("Vehicle prefab 'EloraGold' not found in Resources/Cars.");
+            return;
+        }
+
+        if (npcConfig == null)
+        {
+            Debug.LogError("[SimulationController] npcConfig is not assigned. Assign an NpcVehicleConfig ScriptableObject in the Inspector.");
             return;
         }
 
@@ -748,8 +754,7 @@ public class SimulationController : MonoBehaviour
     {
         if (vc == null) return;
 
-        if (npcConfig != null)
-            vc.SetConfig(npcConfig);
+        vc.SetConfig(npcConfig);
     }
 
     public static class JsonHelper

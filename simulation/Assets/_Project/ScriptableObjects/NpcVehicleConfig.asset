@@ -19,7 +19,7 @@ MonoBehaviour:
   - {fileID: 8300000, guid: a011fd7d609996049bc63be79c3615b0, type: 3}
   - {fileID: 8300000, guid: 7e4a718e9e64ed940acd9a7de45cbdfa, type: 3}
   - {fileID: 8300000, guid: 6da9300cb5149334f8500883ed474745, type: 3}
-  hornVolume: 1
+  hornVolume: 0.5
   hornTriggerDelay: 3
   hornCooldown: 5
   hornTriggerDistance: 18
