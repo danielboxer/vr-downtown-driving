@@ -33,6 +33,11 @@ public class ScenarioManager : MonoBehaviour
     [ReadOnly, SerializeField] private ScenarioId _activeScenario;
     [ReadOnly, SerializeField] private bool _scenarioActive;
 
+    /// <summary>Fired whenever the active scenario changes.</summary>
+    public event Action<ScenarioId> OnScenarioChanged;
+    /// <summary>The scenario that is currently active.</summary>
+    public ScenarioId ActiveScenario => _activeScenario;
+
     private SimulationController _simController;
     private DrivingEvaluator drivingEvaluator;
     private RouteArrowSpawner _arrowSpawner;
@@ -203,6 +208,7 @@ public class ScenarioManager : MonoBehaviour
         _activeScenario = scenario;
         _scenarioActive = true;
         Debug.Log($"ScenarioManager: Applying scenario '{scenario}'");
+        OnScenarioChanged?.Invoke(scenario);
 
         // Remove all active NPC vehicles before switching scenario.
         if (_simController != null)
