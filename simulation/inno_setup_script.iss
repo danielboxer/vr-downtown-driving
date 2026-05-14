@@ -30,8 +30,8 @@ ArchitecturesAllowed=x64compatible
 ; the 64-bit view of the registry.
 ArchitecturesInstallIn64BitMode=x64compatible
 DisableProgramGroupPage=yes
-; Remove the following line to run in administrative install mode (install for all users).
-PrivilegesRequired=lowest
+; The installer requires admin rights because SUMO's MSI installs to Program Files.
+PrivilegesRequired=admin
 OutputDir={#SourcePath}build\installer
 OutputBaseFilename={#MyAppName} Setup {#MyAppVersion} (x64)
 SolidCompression=yes
@@ -44,6 +44,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
+Name: "sumo"; Description: "Install SUMO 1.22.0 (required for running traffic simulations)"; GroupDescription: "Dependencies:"
 
 [Files]
 Source: "{#SourcePath}build\Windows\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
@@ -65,7 +66,7 @@ Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 
 [Run]
-; Install SUMO silently before launching the app.
-Filename: msiexec.exe; Parameters: "/i ""{tmp}\sumo-win64-1.22.0.msi"" /quiet /norestart"; StatusMsg: "Installing SUMO 1.22.0 (this may take a moment)..."; Flags: waituntilterminated
+; Install SUMO silently before launching the app (only if the user kept the task checked).
+Filename: msiexec.exe; Parameters: "/i ""{tmp}\sumo-win64-1.22.0.msi"" /quiet /norestart"; StatusMsg: "Installing SUMO 1.22.0 (this may take a moment)..."; Tasks: sumo; Flags: waituntilterminated
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
 
