@@ -8,6 +8,7 @@ import json
 import logging
 import os
 import queue
+import shutil
 import sys
 import threading
 import time
@@ -154,7 +155,15 @@ def _get_scenario_dir() -> str:
     return scenario_dir_var.get().strip()
 
 
-_sumo_installed = "SUMO_HOME" in os.environ
+_sumo_installed = (
+    # Check sumo binary is reachable via PATH
+    shutil.which("sumo") is not None
+    # Or SUMO_HOME is set and its binary actually exists (guards against stale env vars)
+    or (
+        "SUMO_HOME" in os.environ
+        and os.path.isfile(os.path.join(os.environ["SUMO_HOME"], "bin", "sumo.exe"))
+    )
+)
 
 
 _FIELD_LABELS = {
@@ -204,8 +213,12 @@ _restart_event = threading.Event()
 
 
 def run_sim(cfg: dict):
-    import traci
-    from traci.constants import VAR_ANGLE, VAR_POSITION3D, VAR_TYPE
+    import traci  # type: ignore[import-untyped]
+    from traci.constants import (  # type: ignore[import-untyped]
+        VAR_ANGLE,
+        VAR_POSITION3D,
+        VAR_TYPE,
+    )
 
     # ---------- apply GUI parameters ----------
     IntegrationStartTime = cfg["IntegrationStartTime"]
