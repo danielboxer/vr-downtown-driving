@@ -65,7 +65,9 @@ public class Fps : MonoBehaviour
             guiTimer = 0f;
 
             if (fpsText != null)
+            {
                 fpsText.text = "FPS: " + Mathf.Round(displayedFps);
+            }
         }
     }
 }
