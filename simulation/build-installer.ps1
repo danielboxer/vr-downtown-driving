@@ -27,7 +27,7 @@ $InnoCompiler = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
 $SumoVersion    = "1.22.0"
 $SumoMsi        = Join-Path $BuildDir "sumo-win64-$SumoVersion.msi"
 $SumoUrl        = "https://sumo.dlr.de/releases/$SumoVersion/sumo-win64-$SumoVersion.msi"
-$SumoSha256     = "60E0713D4F6F03D8F118DFCCC452F4B0FB9336B3680C8DBD5B61285FAA3DEAAB"
+$SumoSha256     = "84FF7BFD5DE4E9F095C61ABE324AE9C2A018DAB84F266ACF27BFF86E766F8487"
 
 # ── PyInstaller ────────────────────────────────────────────────────────────────
 $totalSteps = if ($onlyPy -or $onlyInno) { 1 } else { 2 }
@@ -83,7 +83,12 @@ if (-not $onlyPy) {
         if (-not (Test-Path $SumoMsi)) {
             Write-Host "  Downloading SUMO $SumoVersion installer (~150 MB)..." -ForegroundColor DarkCyan
             New-Item -ItemType Directory -Force -Path $BuildDir | Out-Null
-            Invoke-WebRequest -Uri $SumoUrl -OutFile $SumoMsi
+            # Use curl.exe for large file downloads (Invoke-WebRequest buffers in memory and is very slow for large files)
+            curl.exe -L --silent --show-error -o $SumoMsi $SumoUrl
+            if ($LASTEXITCODE -ne 0) {
+                Remove-Item $SumoMsi -ErrorAction SilentlyContinue -Force
+                Write-Error "SUMO download failed (curl exit code $LASTEXITCODE)."
+            }
         }
 
         # Verify the MSI against the known SHA-256 to detect corruption or tampering
