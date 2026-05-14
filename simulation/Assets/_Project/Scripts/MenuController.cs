@@ -171,7 +171,9 @@ public class MenuController : MonoBehaviour
         if (!System.IO.File.Exists(exePath))
         {
             Debug.LogWarning($"[MenuController] Scenario Manager executable not found at: {exePath}");
-            ShowFeedback($"Not found: {exePath}");
+            // Escape backslashes before passing to TMP: \t and \v in Windows paths
+            // are interpreted as tab/vertical-tab escape sequences by TMP's text parser.
+            ShowFeedback($"Not found: {exePath.Replace("\\", "\\\\")}");
             return;
         }
 
