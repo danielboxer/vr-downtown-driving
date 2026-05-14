@@ -1,0 +1,105 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - simulation/inno_setup_script.iss
+  workflow_dispatch:
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release:
+    name: Build and Release
+    # windows-2022 is required: the project uses IL2CPP
+    runs-on: windows-2022
+    timeout-minutes: 90
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          lfs: true
+
+      - name: Get version from Inno Setup script
+        id: get_version
+        shell: pwsh
+        run: |
+          $content = Get-Content simulation\inno_setup_script.iss -Raw
+          if ($content -match '#define MyAppVersion "([^"]+)"') {
+            "version=v$($matches[1])" >> $env:GITHUB_OUTPUT
+          } else {
+            Write-Error "Could not find MyAppVersion in inno_setup_script.iss"
+            exit 1
+          }
+
+      - name: Skip if version tag already exists
+        shell: pwsh
+        run: |
+          $tag = "${{ steps.get_version.outputs.version }}"
+          if (git tag -l $tag) {
+            Write-Host "Tag $tag already exists - version was not bumped. Skipping release."
+            exit 1
+          }
+
+      - name: Cache Unity Library folder
+        uses: actions/cache@v5
+        with:
+          path: simulation/Library
+          key: Library-Win64-${{ hashFiles('simulation/Assets/**', 'simulation/Packages/**', 'simulation/ProjectSettings/**') }}
+          restore-keys: |
+            Library-Win64-
+            Library-
+
+      - name: Build Unity project (StandaloneWindows64 / IL2CPP)
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          projectPath: simulation
+          targetPlatform: StandaloneWindows64
+          # buildsPath + buildName place output at simulation/build/Windows/,
+          # which matches the paths expected by inno_setup_script.iss.
+          buildsPath: simulation/build
+          buildName: Windows
+          versioning: Custom
+          version: ${{ steps.get_version.outputs.version }}
+          allowDirtyBuild: true
+
+      # ── ScenarioManager.exe + Inno Setup installer ──────────────────────────
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.1.0
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup --yes --no-progress
+
+      - name: Build installer (PyInstaller + Inno Setup)
+        working-directory: simulation
+        shell: pwsh
+        run: .\build-installer.ps1
+
+      # ── GitHub Release ───────────────────────────────────────────────────────
+
+      - name: Create GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: pwsh
+        run: |
+          $tag = "${{ steps.get_version.outputs.version }}"
+          $installer = Get-ChildItem -Path "simulation\build\installer" -Filter "*.exe" | Select-Object -First 1
+          if (-not $installer) {
+            Write-Error "No installer .exe found in simulation\build\installer"
+            exit 1
+          }
+          gh release create $tag $installer.FullName --title $tag
