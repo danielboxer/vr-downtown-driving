@@ -32,7 +32,7 @@
     <flow id="f_7_301" type="301" begin="0.00" from="15" to="75" via="1" end="3600.00" vehsPerHour="100"/>
     <flow id="f_8_302" type="302" begin="0.00" from="16" to="49" via="1 0" end="3600.00" vehsPerHour="100"/>
     <flow id="f_9_303" type="303" begin="0.00" from="2" to="32" via="3 4 39 6 5" end="3600.00" vehsPerHour="100"/>
-    <trip id="f_0.0" type="EgoBike" depart="540.00" from="62" to="62"/>
+    <trip id="f_0.0" type="EgoBike" depart="540.00" from="62" to="78"/>
     <trip id="car_19" type="302" depart="570.00" from="79" to="103"/>
     <trip id="bike_10" type="bike" depart="600.00" from="61" to="42"/>
     <trip id="car_20" type="302" depart="600.00" from="26" to="23"/>
