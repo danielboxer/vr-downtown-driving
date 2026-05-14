@@ -72,28 +72,35 @@ else:
         os.path.join(os.path.dirname(__file__), "..", "Scenarios")
     )
 
+
+def _collect_scenario_names(root: str) -> list:
+    """Scan *root* for subfolders that contain a .rou.xml file."""
+    if not os.path.isdir(root):
+        return []
+    return sorted(
+        (
+            name
+            for name in os.listdir(root)
+            if os.path.isdir(os.path.join(root, name))
+            and any(
+                f.endswith(".rou.xml") for f in os.listdir(os.path.join(root, name))
+            )
+        ),
+        # Sort alphabetically by scenario base name, but _car before _bike within the same base.
+        key=lambda n: (
+            (n[:-4], 0)
+            if n.endswith("_car")
+            else (n[:-5], 1)
+            if n.endswith("_bike")
+            else (n, 2)
+        ),
+    )
+
+
 # Collect all scenario subfolders that contain a .rou.xml file
-_scenario_names = sorted(
-    (
-        name
-        for name in (
-            os.listdir(_SCENARIOS_ROOT) if os.path.isdir(_SCENARIOS_ROOT) else []
-        )
-        if os.path.isdir(os.path.join(_SCENARIOS_ROOT, name))
-        and any(
-            f.endswith(".rou.xml")
-            for f in os.listdir(os.path.join(_SCENARIOS_ROOT, name))
-        )
-    ),
-    # Sort alphabetically by scenario base name, but _car before _bike within the same base.
-    key=lambda n: (
-        (n[:-4], 0)
-        if n.endswith("_car")
-        else (n[:-5], 1)
-        if n.endswith("_bike")
-        else (n, 2)
-    ),
-)
+_scenario_names = _collect_scenario_names(_SCENARIOS_ROOT)
+# Tracks the scenarios root currently active (may differ from _SCENARIOS_ROOT after browsing)
+_current_scenarios_root = _SCENARIOS_ROOT
 
 _default_scenario = (
     os.path.join(_SCENARIOS_ROOT, _scenario_names[0])
@@ -110,29 +117,32 @@ if _scenario_names:
 
 
 def _on_combo_select(event=None):
-    scenario_dir_var.set(os.path.join(_SCENARIOS_ROOT, _combo.get()))
+    scenario_dir_var.set(os.path.join(_current_scenarios_root, _combo.get()))
 
 
 _combo.bind("<<ComboboxSelected>>", _on_combo_select)
 
 
 def browse_scenario():
-    # Fall back to the exe's directory if the default scenarios folder doesn't exist.
-    if os.path.isdir(_SCENARIOS_ROOT):
-        start_dir = _SCENARIOS_ROOT
+    global _current_scenarios_root
+    # Open from the current scenarios root (shows all scenarios in the dialog).
+    if os.path.isdir(_current_scenarios_root):
+        start_dir = _current_scenarios_root
     elif getattr(sys, "frozen", False):
         start_dir = os.path.dirname(sys.executable)
     else:
         start_dir = os.path.dirname(os.path.abspath(__file__))
     d = filedialog.askdirectory(initialdir=start_dir, title="Select scenario folder")
-    if d:
-        scenario_dir_var.set(d)
-        # update combobox display if it matches a known scenario
-        name = os.path.basename(d)
-        if name in _scenario_names:
-            _combo.set(name)
-        else:
-            _combo.set("")
+    if not d:
+        return
+    names = _collect_scenario_names(d)
+    if not names:
+        status_var.set(f"No scenarios found in: {os.path.basename(d)}")
+        return
+    _current_scenarios_root = d
+    _combo["values"] = names
+    _combo.set(names[0])
+    scenario_dir_var.set(os.path.join(d, names[0]))
 
 
 ttk.Button(root, text="Browse…", command=browse_scenario).grid(
