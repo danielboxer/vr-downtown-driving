@@ -216,12 +216,38 @@ _restart_event = threading.Event()
 
 
 def run_sim(cfg: dict):
-    import traci  # type: ignore[import-untyped]
-    from traci.constants import (  # type: ignore[import-untyped]
-        VAR_ANGLE,
-        VAR_POSITION3D,
-        VAR_TYPE,
+    # ---------- logging ----------
+    logging.basicConfig(
+        level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
     )
+    logger = logging.getLogger(__name__)
+
+    # ---------- SUMO paths ----------
+    # sys.path must be updated before importing traci, which lives in the SUMO tools
+    # directory (not a pip package). Use SUMO_HOME from environment if set, otherwise
+    # fall back to the default MSI install path.
+    sumo_home = os.environ.get("SUMO_HOME") or _DEFAULT_SUMO_HOME
+    sumo_tools = os.path.join(sumo_home, "tools")
+    if not os.path.isdir(sumo_tools):
+        msg = f"SUMO tools not found at {sumo_tools}"
+        root.after(0, lambda m=msg: status_var.set(f"Error: {m}"))
+        root.after(0, _on_sim_finished)
+        return
+    if sumo_tools not in sys.path:
+        sys.path.insert(0, sumo_tools)
+
+    try:
+        import traci  # type: ignore[import-untyped]
+        from traci.constants import (  # type: ignore[import-untyped]
+            VAR_ANGLE,
+            VAR_POSITION3D,
+            VAR_TYPE,
+        )
+    except ImportError as e:
+        msg = str(e)
+        root.after(0, lambda m=msg: status_var.set(f"Error: {m}"))
+        root.after(0, _on_sim_finished)
+        return
 
     # ---------- apply GUI parameters ----------
     IntegrationStartTime = cfg["IntegrationStartTime"]
@@ -234,22 +260,6 @@ def run_sim(cfg: dict):
     use_gui = cfg["use_gui"]
     calc_rtf = cfg["calc_rtf"]
     free_cam = cfg["free_cam"]
-
-    # ---------- logging ----------
-    logging.basicConfig(
-        level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-    )
-    logger = logging.getLogger(__name__)
-
-    # ---------- SUMO paths ----------
-    # Use SUMO_HOME from environment if set, otherwise fall back to the default MSI path.
-    sumo_home = os.environ.get("SUMO_HOME") or _DEFAULT_SUMO_HOME
-    sumo_tools = os.path.join(sumo_home, "tools")
-    if not os.path.isdir(sumo_tools):
-        logger.error("SUMO tools not found at %s; cannot start simulation.", sumo_tools)
-        root.after(0, _on_sim_finished)
-        return
-    sys.path.append(sumo_tools)
 
     scenario_dir = cfg["scenario_dir"]
     parent_dir = os.path.abspath(os.path.join(scenario_dir, os.pardir))
