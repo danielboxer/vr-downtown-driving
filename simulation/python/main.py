@@ -707,6 +707,15 @@ def run_sim(cfg: dict):
         logger.info("Interrupted by user.")
     except traci.exceptions.FatalTraCIError:
         logger.info("SUMO connection closed.")
+        try:
+            root.after(
+                0,
+                lambda: status_var.set(
+                    "Error: SUMO connection closed unexpectedly during simulation"
+                ),
+            )
+        except Exception:
+            pass
     except Exception as e:
         # Catch unexpected errors (e.g. FileNotFoundError when SUMO binary is missing)
         msg = str(e)
