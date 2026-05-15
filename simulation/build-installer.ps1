@@ -50,6 +50,10 @@ if (-not $onlyInno) {
             --name ScenarioManager `
             --icon "icon.ico" `
             --add-data "..\Assets\icon.png;." `
+            # traci is loaded at runtime via sys.path injection (not statically imported),
+            # so PyInstaller's static analyzer can't detect its stdlib dependencies.
+            # optparse is used by SUMO's traci/sumolib tools and must be explicitly bundled.
+            --hidden-import optparse `
             --distpath (Join-Path $BuildDir "") `
             --workpath (Join-Path $PythonDir "build") `
             main.py

@@ -87,6 +87,8 @@ jobs:
 
       - name: Install uv
         uses: astral-sh/setup-uv@v8.1.0
+        with:
+          working-directory: simulation/python
 
       - name: Install Inno Setup
         shell: pwsh
