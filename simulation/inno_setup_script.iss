@@ -33,7 +33,7 @@ DisableProgramGroupPage=yes
 ; The installer requires admin rights because SUMO's MSI installs to Program Files.
 PrivilegesRequired=admin
 OutputDir={#SourcePath}build\installer
-OutputBaseFilename={#MyAppName} Setup {#MyAppVersion} (x64)
+OutputBaseFilename=VRDowntownDriving-Setup-{#MyAppVersion}-x64
 SolidCompression=yes
 Compression=lzma2
 MinVersion=10.0
