@@ -300,11 +300,13 @@ def run_sim(cfg: dict):
         route_file = _glob_one(scenario_dir, "*.rou.xml")
 
         if not net_file:
-            logger.error("No *.net.xml found in %s", parent_dir)
+            msg = f"No *.net.xml found in {parent_dir}"
+            root.after(0, lambda m=msg: status_var.set(f"Error: {m}"))
             root.after(0, _on_sim_finished)
             return
         if not route_file:
-            logger.error("No *.rou.xml found in %s", scenario_dir)
+            msg = f"No *.rou.xml found in {scenario_dir}"
+            root.after(0, lambda m=msg: status_var.set(f"Error: {m}"))
             root.after(0, _on_sim_finished)
             return
 
@@ -338,6 +340,12 @@ def run_sim(cfg: dict):
     except traci.exceptions.FatalTraCIError:
         logger.info("SUMO connection closed.")
         try:
+            root.after(
+                0,
+                lambda: status_var.set(
+                    "Error: SUMO failed to start (TraCI connection error)"
+                ),
+            )
             root.after(0, _on_sim_finished)
         except Exception:
             pass
@@ -371,9 +379,7 @@ def run_sim(cfg: dict):
         pub.bind("tcp://*:5556")
         rout.bind("tcp://*:5557")
     except zmq.ZMQError as e:
-        logger.error(
-            "Failed to bind ZMQ sockets (ports 5556/5557 may already be in use): %s", e
-        )
+        msg = f"Failed to bind ZMQ sockets (ports 5556/5557 may already be in use): {e}"
         try:
             traci.close()
         except Exception:
@@ -384,6 +390,7 @@ def run_sim(cfg: dict):
             ctx.term()
         except Exception:
             pass
+        root.after(0, lambda m=msg: status_var.set(f"Error: {m}"))
         root.after(0, _on_sim_finished)
         return
 
@@ -700,6 +707,13 @@ def run_sim(cfg: dict):
         logger.info("Interrupted by user.")
     except traci.exceptions.FatalTraCIError:
         logger.info("SUMO connection closed.")
+    except Exception as e:
+        # Catch unexpected errors (e.g. FileNotFoundError when SUMO binary is missing)
+        msg = str(e)
+        try:
+            root.after(0, lambda m=msg: status_var.set(f"Error: {m}"))
+        except Exception:
+            pass
     finally:
         # overall RTF
         if calc_rtf and rtf_started:
@@ -752,7 +766,9 @@ row += 1
 def _on_sim_finished():
     """Called on the main thread when run_sim exits."""
     restart_btn.config(state="disabled")
-    status_var.set("Simulation finished - click Start to run again")
+    # Don't overwrite an error message that was set by an error path in run_sim
+    if not status_var.get().startswith("Error:"):
+        status_var.set("Simulation finished - click Start to run again")
     start_btn.config(state="normal", text="Start simulation")
 
 
