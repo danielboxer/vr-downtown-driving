@@ -3,7 +3,7 @@
 ; Non-commercial use only
 
 #define MyAppName "VR Downtown Driving"
-#define MyAppVersion "0.2.5"
+#define MyAppVersion "0.2.6"
 #define MyAppPublisher "Daniel Boxer"
 #define MyAppURL "https://github.com/danielboxer/vr-downtown-driving"
 #define MyAppExeName "VR Downtown Driving.exe"

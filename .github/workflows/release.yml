@@ -67,7 +67,7 @@ jobs:
           key: sumo-1.22.0
 
       - name: Build Unity project (StandaloneWindows64 / IL2CPP)
-        uses: game-ci/unity-builder@v4
+        uses: game-ci/unity-builder@v5.0.0
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
