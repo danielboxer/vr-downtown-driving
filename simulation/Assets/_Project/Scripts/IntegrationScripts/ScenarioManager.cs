@@ -114,8 +114,7 @@ public class ScenarioManager : MonoBehaviour
     public void RestartScenario()
     {
         if (!_scenarioActive) return;
-
-        if (_fadeCoroutine != null) StopCoroutine(_fadeCoroutine);
+        if (_fadeCoroutine != null) return; // transition already in progress, ignore
         _pendingScenario = _activeScenario;
         if (vrFadeMaterial != null)
             _fadeCoroutine = StartCoroutine(FadeTransition(_activeScenario));
