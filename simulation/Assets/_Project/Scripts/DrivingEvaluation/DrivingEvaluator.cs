@@ -638,21 +638,13 @@ public class DrivingEvaluator : MonoBehaviour
     /// <summary>Finds (or creates) Results folder, matching the project convention.</summary>
     private static string LocateOrCreateResultsFolder()
     {
-        string projectRoot = Directory.GetParent(Application.dataPath).FullName;
-        DirectoryInfo dir = new DirectoryInfo(projectRoot);
-
-        while (dir != null)
-        {
-            string candidate = Path.Combine(dir.FullName, "Results");
-            if (Directory.Exists(candidate))
-                return candidate;
-
-            dir = dir.Parent;
-        }
-
-        // Not found — create it next to the project
-        string fallback = Path.Combine(projectRoot, "Results");
-        Directory.CreateDirectory(fallback);
-        return fallback;
+        // Always write to Documents so the folder is user-writable even when the game
+        // is installed to Program Files (where writing without admin rights would throw).
+        string dir = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+            "VR Downtown Driving",
+            "Results");
+        Directory.CreateDirectory(dir);
+        return dir;
     }
 }
