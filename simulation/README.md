@@ -2,6 +2,17 @@
 
 The simulation extends the Sumo2Unity project. See their documentation [here](https://github.com/SimuTraffX-Lab/SUMO2Unity/blob/main/README.md).
 
+## Cloning this repository
+
+> [!WARNING]
+> This repository uses **Git LFS** for large binary assets (textures, 3D models, audio, and `.unity` scene files). **Do not download the ZIP from GitHub**. LFS files are not included in ZIP downloads.
+
+Install [Git LFS](https://git-lfs.com) first, then clone normally:
+
+```powershell
+git clone https://github.com/danielboxer/vr-downtown-driving.git
+```
+
 ## Building the Unity project
 
 First install IL2CPP module
