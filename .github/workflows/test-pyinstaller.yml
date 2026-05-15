@@ -1,0 +1,38 @@
+name: Test PyInstaller
+
+on:
+  push:
+    branches-ignore:
+      - main
+    paths:
+      - simulation/python/**
+      - simulation/build-installer.ps1
+      - .github/workflows/test-pyinstaller.yml
+  workflow_dispatch:
+
+jobs:
+  build-exe:
+    name: Build ScenarioManager.exe
+    runs-on: windows-2022
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.1.0
+        with:
+          working-directory: simulation/python
+
+      - name: Build ScenarioManager.exe (PyInstaller only)
+        working-directory: simulation
+        shell: pwsh
+        run: .\build-installer.ps1 -onlyPy
+
+      - name: Upload exe artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ScenarioManager-${{ github.sha }}
+          path: simulation/build/ScenarioManager.exe
+          retention-days: 7

@@ -46,7 +46,7 @@ if (-not $onlyInno) {
         # uv run ensures the project's venv is used
         # optparse: traci is loaded at runtime via sys.path injection (not statically imported),
         # so PyInstaller's static analyzer can't detect its stdlib dependencies.
-        # optparse is used by SUMO's traci/sumolib tools and must be explicitly bundled.
+        # The following hidden imports cover SUMO's traci/sumolib stdlib usage.
         uv run pyinstaller `
             --onefile `
             --noconsole `
@@ -54,6 +54,7 @@ if (-not $onlyInno) {
             --icon "icon.ico" `
             --add-data "..\Assets\icon.png;." `
             --hidden-import optparse `
+            --hidden-import xml.sax `
             --distpath (Join-Path $BuildDir "") `
             --workpath (Join-Path $PythonDir "build") `
             main.py
