@@ -44,15 +44,15 @@ if (-not $onlyInno) {
     Push-Location $PythonDir
     try {
         # uv run ensures the project's venv is used
+        # optparse: traci is loaded at runtime via sys.path injection (not statically imported),
+        # so PyInstaller's static analyzer can't detect its stdlib dependencies.
+        # optparse is used by SUMO's traci/sumolib tools and must be explicitly bundled.
         uv run pyinstaller `
             --onefile `
             --noconsole `
             --name ScenarioManager `
             --icon "icon.ico" `
             --add-data "..\Assets\icon.png;." `
-            # traci is loaded at runtime via sys.path injection (not statically imported),
-            # so PyInstaller's static analyzer can't detect its stdlib dependencies.
-            # optparse is used by SUMO's traci/sumolib tools and must be explicitly bundled.
             --hidden-import optparse `
             --distpath (Join-Path $BuildDir "") `
             --workpath (Join-Path $PythonDir "build") `
