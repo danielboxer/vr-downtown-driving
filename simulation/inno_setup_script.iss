@@ -3,7 +3,7 @@
 ; Non-commercial use only
 
 #define MyAppName "VR Downtown Driving"
-#define MyAppVersion "0.2.1"
+#define MyAppVersion "0.2.2"
 #define MyAppPublisher "Daniel Boxer"
 #define MyAppURL "https://github.com/danielboxer/vr-downtown-driving"
 #define MyAppExeName "VR Downtown Driving.exe"
@@ -47,13 +47,13 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Name: "sumo"; Description: "Install SUMO 1.22.0 (required for running traffic simulations)"; GroupDescription: "Dependencies:"
 
 [Files]
-Source: "{#SourcePath}build\Windows\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
-Source: "{#SourcePath}build\Windows\D3D12\*"; DestDir: "{app}\D3D12"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "{#SourcePath}build\Windows\VR Downtown Driving_Data\*"; DestDir: "{app}\VR Downtown Driving_Data"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "{#SourcePath}build\Windows\baselib.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "{#SourcePath}build\Windows\GameAssembly.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "{#SourcePath}build\Windows\UnityCrashHandler64.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "{#SourcePath}build\Windows\UnityPlayer.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#SourcePath}build\StandaloneWindows64\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#SourcePath}build\StandaloneWindows64\D3D12\*"; DestDir: "{app}\D3D12"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#SourcePath}build\StandaloneWindows64\VR Downtown Driving_Data\*"; DestDir: "{app}\VR Downtown Driving_Data"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#SourcePath}build\StandaloneWindows64\baselib.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#SourcePath}build\StandaloneWindows64\GameAssembly.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#SourcePath}build\StandaloneWindows64\UnityCrashHandler64.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#SourcePath}build\StandaloneWindows64\UnityPlayer.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#SourcePath}build\ScenarioManager.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#SourcePath}Scenarios\*"; DestDir: "{app}\Scenarios"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; SUMO is bundled so users do not need to install it separately.
