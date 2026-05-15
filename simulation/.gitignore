@@ -68,6 +68,7 @@ python/*.spec
 ExportedObj/
 .consulo/
 *.csproj
+*.lscache
 *.unityproj
 *.sln
 *.slnx
