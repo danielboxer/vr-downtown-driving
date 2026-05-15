@@ -48,7 +48,8 @@ if (-not $onlyInno) {
         # so PyInstaller's static analyzer can't detect its stdlib dependencies.
         # These hidden imports cover sumolib (pulled in by traci/main.py) requiring
         # these modules at import time: optparse in sumolib/__init__.py,
-        # colorsys/gzip in sumolib/miscutils.py, xml.sax.handler in sumolib/net/__init__.py.
+        # colorsys/gzip in sumolib/miscutils.py, xml.sax.handler in sumolib/net/__init__.py,
+        # fileinput/xml.sax.saxutils/keyword in sumolib/xml.py.
         uv run pyinstaller `
             --onefile `
             --noconsole `
@@ -58,8 +59,11 @@ if (-not $onlyInno) {
             --hidden-import optparse `
             --hidden-import colorsys `
             --hidden-import gzip `
+            --hidden-import fileinput `
+            --hidden-import keyword `
             --hidden-import xml.sax `
             --hidden-import xml.sax.handler `
+            --hidden-import xml.sax.saxutils `
             --hidden-import xml.etree.ElementTree `
             --distpath (Join-Path $BuildDir "") `
             --workpath (Join-Path $PythonDir "build") `
