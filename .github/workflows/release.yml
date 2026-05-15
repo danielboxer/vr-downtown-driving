@@ -20,6 +20,7 @@ jobs:
     timeout-minutes: 90
     permissions:
       contents: write
+      id-token: write # required for artifact attestation
 
     steps:
       - name: Checkout repository
@@ -96,6 +97,11 @@ jobs:
         run: .\build-installer.ps1
 
       # ── GitHub Release ───────────────────────────────────────────────────────
+
+      - name: Attest installer provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: simulation/build/installer/*.exe
 
       - name: Create GitHub Release
         env:
