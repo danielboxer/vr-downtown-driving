@@ -73,10 +73,10 @@ jobs:
         with:
           projectPath: simulation
           targetPlatform: StandaloneWindows64
-          # buildsPath + buildName place output at simulation/build/Windows/,
-          # which matches the paths expected by inno_setup_script.iss.
+          # buildPath = buildsPath/targetPlatform (not buildName), so output goes to
+          # simulation/build/StandaloneWindows64/, matching inno_setup_script.iss.
           buildsPath: simulation/build
-          buildName: Windows
+          buildName: VR Downtown Driving
           versioning: Custom
           version: ${{ steps.get_version.outputs.version }}
           allowDirtyBuild: true
