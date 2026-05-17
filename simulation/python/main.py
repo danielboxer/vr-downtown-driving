@@ -482,7 +482,37 @@ def run_sim(cfg: dict):
                 traci.load(sumo_cmd[1:])
                 continue
 
-            # Subscribe to ego context now that f_0.0 has been inserted (depart=IntegrationStartTime).
+            # The ego trip departs at IntegrationStartTime, but SUMO only makes it
+            # visible after the next simulation step (for 540.0, usually 540.1).
+            # Do not enter the live Unity loop until f_0.0 is actually inserted.
+            while (
+                ego not in traci.vehicle.getIDList()
+                and traci.simulation.getMinExpectedNumber() > 0
+                and not _restart_event.is_set()
+            ):
+                traci.simulationStep()
+                cam_follow("View #0", ego) if use_gui else None
+                pub.send_string(config_msg)
+
+            if _restart_event.is_set():
+                # restart requested while waiting for ego insertion
+                traci.load(sumo_cmd[1:])
+                continue
+
+            if ego not in traci.vehicle.getIDList():
+                msg = (
+                    f"Ego vehicle '{ego}' was not inserted after "
+                    f"t={IntegrationStartTime}"
+                )
+                logger.error(msg)
+                root.after(0, lambda m=msg: status_var.set(f"Error: {m}"))
+                break
+
+            # Reset pacing after the fast warm-up/handoff so live streaming starts
+            # from a fresh wall-clock target instead of a stale pre-warm-up time.
+            next_step = time.perf_counter() + STEP
+
+            # Subscribe to ego context now that f_0.0 has been inserted.
             # Calling subscribeContext before any simulation steps fails when SUMO uses incremental
             # route loading (large route files), because the vehicle isn't known yet at t=0.
             traci.vehicle.subscribeContext(
