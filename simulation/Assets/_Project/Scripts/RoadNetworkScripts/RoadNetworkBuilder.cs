@@ -170,6 +170,21 @@ public class RoadNetworkBuilder : MonoBehaviour
     public float middleTrafficLightThreshold = 12f;
     [Tooltip("How far past the road edge (meters) each traffic light pole is placed. Increase to move lights farther from the road.")]
     public float trafficLightCurbOffset = 1.5f;
+
+    [Header("Evaluation Triggers")]
+    [Tooltip("Minimum trigger width in lanes. Increase to cover more lanes on narrow roads.")]
+    public float triggerMinimumLaneCount = 2f;
+    [Tooltip("Stop-line trigger length along the approach direction.")]
+    public float stopLineTriggerDepth = 3f;
+    [Tooltip("Stop-line trigger offset past the stop line. Increase to move farther into the junction; decrease to move closer to the road.")]
+    public float stopLineTriggerForwardOffset = 4.5f;
+    [Tooltip("Turn trigger length along the exit-lane direction.")]
+    public float turnTriggerDepth = 1.5f;
+    [Tooltip("Turn trigger forward offset as a road-width multiplier. Increase to move farther toward the junction center.")]
+    public float turnTriggerForwardWidthMultiplier = 1.125f;
+    [Tooltip("Turn trigger side offset. Increase to move farther toward the right-side exit lane; decrease to move toward the junction center.")]
+    public float turnTriggerSideOffset = 4.5f;
+
     [Tooltip("Add a BoxCollider to each stop sign post so vehicles can collide with it.")]
     public bool addStopSignColliders = true;
     [Tooltip("Size of the box collider added to each stop sign (width, height, depth).")]
@@ -981,6 +996,131 @@ public class RoadNetworkBuilder : MonoBehaviour
             DestroyImmediate(junctions);
     }
 
+    private struct TurnTriggerBuildData
+    {
+        public string edgeId;
+        public Vector3 approachDir;
+        public Vector3 stopLinePos;
+        public float totalRoadWidth;
+    }
+
+    private static Vector3 NormalizeHorizontal(Vector3 dir)
+    {
+        dir.y = 0f;
+        return dir.sqrMagnitude > 0.0001f ? dir.normalized : Vector3.zero;
+    }
+
+    private float GetTriggerWidth(float roadWidth, float laneWidth)
+    {
+        if (laneWidth <= 0f)
+            laneWidth = laneMeshScaleWidth > 0f ? laneMeshScaleWidth : 3.2f;
+
+        return Mathf.Max(roadWidth, laneWidth * Mathf.Max(1f, triggerMinimumLaneCount));
+    }
+
+    private bool CreateTurnDirectionTrigger(Transform parent, string junctionId, string suffix, Vector3 stopLinePos, Vector3 approachDir, float totalRoadWidth)
+    {
+        approachDir = NormalizeHorizontal(approachDir);
+        if (approachDir == Vector3.zero)
+            return false;
+
+        if (totalRoadWidth <= 0f)
+            totalRoadWidth = GetTriggerWidth(0f, laneMeshScaleWidth);
+
+        Vector3 tdRightDir = new Vector3(approachDir.z, 0f, -approachDir.x);
+
+        GameObject tdGO = new GameObject($"TurnTrigger_{junctionId}_{suffix}");
+        tdGO.transform.SetParent(parent);
+        tdGO.transform.position = stopLinePos;
+        tdGO.transform.rotation = Quaternion.LookRotation(tdRightDir, Vector3.up);
+
+        var tdBox = tdGO.AddComponent<BoxCollider>();
+        tdBox.isTrigger = true;
+        tdBox.size = new Vector3(totalRoadWidth, 2f, Mathf.Max(0.1f, turnTriggerDepth));
+        tdBox.center = new Vector3(
+            -(totalRoadWidth * turnTriggerForwardWidthMultiplier),
+            0f,
+            turnTriggerSideOffset);
+
+        var tdTrigger = tdGO.AddComponent<TurnDirectionTrigger>();
+        tdTrigger.junctionId = junctionId;
+        tdTrigger.direction = DrivingEvaluator.SignalDirection.Right;
+        tdTrigger.approachDir = approachDir;
+
+        return true;
+    }
+
+    private void CreateMissingThreeWayTurnTrigger(List<TurnTriggerBuildData> turnTriggers, Transform parent, string junctionId, Vector3 junctionCenter)
+    {
+        // Add the missing fourth trigger for T-intersections.
+        if (turnTriggers.Count != 3)
+            return;
+
+        int firstOpposingIndex = -1;
+        int secondOpposingIndex = -1;
+        float mostOpposingDot = 1f;
+
+        for (int i = 0; i < turnTriggers.Count; i++)
+        {
+            Vector3 a = NormalizeHorizontal(turnTriggers[i].approachDir);
+            if (a == Vector3.zero) continue;
+
+            for (int j = i + 1; j < turnTriggers.Count; j++)
+            {
+                Vector3 b = NormalizeHorizontal(turnTriggers[j].approachDir);
+                if (b == Vector3.zero) continue;
+
+                float dot = Vector3.Dot(a, b);
+                if (dot < mostOpposingDot)
+                {
+                    mostOpposingDot = dot;
+                    firstOpposingIndex = i;
+                    secondOpposingIndex = j;
+                }
+            }
+        }
+
+        if (firstOpposingIndex < 0 || secondOpposingIndex < 0 || mostOpposingDot > -0.5f)
+            return;
+
+        int unpairedIndex = -1;
+        for (int i = 0; i < turnTriggers.Count; i++)
+        {
+            if (i != firstOpposingIndex && i != secondOpposingIndex)
+            {
+                unpairedIndex = i;
+                break;
+            }
+        }
+
+        if (unpairedIndex < 0)
+            return;
+
+        TurnTriggerBuildData source = turnTriggers[unpairedIndex];
+        Vector3 sourceApproachDir = NormalizeHorizontal(source.approachDir);
+        if (sourceApproachDir == Vector3.zero)
+            return;
+
+        Vector3 missingApproachDir = -sourceApproachDir;
+
+        float stopLineDistance = Vector3.Dot(junctionCenter - source.stopLinePos, sourceApproachDir);
+        if (stopLineDistance <= 0.1f)
+            stopLineDistance = Vector3.Distance(junctionCenter, source.stopLinePos);
+        if (stopLineDistance <= 0.1f)
+            stopLineDistance = Mathf.Max(source.totalRoadWidth, GetTriggerWidth(0f, laneMeshScaleWidth));
+
+        Vector3 virtualStopLinePos = junctionCenter - missingApproachDir * stopLineDistance;
+        virtualStopLinePos.y = source.stopLinePos.y;
+
+        CreateTurnDirectionTrigger(
+            parent,
+            junctionId,
+            $"MissingOppositeOfE{source.edgeId}",
+            virtualStopLinePos,
+            missingApproachDir,
+            source.totalRoadWidth);
+    }
+
     /// <summary>
     /// Generates traffic light GameObjects for every junction whose type is
     /// traffic_light (or variant). Creates the hierarchy expected by
@@ -1054,6 +1194,8 @@ public class RoadNetworkBuilder : MonoBehaviour
                 list.Add(kvp.Key);
             }
 
+            var turnTriggerBuildData = new List<TurnTriggerBuildData>();
+
             // For each incoming edge, place one visible ThreeLight prefab
             foreach (var edgeEntry in edgeToLinks)
             {
@@ -1106,7 +1248,8 @@ public class RoadNetworkBuilder : MonoBehaviour
                         }
                     }
                 }
-                if (totalRoadWidth <= 0f) totalRoadWidth = 6.4f;
+                if (totalRoadWidth <= 0f) totalRoadWidth = GetTriggerWidth(0f, laneW);
+                float triggerRoadWidth = GetTriggerWidth(totalRoadWidth, laneW);
 
                 // Left-side mirror position: find the opposing incoming edge (arrives at this junction from
                 // approx. the opposite direction) and use its rightmost lane endpoint directly.
@@ -1205,39 +1348,26 @@ public class RoadNetworkBuilder : MonoBehaviour
 
                 var slBox = stopLineGO.AddComponent<BoxCollider>();
                 slBox.isTrigger = true;
-                slBox.size = new Vector3(totalRoadWidth, 2f, 3f);
-                // Shift center left (into the road) so the box covers the lanes rather than the curb.
-                // Positive Z offset places the trigger past the stop line so it fires on crossing.
-                slBox.center = new Vector3(-(totalRoadWidth * 0.5f - laneW * 0.5f), 0f, 4.5f);
+                slBox.size = new Vector3(triggerRoadWidth, 2f, Mathf.Max(0.1f, stopLineTriggerDepth));
+                slBox.center = new Vector3(
+                    -(triggerRoadWidth * 0.5f - laneW * 0.5f),
+                    0f,
+                    stopLineTriggerForwardOffset);
 
                 var slTrigger = stopLineGO.AddComponent<StopLineTrigger>();
                 slTrigger.junctionId = jId;
                 slTrigger.linkIndex = primaryLink;
 
-                // ── Turn-direction trigger: one per approach, right-side entry ──
-                // Exactly like the stop-line trigger (same position, size, and center offset)
-                // but rotated 90° so it faces rightDir. This makes it cover the right-side
-                // lanes in the junction exit direction. Cars turning right pass through it;
-                // each approach provides one right-exit trigger so all turns are covered.
-                Vector3 tdRightDir = new Vector3(approachDir.z, 0f, -approachDir.x);
-
-                GameObject tdGO = new GameObject($"TurnTrigger_{jId}_E{edgeId}");
-                tdGO.transform.SetParent(junctionGO.transform);
-                tdGO.transform.position = stopLinePos;
-                tdGO.transform.rotation = Quaternion.LookRotation(tdRightDir, Vector3.up);
-
-                var tdBox = tdGO.AddComponent<BoxCollider>();
-                tdBox.isTrigger = true;
-                tdBox.size = new Vector3(totalRoadWidth, 2f, 3f);
-                // With LookRotation(tdRightDir), local -X → world +approachDir.
-                // center.x places it forward into the junction; center.z = 3.0 shifts it
-                // toward the right curb to cover the right-turn exit lane.
-                tdBox.center = new Vector3(-(totalRoadWidth * 1.125f), 0f, 3.0f);
-
-                var tdTrigger = tdGO.AddComponent<TurnDirectionTrigger>();
-                tdTrigger.junctionId = jId;
-                tdTrigger.direction = DrivingEvaluator.SignalDirection.Right;
-                tdTrigger.approachDir = approachDir;
+                if (CreateTurnDirectionTrigger(junctionGO.transform, jId, $"E{edgeId}", stopLinePos, approachDir, triggerRoadWidth))
+                {
+                    turnTriggerBuildData.Add(new TurnTriggerBuildData
+                    {
+                        edgeId = edgeId,
+                        approachDir = approachDir,
+                        stopLinePos = stopLinePos,
+                        totalRoadWidth = triggerRoadWidth
+                    });
+                }
 
                 // Secondary Heads: invisible stubs with green_light/yellow_light/red_light children
                 for (int i = 1; i < linkIndices.Count; i++)
@@ -1253,6 +1383,8 @@ public class RoadNetworkBuilder : MonoBehaviour
                     new GameObject("red_light").transform.SetParent(stub.transform);
                 }
             }
+
+            CreateMissingThreeWayTurnTrigger(turnTriggerBuildData, junctionGO.transform, jId, junctionCenter);
         }
         // Mark junction hierarchy as static for batching, GI, and occlusion culling
         if (markGeneratedAsStatic) SetStaticRecursively(junctionsRoot);
