@@ -10,6 +10,7 @@ using System.IO;
 using System.Linq;
 using System.Xml.Serialization;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
 using NetFile;
@@ -17,9 +18,34 @@ using NetFile;
 public class RoadNetworkBuilder : MonoBehaviour
 {
     public static RoadNetworkBuilder Singleton { get; private set; }
-    private void Awake() => Singleton = this;
+    private const string StopSignPrefabAssetPath = "Assets/_Project/Resources/Signs/StopSign.prefab";
+    private const string SignLampPrefabAssetPath = "Assets/_Project/Resources/StreetLamps/Sign Street Lamp.prefab";
+    private const string ThroughDecalMaterialAssetPath = "Assets/_Project/Materials/Through-Decal.mat";
+    private const string LeftTurnDecalMaterialAssetPath = "Assets/_Project/Materials/LeftTurn-Decal.mat";
+    private const string RightTurnDecalMaterialAssetPath = "Assets/_Project/Materials/RightTurn-Decal.mat";
+    private const string RightTurnAndThroughDecalMaterialAssetPath = "Assets/_Project/Materials/RightTurn-Decal 1.mat";
+    private const string ThroughRightLeftDecalMaterialAssetPath = "Assets/_Project/Materials/ThroughRightLeft.mat";
+    private const string StopLineDecalMaterialAssetPath = "Assets/_Project/Materials/StopLine.mat";
+    private const string AsphaltMaterialAssetPath = "Assets/_Project/Materials/Asphalt.mat";
+    private const string RoadMarkingMaterialAssetPath = "Assets/_Project/Materials/RoadMarking.mat";
+    private const string WoodMaterialAssetPath = "Assets/_Project/Materials/WoodMaterial.mat";
+    private const string RoadsideMaterialAssetPath = "Assets/_Project/Materials/RoadsideMaterial.mat";
+    private const string ResidentialMaterialAssetPath = "Assets/_Project/Materials/ResidentialMaterial.mat";
+    private static readonly HashSet<string> loggedMissingDefaultAssets = new();
+
+    private void Awake()
+    {
+        Singleton = this;
+        EnsureDefaultReferences();
+    }
+
+    private void Reset() => EnsureDefaultReferences();
+
+    private void OnValidate() => EnsureDefaultReferences();
+
     public void InitializeInEditMode()
     {
+        EnsureDefaultReferences();
         if (Singleton != this)
         {
             Singleton = this;
@@ -29,6 +55,52 @@ public class RoadNetworkBuilder : MonoBehaviour
     private void OnDestroy()
     {
         if (Singleton == this) Singleton = null;
+    }
+
+    private void EnsureDefaultReferences()
+    {
+        bool changed = false;
+
+        changed |= AssignDefaultReference(ref stopSignPrefab, StopSignPrefabAssetPath);
+        changed |= AssignDefaultReference(ref throughDecalMaterial, ThroughDecalMaterialAssetPath);
+        changed |= AssignDefaultReference(ref leftTurnDecalMaterial, LeftTurnDecalMaterialAssetPath);
+        changed |= AssignDefaultReference(ref rightTurnDecalMaterial, RightTurnDecalMaterialAssetPath);
+        changed |= AssignDefaultReference(ref rightTurnAndThroughDecalMaterial, RightTurnAndThroughDecalMaterialAssetPath);
+        changed |= AssignDefaultReference(ref throughRightLeftDecalMaterial, ThroughRightLeftDecalMaterialAssetPath);
+        changed |= AssignDefaultReference(ref stopLineDecalMaterial, StopLineDecalMaterialAssetPath);
+        changed |= AssignDefaultReference(ref roadSurfaceMaterial, AsphaltMaterialAssetPath);
+        changed |= AssignDefaultReference(ref junctionSurfaceMaterial, AsphaltMaterialAssetPath);
+        changed |= AssignDefaultReference(ref roadMarkingMaterial, RoadMarkingMaterialAssetPath);
+        changed |= AssignDefaultReference(ref polygonWoodMaterial, WoodMaterialAssetPath);
+        changed |= AssignDefaultReference(ref polygonTerrainMaterial, RoadsideMaterialAssetPath);
+        changed |= AssignDefaultReference(ref polygonRoadsideMaterial, RoadsideMaterialAssetPath);
+        changed |= AssignDefaultReference(ref polygonResidentialMaterial, ResidentialMaterialAssetPath);
+        changed |= AssignDefaultReference(ref sidewalkWallMaterial, RoadsideMaterialAssetPath);
+        changed |= AssignDefaultReference(ref lampWithSignPrefab, SignLampPrefabAssetPath);
+
+        if (!changed || Application.isPlaying)
+            return;
+
+        EditorUtility.SetDirty(this);
+        if (gameObject != null && gameObject.scene.IsValid())
+            EditorSceneManager.MarkSceneDirty(gameObject.scene);
+    }
+
+    private static bool AssignDefaultReference<T>(ref T field, string assetPath) where T : UnityEngine.Object
+    {
+        if (field != null)
+            return false;
+
+        T asset = AssetDatabase.LoadAssetAtPath<T>(assetPath);
+        if (asset == null)
+        {
+            if (loggedMissingDefaultAssets.Add(assetPath))
+                Debug.LogWarning($"[RoadNetworkBuilder] Default asset not found at '{assetPath}'.");
+            return false;
+        }
+
+        field = asset;
+        return true;
     }
 
     [Header("Road Signs")]
@@ -163,6 +235,8 @@ public class RoadNetworkBuilder : MonoBehaviour
 
     public void LoadSumoXmlFiles(string sumoFilesFolder)
     {
+        EnsureDefaultReferences();
+
         if (roadNetworkRoot != null)
         {
             DestroyImmediate(roadNetworkRoot);
@@ -199,6 +273,8 @@ public class RoadNetworkBuilder : MonoBehaviour
     /// </summary>
     public void ParseSumoXmlFiles(string sumoFilesFolder)
     {
+        EnsureDefaultReferences();
+
         laneWidthMap.Clear();
         junctionRecords?.Clear();
         laneRecords?.Clear();
@@ -381,6 +457,8 @@ public class RoadNetworkBuilder : MonoBehaviour
 
     public void GenerateRoadsAndJunctions()
     {
+        EnsureDefaultReferences();
+
         // lanes
         int laneCounter = 0;
         foreach (var edgeData in edgeRecords.Values)
@@ -912,6 +990,8 @@ public class RoadNetworkBuilder : MonoBehaviour
     /// </summary>
     public void GenerateTrafficLights()
     {
+        EnsureDefaultReferences();
+
         if (_netFile == null) { Debug.LogError("Net file not loaded."); return; }
 
         // Load ThreeLight prefab from Resources
@@ -1228,6 +1308,8 @@ public class RoadNetworkBuilder : MonoBehaviour
     /// </summary>
     public void GenerateRoadSigns()
     {
+        EnsureDefaultReferences();
+
         if (_netFile == null) { Debug.LogError("Net file not loaded."); return; }
 
         if (stopSignPrefab == null)
@@ -1347,6 +1429,8 @@ public class RoadNetworkBuilder : MonoBehaviour
     /// </summary>
     public void GenerateStreetLamps()
     {
+        EnsureDefaultReferences();
+
         if (!FindExistingRoot())
         {
             Debug.LogError("[RoadNetworkBuilder] No road network root found. Generate roads first.");
@@ -1533,6 +1617,8 @@ public class RoadNetworkBuilder : MonoBehaviour
     /// </summary>
     public void GenerateLaneDecals()
     {
+        EnsureDefaultReferences();
+
         if (_netFile == null) { Debug.LogError("Net file not loaded."); return; }
 
         // Collect which materials are available; skip silently if none are assigned
