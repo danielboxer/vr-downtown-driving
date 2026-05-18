@@ -19,8 +19,10 @@ public class RouteArrowSpawner : MonoBehaviour
     [Tooltip("Scale of each arrow.")]
     public float arrowScale = 1.5f;
 
-    [Tooltip("Color of the arrows.")]
-    public Color arrowColor = new Color(0.2f, 0.8f, 1f, 0.8f);
+    [Tooltip("Optional texture for the arrows. Use a white arrow on a transparent background (PNG). " +
+             "The image is placed on a quad; arrow direction should point upward in the image. " +
+             "If unset, the built-in procedural arrow mesh is used.")]
+    public Texture2D arrowTexture;
 
     [Header("Animation")]
     [Tooltip("Amplitude of the up-down bobbing (metres).")]
@@ -37,6 +39,7 @@ public class RouteArrowSpawner : MonoBehaviour
 
     private Mesh _arrowMesh;
     private Material _arrowMaterial;
+    private Transform _egoTransform;
 
     /// <summary>
     /// Clears existing arrows and spawns new ones along the given spline.
@@ -48,6 +51,10 @@ public class RouteArrowSpawner : MonoBehaviour
         if (spline == null) return;
 
         EnsureMeshAndMaterial();
+
+        // Cache the ego vehicle transform for billboard rotation in Update
+        if (arrowTexture != null)
+            _egoTransform = GameObject.Find("f_0.0")?.transform;
 
         // Build a lookup table of (t → cumulative distance) to place arrows at even metre intervals
         const int samples = 500;
@@ -114,11 +121,17 @@ public class RouteArrowSpawner : MonoBehaviour
         }
         _arrows.Clear();
         _baseY.Clear();
+        _egoTransform = null;
     }
 
     private void Update()
     {
         if (_arrows.Count == 0) return;
+
+        // Billboard viewer: prefer the main camera (VR headset), fall back to the cached ego transform
+        Transform viewer = arrowTexture != null
+            ? (Camera.main != null ? Camera.main.transform : _egoTransform)
+            : null;
 
         for (int i = 0; i < _arrows.Count; i++)
         {
@@ -128,6 +141,16 @@ public class RouteArrowSpawner : MonoBehaviour
             var pos = _arrows[i].position;
             pos.y = _baseY[i] + bob;
             _arrows[i].position = pos;
+
+            // Rotate the textured arrow on Y to always face the ego vehicle,
+            // preserving the 90-degree downward tilt so it reads from below.
+            if (viewer != null)
+            {
+                Vector3 toViewer = viewer.position - _arrows[i].position;
+                toViewer.y = 0f;
+                if (toViewer.sqrMagnitude > 0.001f)
+                    _arrows[i].rotation = Quaternion.LookRotation(toViewer, Vector3.up) * Quaternion.Euler(90f, 0f, 0f);
+            }
         }
     }
 
@@ -159,15 +182,80 @@ public class RouteArrowSpawner : MonoBehaviour
 
     private void EnsureMeshAndMaterial()
     {
-        if (_arrowMesh == null)
-            _arrowMesh = CreateArrowMesh();
+        bool useTexture = arrowTexture != null;
 
-        if (_arrowMaterial == null)
+        // Reset if the mode has changed since the last spawn (e.g. texture was assigned or cleared)
+        if (_arrowMesh != null)
         {
-            // Unlit material so arrows are visible in any lighting
-            _arrowMaterial = new Material(Shader.Find("Unlit/Color"));
-            _arrowMaterial.color = arrowColor;
+            bool wasTextured = _arrowMesh.name == "RouteArrowQuad";
+            if (wasTextured != useTexture)
+            {
+                _arrowMesh = null;
+                _arrowMaterial = null;
+            }
         }
+
+        if (useTexture)
+        {
+            if (_arrowMesh == null)
+                _arrowMesh = CreateQuadMesh();
+
+            if (_arrowMaterial == null)
+            {
+                // Sprites/Default supports alpha transparency and color tinting in both Built-in and URP
+                _arrowMaterial = new Material(Shader.Find("Sprites/Default"));
+                _arrowMaterial.mainTexture = arrowTexture;
+                _arrowMaterial.color = Color.white;
+            }
+        }
+        else
+        {
+            if (_arrowMesh == null)
+                _arrowMesh = CreateArrowMesh();
+
+            if (_arrowMaterial == null)
+            {
+                // Unlit material so arrows are visible in any lighting
+                _arrowMaterial = new Material(Shader.Find("Unlit/Color"));
+                _arrowMaterial.color = Color.white;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Creates a flat double-sided 1x1 quad on the XZ plane with UV coordinates.
+    /// Used when arrowTexture is assigned; the image alpha defines the arrow shape.
+    /// </summary>
+    private static Mesh CreateQuadMesh()
+    {
+        var mesh = new Mesh { name = "RouteArrowQuad" };
+
+        mesh.vertices = new[]
+        {
+            new Vector3(-0.5f, 0f, -0.5f),  // 0 back-left
+            new Vector3( 0.5f, 0f, -0.5f),  // 1 back-right
+            new Vector3( 0.5f, 0f,  0.5f),  // 2 front-right
+            new Vector3(-0.5f, 0f,  0.5f),  // 3 front-left
+        };
+
+        mesh.uv = new[]
+        {
+            new Vector2(0f, 0f),
+            new Vector2(1f, 0f),
+            new Vector2(1f, 1f),
+            new Vector2(0f, 1f),
+        };
+
+        // Double-sided: top face (+Y) and bottom face (-Y, reversed winding)
+        mesh.triangles = new[]
+        {
+            0, 3, 1,  1, 3, 2,
+            0, 1, 3,  1, 2, 3,
+        };
+
+        mesh.RecalculateNormals();
+        mesh.RecalculateBounds();
+        return mesh;
     }
 
     /// <summary>
