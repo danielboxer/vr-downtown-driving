@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Rendering.Universal;
 
 namespace VRDowntownDriving.Editor
 {
@@ -46,8 +48,22 @@ namespace VRDowntownDriving.Editor
             var width = renderTexture.width;
             var height = renderTexture.height;
 
+            // Temporarily remove draw distance limit on all decal projectors so
+            // they appear in the screenshot regardless of camera distance.
+            var decals = UnityEngine.Object.FindObjectsByType<DecalProjector>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            var savedDistances = new Dictionary<DecalProjector, float>(decals.Length);
+            foreach (var d in decals)
+            {
+                savedDistances[d] = d.drawDistance;
+                d.drawDistance = float.MaxValue;
+            }
+
             // Render fresh content into cam.targetTexture (renderTexture)
             cam.Render();
+
+            // Restore decal draw distances
+            foreach (var d in decals)
+                d.drawDistance = savedDistances[d];
 
             // Blit into a temporary sRGB texture so ReadPixels gets
             // gamma-corrected values matching what the Scene view displays.
