@@ -52,6 +52,40 @@ namespace VRDowntownDriving.Editor
             CaptureTopDownScreenshot(path);
         }
 
+        [MenuItem("Tools/Capture Game Screenshot %&G")]
+        private static void CaptureGameViewScreenshot()
+        {
+            var path = BuildImgPath("game_");
+            CaptureGameViewScreenshot(path);
+        }
+
+        // Renders a screenshot from Camera.main. Works during play mode.
+        // width/height: output resolution in pixels.
+        public static void CaptureGameViewScreenshot(string filePath, int width = 1920, int height = 1080)
+        {
+            var cam = Camera.main;
+            if (cam == null)
+            {
+                Debug.LogError("Capture Game Screenshot: no Camera.main found. Make sure the main camera is tagged 'MainCamera'.");
+                return;
+            }
+
+            var savedRt = cam.targetTexture;
+            var rt = new RenderTexture(width, height, 24, RenderTextureFormat.ARGB32);
+            cam.targetTexture = rt;
+
+            try
+            {
+                RenderCameraToFile(cam, rt, filePath, ownedRt: false);
+            }
+            finally
+            {
+                cam.targetTexture = savedRt;
+                rt.Release();
+                UnityEngine.Object.DestroyImmediate(rt);
+            }
+        }
+
         // Renders an orthographic top-down screenshot centered on the ego vehicle (f_0.0),
         // falling back to the scene center if the ego vehicle is not found.
         // LOD bias is temporarily maximized so full-detail geometry appears in the shot.
