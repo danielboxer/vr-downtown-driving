@@ -20,10 +20,11 @@ public class RoadNetworkBuilder : MonoBehaviour
     public static RoadNetworkBuilder Singleton { get; private set; }
     private const string StopSignPrefabAssetPath = "Assets/_Project/Resources/Signs/StopSign.prefab";
     private const string SignLampPrefabAssetPath = "Assets/_Project/Resources/StreetLamps/Sign Street Lamp.prefab";
-    private const string ThroughDecalMaterialAssetPath = "Assets/_Project/Materials/Through-Decal.mat";
-    private const string LeftTurnDecalMaterialAssetPath = "Assets/_Project/Materials/LeftTurn-Decal.mat";
-    private const string RightTurnDecalMaterialAssetPath = "Assets/_Project/Materials/RightTurn-Decal.mat";
-    private const string RightTurnAndThroughDecalMaterialAssetPath = "Assets/_Project/Materials/RightTurn-Decal 1.mat";
+    private const string ThroughDecalMaterialAssetPath = "Assets/_Project/Materials/Through.mat";
+    private const string LeftDecalMaterialAssetPath = "Assets/_Project/Materials/Left.mat";
+    private const string ThroughLeftDecalMaterialAssetPath = "Assets/_Project/Materials/ThroughLeft.mat";
+    private const string RightDecalMaterialAssetPath = "Assets/_Project/Materials/Right.mat";
+    private const string ThroughRightDecalMaterialAssetPath = "Assets/_Project/Materials/ThroughRight.mat";
     private const string ThroughRightLeftDecalMaterialAssetPath = "Assets/_Project/Materials/ThroughRightLeft.mat";
     private const string StopLineDecalMaterialAssetPath = "Assets/_Project/Materials/StopLine.mat";
     private const string AsphaltMaterialAssetPath = "Assets/_Project/Materials/Asphalt.mat";
@@ -63,9 +64,10 @@ public class RoadNetworkBuilder : MonoBehaviour
 
         changed |= AssignDefaultReference(ref stopSignPrefab, StopSignPrefabAssetPath);
         changed |= AssignDefaultReference(ref throughDecalMaterial, ThroughDecalMaterialAssetPath);
-        changed |= AssignDefaultReference(ref leftTurnDecalMaterial, LeftTurnDecalMaterialAssetPath);
-        changed |= AssignDefaultReference(ref rightTurnDecalMaterial, RightTurnDecalMaterialAssetPath);
-        changed |= AssignDefaultReference(ref rightTurnAndThroughDecalMaterial, RightTurnAndThroughDecalMaterialAssetPath);
+        changed |= AssignDefaultReference(ref leftDecalMaterial, LeftDecalMaterialAssetPath);
+        changed |= AssignDefaultReference(ref throughLeftDecalMaterial, ThroughLeftDecalMaterialAssetPath);
+        changed |= AssignDefaultReference(ref rightDecalMaterial, RightDecalMaterialAssetPath);
+        changed |= AssignDefaultReference(ref throughRightDecalMaterial, ThroughRightDecalMaterialAssetPath);
         changed |= AssignDefaultReference(ref throughRightLeftDecalMaterial, ThroughRightLeftDecalMaterialAssetPath);
         changed |= AssignDefaultReference(ref stopLineDecalMaterial, StopLineDecalMaterialAssetPath);
         changed |= AssignDefaultReference(ref roadSurfaceMaterial, AsphaltMaterialAssetPath);
@@ -112,12 +114,14 @@ public class RoadNetworkBuilder : MonoBehaviour
     [Header("Lane Arrow Decals")]
     [Tooltip("Decal material for straight-ahead only lanes.")]
     public Material throughDecalMaterial;
-    [Tooltip("Decal material for left-turn lanes (left + forward arrow combined).")]
-    public Material leftTurnDecalMaterial;
+    [Tooltip("Decal material for left-turn-only lanes.")]
+    public Material leftDecalMaterial;
+    [Tooltip("Decal material for left-turn + straight lanes.")]
+    public Material throughLeftDecalMaterial;
     [Tooltip("Decal material for right-turn-only lanes.")]
-    public Material rightTurnDecalMaterial;
+    public Material rightDecalMaterial;
     [Tooltip("Decal material for right-turn + straight lanes.")]
-    public Material rightTurnAndThroughDecalMaterial;
+    public Material throughRightDecalMaterial;
     [Tooltip("Decal material for lanes with forward, left, and right arrows.")]
     public Material throughRightLeftDecalMaterial;
     [Tooltip("Decal material for the stop line painted on the road at each junction approach.")]
@@ -1743,8 +1747,10 @@ public class RoadNetworkBuilder : MonoBehaviour
     ///
     /// Direction → material mapping:
     ///   Straight only (s)         → throughDecalMaterial
-    ///   Left only (l/L)           → leftTurnDecalMaterial
-    ///   Right only (r/R)          → rightTurnDecalMaterial
+    ///   Left only (l/L)           → leftDecalMaterial
+    ///   Left + straight           → throughLeftDecalMaterial
+    ///   Right only (r/R)          → rightDecalMaterial
+    ///   Right + straight          → throughRightDecalMaterial
     ///   Any other combination     → throughRightLeftDecalMaterial
     /// </summary>
     public void GenerateLaneDecals()
@@ -1755,9 +1761,10 @@ public class RoadNetworkBuilder : MonoBehaviour
 
         // Collect which materials are available; skip silently if none are assigned
         bool anyMaterial = throughDecalMaterial != null
-                        || leftTurnDecalMaterial != null
-                        || rightTurnDecalMaterial != null
-                        || rightTurnAndThroughDecalMaterial != null
+                        || leftDecalMaterial != null
+                        || throughLeftDecalMaterial != null
+                        || rightDecalMaterial != null
+                        || throughRightDecalMaterial != null
                         || throughRightLeftDecalMaterial != null;
         if (!anyMaterial)
         {
@@ -1872,11 +1879,12 @@ public class RoadNetworkBuilder : MonoBehaviour
     /// Returns the appropriate arrow decal material for a set of SUMO connection directions.
     ///
     /// Material assignments (matching the project's decal textures):
-    ///   S only           → throughDecalMaterial               (forward only)
-    ///   R only           → rightTurnDecalMaterial              (right only)
-    ///   R + S            → rightTurnAndThroughDecalMaterial    (right + forward)
-    ///   L only or L + S  → leftTurnDecalMaterial               (left + forward combined texture)
-    ///   Everything else  → throughRightLeftDecalMaterial        (forward + left + right)
+    ///   S only      → throughDecalMaterial       (forward only)
+    ///   L only      → leftDecalMaterial           (left only)
+    ///   L + S       → throughLeftDecalMaterial    (left + forward)
+    ///   R only      → rightDecalMaterial          (right only)
+    ///   R + S       → throughRightDecalMaterial   (right + forward)
+    ///   Everything else → throughRightLeftDecalMaterial (forward + left + right)
     /// </summary>
     private Material PickArrowMaterial(HashSet<ConnectionTypeDir> dirs)
     {
@@ -1885,9 +1893,10 @@ public class RoadNetworkBuilder : MonoBehaviour
         bool hasStraight = dirs.Contains(ConnectionTypeDir.S);
 
         if (hasStraight && !hasLeft && !hasRight) return throughDecalMaterial;
-        if (hasRight && !hasStraight && !hasLeft) return rightTurnDecalMaterial;
-        if (hasRight && hasStraight && !hasLeft) return rightTurnAndThroughDecalMaterial;
-        if (hasLeft && !hasRight) return leftTurnDecalMaterial; // left-only or left+straight (texture shows both)
+        if (hasLeft && !hasRight && !hasStraight) return leftDecalMaterial;
+        if (hasLeft && hasStraight && !hasRight) return throughLeftDecalMaterial;
+        if (hasRight && !hasLeft && !hasStraight) return rightDecalMaterial;
+        if (hasRight && hasStraight && !hasLeft) return throughRightDecalMaterial;
         return throughRightLeftDecalMaterial;
     }
 
