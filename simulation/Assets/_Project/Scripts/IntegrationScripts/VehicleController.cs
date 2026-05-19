@@ -49,7 +49,7 @@ public class VehicleController : MonoBehaviour
 
     private AudioSource _hornSource;
     private float _stoppedTimer;
-    private float _lastHornTime = -99f;
+    private float _lastHornTime = float.NegativeInfinity;
     private Transform _egoTransform;
     private SimulationController _simController;
     private bool _wasAtRedLight;
@@ -156,6 +156,9 @@ public class VehicleController : MonoBehaviour
         UpdateDetailState(force: true);
     }
 
+    private const float PostCollisionDamping = 0.5f;
+    private const float MaxPostCollisionSpeed = 8f;
+
     /// <summary>
     /// Detach this NPC from SUMO control and apply a collision impulse.
     /// After this call the vehicle becomes a normal physics object.
@@ -170,18 +173,17 @@ public class VehicleController : MonoBehaviour
 
         rb.isKinematic = false;
         rb.useGravity = true;
-        rb.linearDamping = 0.5f;
-        rb.angularDamping = 0.5f;
+        rb.linearDamping = PostCollisionDamping;
+        rb.angularDamping = PostCollisionDamping;
         rb.interpolation = RigidbodyInterpolation.Interpolate;
         rb.collisionDetectionMode = CollisionDetectionMode.Discrete;
         rb.linearVelocity = EstimatedVelocity;
 
         // Cap by resulting velocity (not impulse magnitude) to handle
         // low-mass Rigidbodies that would otherwise reach extreme speeds.
-        const float maxPostCollisionSpeed = 8f;
         float resultingSpeed = impactImpulse.magnitude / Mathf.Max(rb.mass, 0.01f);
-        if (resultingSpeed > maxPostCollisionSpeed)
-            impactImpulse = impactImpulse.normalized * maxPostCollisionSpeed * rb.mass;
+        if (resultingSpeed > MaxPostCollisionSpeed)
+            impactImpulse = impactImpulse.normalized * MaxPostCollisionSpeed * rb.mass;
 
         rb.AddForceAtPosition(impactImpulse, contactPoint, ForceMode.Impulse);
 

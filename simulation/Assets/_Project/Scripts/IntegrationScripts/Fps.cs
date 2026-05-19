@@ -39,12 +39,6 @@ public class Fps : MonoBehaviour
     // ────────────────────────────────────────────────────────────────────────────
     private void Start()
     {
-        // --------------------------------------------------------  file location
-        //string sumoDataDir = LocateOrCreateResultsFolder();
-        //filePath = Path.Combine(sumoDataDir, "FPS_Report.txt");
-        //fpsWriter = new StreamWriter(filePath, append: false);
-        //fpsWriter.WriteLine("unity_time;FPS");
-
         // --------------------------------------------------------  other setup
         _ExchangeData = GetComponent<ExchangeData>() ?? gameObject.AddComponent<ExchangeData>();
 
