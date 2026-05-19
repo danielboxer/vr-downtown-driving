@@ -253,10 +253,6 @@ LODGroup:
     - renderer: {fileID: 1214419777918458395}
     - renderer: {fileID: 8567640770036349953}
     - renderer: {fileID: 364289106010230941}
-  - screenRelativeHeight: 0.05
-    fadeTransitionWidth: 0
-    renderers:
-    - renderer: {fileID: 7092329263953785557}
   m_Enabled: 1
 --- !u!4 &6079555461094994066 stripped
 Transform:

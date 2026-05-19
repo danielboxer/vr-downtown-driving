@@ -248,10 +248,6 @@ LODGroup:
     - renderer: {fileID: 2103068435016863376}
     - renderer: {fileID: 8868636741140359306}
     - renderer: {fileID: 647342697153381398}
-  - screenRelativeHeight: 0.05
-    fadeTransitionWidth: 0
-    renderers:
-    - renderer: {fileID: 8041430161270187614}
   m_Enabled: 1
 --- !u!23 &5272421354711390900 stripped
 MeshRenderer:
