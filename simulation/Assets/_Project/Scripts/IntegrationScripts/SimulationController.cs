@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections.Generic;
 using System;
 using System.Collections.Concurrent;
@@ -13,11 +13,12 @@ public class SimulationController : MonoBehaviour
     private readonly HashSet<string> incomingVehicleIds = new HashSet<string>();
     private readonly List<string> vehiclesToRemove = new List<string>();
 
+    private const string EgoVehicleId = "f_0.0";
+
     private Transform pooledVehiclesRoot;
     private string vehicleDataJson = "{}";
     private string lastValidVehicleDataJson = "{}";
     private readonly object vehicleDataLock = new object();
-    private readonly string egoVehicleId = "f_0.0";
     [HideInInspector] public GameObject egoVehicle;
     private Rigidbody egoRigidbody;
     private float long_speed;
@@ -170,7 +171,7 @@ public class SimulationController : MonoBehaviour
                 if (sl.linkIndex >= 0 && sl.linkIndex < state.Length)
                 {
                     char c = state[sl.linkIndex];
-                    closestIsRedOrYellow = c == 'r' || c == 'R' || c == 'y' || c == 'Y';
+                    closestIsRedOrYellow = IsRedOrYellow(c);
                 }
             }
         }
@@ -222,11 +223,11 @@ public class SimulationController : MonoBehaviour
     {
         egoVehicle = ego;
         egoRigidbody = egoVehicle != null ? egoVehicle.GetComponent<Rigidbody>() : null;
-        egoVehicle.name = egoVehicleId;
-        if (!vehicleObjects.ContainsKey(egoVehicleId))
-            vehicleObjects.Add(egoVehicleId, egoVehicle);
+        egoVehicle.name = EgoVehicleId;
+        if (!vehicleObjects.ContainsKey(EgoVehicleId))
+            vehicleObjects.Add(EgoVehicleId, egoVehicle);
         else
-            vehicleObjects[egoVehicleId] = egoVehicle;
+            vehicleObjects[EgoVehicleId] = egoVehicle;
     }
 
     void Update()
@@ -255,7 +256,7 @@ public class SimulationController : MonoBehaviour
 
     public string CollectVehicleData()
     {
-        if (!vehicleObjects.ContainsKey(egoVehicleId) || egoVehicle == null)
+        if (!vehicleObjects.ContainsKey(EgoVehicleId) || egoVehicle == null)
         {
             // Return the last valid ego data so Python keeps calling moveToXY
             // and SUMO does not remove f_0.0 from the simulation.
@@ -275,7 +276,7 @@ public class SimulationController : MonoBehaviour
         _egoPositionBuffer[1] = Math.Round(position.z, 2);
         _egoPositionBuffer[2] = Math.Round(position.y, 2);
 
-        _egoVehicleBuffer.vehicle_id = egoVehicleId;
+        _egoVehicleBuffer.vehicle_id = EgoVehicleId;
         _egoVehicleBuffer.position = _egoPositionBuffer;
         _egoVehicleBuffer.angle = Math.Round(unroundangle, 2);
         _egoVehicleBuffer.type = "ego";
@@ -316,7 +317,7 @@ public class SimulationController : MonoBehaviour
         vehiclesToRemove.Clear();
         foreach (string id in vehicleObjects.Keys)
         {
-            if (id != egoVehicleId)
+            if (id != EgoVehicleId)
                 vehiclesToRemove.Add(id);
         }
 
@@ -386,7 +387,7 @@ public class SimulationController : MonoBehaviour
             vehiclesToRemove.Clear();
             foreach (string vid in vehicleObjects.Keys)
             {
-                if (vid != egoVehicleId)
+                if (vid != EgoVehicleId)
                     vehiclesToRemove.Add(vid);
             }
 
@@ -428,7 +429,7 @@ public class SimulationController : MonoBehaviour
         vehiclesToRemove.Clear();
         foreach (string id in vehicleObjects.Keys)
         {
-            if (id != egoVehicleId && !incomingVehicleIds.Contains(id))
+            if (id != EgoVehicleId && !incomingVehicleIds.Contains(id))
                 vehiclesToRemove.Add(id);
         }
 
@@ -441,7 +442,7 @@ public class SimulationController : MonoBehaviour
             if (vehicle == null || string.IsNullOrEmpty(vehicle.vehicle_id))
                 continue;
 
-            if (vehicle.vehicle_id == egoVehicleId)
+            if (vehicle.vehicle_id == EgoVehicleId)
                 continue;
 
             Vector3 newPosition = new Vector3((float)vehicle.position[0], (float)vehicle.position[2], (float)vehicle.position[1]);
@@ -508,13 +509,17 @@ public class SimulationController : MonoBehaviour
     private void SetSignalState(char c, TrafficHeadCache head)
     {
         bool isGreen = (c == 'G' || c == 'g');
-        bool isYellow = (c == 'y' || c == 'Y');
+        bool isYellow = IsYellow(c);
         bool isRed = !(isGreen || isYellow);
 
         SetActiveIfDifferent(head.greenLights, isGreen);
         SetActiveIfDifferent(head.yellowLights, isYellow);
         SetActiveIfDifferent(head.redLights, isRed);
     }
+
+    private static bool IsYellow(char c) => c == 'y' || c == 'Y';
+    private static bool IsRed(char c) => c == 'r' || c == 'R';
+    private static bool IsRedOrYellow(char c) => IsRed(c) || IsYellow(c);
 
     private static void SetActiveIfDifferent(List<GameObject> objects, bool active)
     {

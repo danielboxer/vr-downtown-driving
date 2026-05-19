@@ -239,9 +239,24 @@ public class RoadNetworkBuilder : MonoBehaviour
     private float minX = 0f, minY = 0f, maxX = 0f, maxY = 0f;
     private float originX = 0f, originY = 0f;
 
-    private const float laneMeshScaleWidth = 3.2f;
     private const float laneUvVerticalScale = 5f;
     private const float laneUvHorizontalScale = 1f;
+
+    private const float DecalHeightOffset = 0.4f;
+    private const float TriggerColliderHeight = 2f;
+    private const float ArrowDecalSize = 2.5f;
+    private const float StopLineDecalDepth = 0.5f;
+    private const float StopSignCurbOffset = 0.5f;
+    private const float MarkingStepSize = 3f;
+    private const float MarkingSampleStep = 0.25f;
+    private const float MarkingDecalWidth = 0.1f;
+    private const float MarkingDecalDepth = 0.2f;
+    private const float MarkingDecalLength = 3f;
+    private const float PolygonTerrainYOffset = -0.02f;
+    private const float PolygonDefaultYOffset = -0.01f;
+    private const float LargePolygonDiagonalThreshold = 500f;
+    private const float CurbTaperDistance = 2.0f;
+    private const float CurbSubdivisionMaxLen = 1.0f;
 
     private readonly Dictionary<string, float> laneWidthMap = new();
 
@@ -413,7 +428,7 @@ public class RoadNetworkBuilder : MonoBehaviour
 
             foreach (LaneType laneType in et.Lane)
             {
-                float width = laneType.WidthSpecified ? laneType.Width : laneMeshScaleWidth;
+                float width = laneType.WidthSpecified ? laneType.Width : DefaultLaneWidth;
                 laneWidthMap[laneType.Id] = width;
 
                 newEdge.AddLaneData(
@@ -493,7 +508,7 @@ public class RoadNetworkBuilder : MonoBehaviour
                 for (int i = 0; i < laneData.shapePoints.Count; i++)
                     lanePoints[i] = ToUnity(laneData.shapePoints[i][0], laneData.shapePoints[i][1]);
 
-                float laneWidth = laneWidthMap.TryGetValue(laneData.laneId, out float w) ? w : laneMeshScaleWidth;
+                float laneWidth = GetMappedLaneWidth(laneData.laneId);
 
                 Mesh laneMesh = CreateLaneMesh(lanePoints, laneWidth, laneUvHorizontalScale, laneUvVerticalScale);
                 if (laneMesh == null) continue;
@@ -652,7 +667,7 @@ public class RoadNetworkBuilder : MonoBehaviour
             var firstLane = lanes[0];
             if (firstLane.shapePoints.Count >= 2)
             {
-                float w = laneWidthMap.TryGetValue(firstLane.laneId, out float fw) ? fw : laneMeshScaleWidth;
+                float w = GetMappedLaneWidth(firstLane.laneId);
                 var edgePts = ComputeLaneEdge(firstLane, w, false);
                 if (edgePts.Length >= 2)
                     BuildCurbStrip(edgePts, $"Curb_{curbIdx++}", curbRoot.transform, -1);
@@ -664,7 +679,7 @@ public class RoadNetworkBuilder : MonoBehaviour
                 var lastLane = lanes[lanes.Count - 1];
                 if (lastLane.shapePoints.Count >= 2)
                 {
-                    float w = laneWidthMap.TryGetValue(lastLane.laneId, out float lw) ? lw : laneMeshScaleWidth;
+                    float w = GetMappedLaneWidth(lastLane.laneId);
                     var edgePts = ComputeLaneEdge(lastLane, w, true);
                     if (edgePts.Length >= 2)
                         BuildCurbStrip(edgePts, $"Curb_{curbIdx++}", curbRoot.transform, 1);
@@ -699,13 +714,16 @@ public class RoadNetworkBuilder : MonoBehaviour
     }
 
     /// <summary>
-    /// Computes the outer edge points of a lane.
+    /// Computes offset points along a lane edge.
     /// left=true returns the left side, left=false returns the right side.
+    /// extraOffset adds additional outward distance beyond half lane width.
+    /// height overrides the Y component of all returned points when non-zero.
     /// </summary>
-    private Vector3[] ComputeLaneEdge(RoadLaneData lane, float width, bool left)
+    private Vector3[] ComputeLaneEdge(RoadLaneData lane, float width, bool left, float extraOffset = 0f, float height = 0f)
     {
         int n = lane.shapePoints.Count;
         var pts = new Vector3[n];
+        float totalOffset = width * 0.5f + extraOffset;
 
         for (int i = 0; i < n; i++)
         {
@@ -720,7 +738,8 @@ public class RoadNetworkBuilder : MonoBehaviour
 
             // Perpendicular (left of travel direction)
             Vector3 perp = new Vector3(-dir.z, 0f, dir.x);
-            pts[i] = center + perp * (width * 0.5f) * (left ? 1f : -1f);
+            pts[i] = center + perp * totalOffset * (left ? 1f : -1f);
+            if (height != 0f) pts[i].y = height;
         }
         return pts;
     }
@@ -753,7 +772,7 @@ public class RoadNetworkBuilder : MonoBehaviour
     private void BuildCurbStrip(Vector3[] edgePts, string name, Transform parent, int outwardSign)
     {
         // Subdivide to ensure smooth taper at ends
-        edgePts = SubdividePolyline(edgePts, 1.0f);
+        edgePts = SubdividePolyline(edgePts, CurbSubdivisionMaxLen);
 
         int segCount = edgePts.Length - 1;
         // Cross-section profile: straight ramps with rounded corners
@@ -767,7 +786,6 @@ public class RoadNetworkBuilder : MonoBehaviour
         var tris = new int[segCount * trisPerSeg];
 
         // Distance-based height and width taper at strip ends
-        const float taperDist = 2.0f;
         float[] cumDist = new float[edgePts.Length];
         cumDist[0] = 0f;
         for (int k = 1; k < edgePts.Length; k++)
@@ -782,10 +800,10 @@ public class RoadNetworkBuilder : MonoBehaviour
             // Taper height and width near strip endpoints
             float dA = Mathf.Min(cumDist[i], totalLen - cumDist[i]);
             float dB = Mathf.Min(cumDist[i + 1], totalLen - cumDist[i + 1]);
-            float hA = Mathf.Clamp01(dA / taperDist) * sidewalkHeight;
-            float hB = Mathf.Clamp01(dB / taperDist) * sidewalkHeight;
-            float wA = Mathf.Clamp01(dA / taperDist);
-            float wB = Mathf.Clamp01(dB / taperDist);
+            float hA = Mathf.Clamp01(dA / CurbTaperDistance) * sidewalkHeight;
+            float hB = Mathf.Clamp01(dB / CurbTaperDistance) * sidewalkHeight;
+            float wA = Mathf.Clamp01(dA / CurbTaperDistance);
+            float wB = Mathf.Clamp01(dB / CurbTaperDistance);
 
             // Unit outward perpendicular for this segment
             Vector3 dir = (b - a).normalized;
@@ -1016,6 +1034,9 @@ public class RoadNetworkBuilder : MonoBehaviour
 
     private const float DefaultLaneWidth = 3.2f;
 
+    private float GetMappedLaneWidth(string laneId) =>
+        laneWidthMap.TryGetValue(laneId, out float w) ? w : DefaultLaneWidth;
+
     private static float GetLaneWidth(RoadLaneData lane) =>
         lane.laneWidth > 0 ? (float)lane.laneWidth : DefaultLaneWidth;
 
@@ -1129,7 +1150,7 @@ public class RoadNetworkBuilder : MonoBehaviour
     private float GetTriggerWidth(float roadWidth, float laneWidth)
     {
         if (laneWidth <= 0f)
-            laneWidth = laneMeshScaleWidth > 0f ? laneMeshScaleWidth : DefaultLaneWidth;
+            laneWidth = DefaultLaneWidth;
 
         return Mathf.Max(roadWidth, laneWidth * Mathf.Max(1f, triggerMinimumLaneCount));
     }
@@ -1141,7 +1162,7 @@ public class RoadNetworkBuilder : MonoBehaviour
             return false;
 
         if (totalRoadWidth <= 0f)
-            totalRoadWidth = GetTriggerWidth(0f, laneMeshScaleWidth);
+            totalRoadWidth = GetTriggerWidth(0f, DefaultLaneWidth);
 
         Vector3 tdRightDir = RightDirection(approachDir);
 
@@ -1152,7 +1173,7 @@ public class RoadNetworkBuilder : MonoBehaviour
 
         var tdBox = tdGO.AddComponent<BoxCollider>();
         tdBox.isTrigger = true;
-        tdBox.size = new Vector3(totalRoadWidth, 2f, Mathf.Max(0.1f, turnTriggerDepth));
+        tdBox.size = new Vector3(totalRoadWidth, TriggerColliderHeight, Mathf.Max(0.1f, turnTriggerDepth));
         tdBox.center = new Vector3(
             -(totalRoadWidth * turnTriggerForwardWidthMultiplier),
             0f,
@@ -1223,7 +1244,7 @@ public class RoadNetworkBuilder : MonoBehaviour
         if (stopLineDistance <= 0.1f)
             stopLineDistance = Vector3.Distance(junctionCenter, source.stopLinePos);
         if (stopLineDistance <= 0.1f)
-            stopLineDistance = Mathf.Max(source.totalRoadWidth, GetTriggerWidth(0f, laneMeshScaleWidth));
+            stopLineDistance = Mathf.Max(source.totalRoadWidth, GetTriggerWidth(0f, DefaultLaneWidth));
 
         Vector3 virtualStopLinePos = junctionCenter - missingApproachDir * stopLineDistance;
         virtualStopLinePos.y = source.stopLinePos.y;
@@ -1480,7 +1501,7 @@ public class RoadNetworkBuilder : MonoBehaviour
 
                 var slBox = stopLineGO.AddComponent<BoxCollider>();
                 slBox.isTrigger = true;
-                slBox.size = new Vector3(triggerRoadWidth, 2f, Mathf.Max(0.1f, stopLineTriggerDepth));
+                slBox.size = new Vector3(triggerRoadWidth, TriggerColliderHeight, Mathf.Max(0.1f, stopLineTriggerDepth));
                 slBox.center = new Vector3(
                     -(triggerRoadWidth * 0.5f - laneW * 0.5f),
                     0f,
@@ -1521,7 +1542,6 @@ public class RoadNetworkBuilder : MonoBehaviour
         // Mark junction hierarchy as static for batching, GI, and occlusion culling
         if (markGeneratedAsStatic) SetStaticRecursively(junctionsRoot);
 
-        // Make only the root non-selectable so children remain individually toggleable
         // Make only the root non-selectable so children remain individually toggleable.
         // EnablePicking first clears any stale descendant state from previous runs (which would cause the mixed cube icon).
         SceneVisibilityManager.instance.EnablePicking(junctionsRoot, true);
@@ -1635,23 +1655,12 @@ public class RoadNetworkBuilder : MonoBehaviour
                 // Skip if this is a major-road approach at a priority junction
                 if (isPriority && edge.GetEdgePriority() >= maxPriority) continue;
 
-                var lanes = edge.GetLaneDataList();
-                if (lanes == null || lanes.Count == 0) continue;
-
-                // Use the rightmost lane (index 0 in SUMO) to find the approach endpoint
-                var rightLane = lanes[0];
-                if (rightLane.shapePoints == null || rightLane.shapePoints.Count < 2) continue;
-
-                int last = rightLane.shapePoints.Count - 1;
-                Vector3 laneEnd = ToUnity(rightLane.shapePoints[last][0], rightLane.shapePoints[last][1]);
-                Vector3 prevPt = ToUnity(rightLane.shapePoints[last - 1][0], rightLane.shapePoints[last - 1][1]);
-                Vector3 approachDir = (laneEnd - prevPt).normalized;
+                if (!GetEdgeApproachGeometry(edge, out Vector3 laneEnd, out Vector3 approachDir, out float laneW, out _))
+                    continue;
 
                 // Place sign on the right curb (same convention as traffic lights)
                 Vector3 rightDir = RightDirection(approachDir);
-                float laneW = GetLaneWidth(rightLane);
-                float curbOffset = 0.5f;
-                Vector3 signPos = laneEnd + rightDir * (laneW * 0.5f + curbOffset);
+                Vector3 signPos = laneEnd + rightDir * (laneW * 0.5f + StopSignCurbOffset);
                 signPos.y += signHeightOffset;
 
                 GameObject sign = (GameObject)PrefabUtility.InstantiatePrefab(stopSignPrefab);
@@ -1737,8 +1746,8 @@ public class RoadNetworkBuilder : MonoBehaviour
             var firstLane = lanes[0];
             if (firstLane.shapePoints.Count >= 2)
             {
-                float w = laneWidthMap.TryGetValue(firstLane.laneId, out float fw) ? fw : laneMeshScaleWidth;
-                var sidewalkPts = ComputeSidewalkPoints(firstLane, w, false, sidewalkInset);
+                float w = GetMappedLaneWidth(firstLane.laneId);
+                var sidewalkPts = ComputeLaneEdge(firstLane, w, false, sidewalkInset, sidewalkHeight);
                 PlaceLampsAlongEdge(sidewalkPts, lampPrefab, signLampPrefab, lampsRoot.transform, leftSide: false, ref lampCount);
             }
 
@@ -1748,8 +1757,8 @@ public class RoadNetworkBuilder : MonoBehaviour
                 var lastLane = lanes[lanes.Count - 1];
                 if (lastLane.shapePoints.Count >= 2)
                 {
-                    float w = laneWidthMap.TryGetValue(lastLane.laneId, out float lw) ? lw : laneMeshScaleWidth;
-                    var sidewalkPts = ComputeSidewalkPoints(lastLane, w, true, sidewalkInset);
+                    float w = GetMappedLaneWidth(lastLane.laneId);
+                    var sidewalkPts = ComputeLaneEdge(lastLane, w, true, sidewalkInset, sidewalkHeight);
                     PlaceLampsAlongEdge(sidewalkPts, lampPrefab, signLampPrefab, lampsRoot.transform, leftSide: true, ref lampCount);
                 }
             }
@@ -1761,34 +1770,6 @@ public class RoadNetworkBuilder : MonoBehaviour
         SetLayerRecursively(lampsRoot, envDetailLayer);
 
         Debug.Log($"[Sumo2Unity] Placed {lampCount} street lamps.");
-    }
-
-    /// <summary>
-    /// Returns world-space points on the sidewalk flat top at a fixed outward offset from the lane edge.
-    /// totalOffset = laneWidth*0.5 (to lane edge) + sidewalkInset (across the curb ramp and into flat top).
-    /// Points are raised to sidewalkHeight so lamps stand on the sidewalk surface.
-    /// </summary>
-    private Vector3[] ComputeSidewalkPoints(RoadLaneData lane, float width, bool left, float sidewalkInset)
-    {
-        int n = lane.shapePoints.Count;
-        var pts = new Vector3[n];
-        float totalOffset = width * 0.5f + sidewalkInset;
-
-        for (int i = 0; i < n; i++)
-        {
-            Vector3 center = ToUnity(lane.shapePoints[i][0], lane.shapePoints[i][1]);
-
-            Vector3 dir;
-            if (i < n - 1)
-                dir = (ToUnity(lane.shapePoints[i + 1][0], lane.shapePoints[i + 1][1]) - center).normalized;
-            else
-                dir = (center - ToUnity(lane.shapePoints[i - 1][0], lane.shapePoints[i - 1][1])).normalized;
-
-            Vector3 perp = new Vector3(-dir.z, 0f, dir.x);
-            pts[i] = center + perp * totalOffset * (left ? 1f : -1f);
-            pts[i].y = sidewalkHeight;
-        }
-        return pts;
     }
 
     /// <summary>
@@ -1955,7 +1936,7 @@ public class RoadNetworkBuilder : MonoBehaviour
 
             // Center the arrow setback from the junction, at lane center height
             Vector3 decalPos = laneEnd - approachDir * arrowSetbackFromJunction;
-            decalPos.y += 0.4f;
+            decalPos.y += DecalHeightOffset;
 
             float laneW = GetLaneWidth(lane);
 
@@ -1973,7 +1954,7 @@ public class RoadNetworkBuilder : MonoBehaviour
 
                 var proj = decalObj.AddComponent<DecalProjector>();
                 proj.material = mat;
-                proj.size = new Vector3(2.5f, 2.5f, 0.4f);
+                proj.size = new Vector3(ArrowDecalSize, ArrowDecalSize, DecalHeightOffset);
                 proj.drawDistance = decalDrawDistance;
                 placedCount++;
             }
@@ -1985,7 +1966,7 @@ public class RoadNetworkBuilder : MonoBehaviour
                 slDecalObj.transform.SetParent(decalsRoot.transform);
                 if (groundLayer >= 0) slDecalObj.layer = groundLayer;
                 Vector3 slPos = laneEnd;
-                slPos.y += 0.4f;
+                slPos.y += DecalHeightOffset;
                 slDecalObj.transform.position = slPos;
                 // Z+90° rotates the stripe 90° within the horizontal plane so it runs across the lane
                 float slYaw = Mathf.Atan2(approachDir.x, approachDir.z) * Mathf.Rad2Deg + 90f;
@@ -1993,8 +1974,7 @@ public class RoadNetworkBuilder : MonoBehaviour
 
                 var slProj = slDecalObj.AddComponent<DecalProjector>();
                 slProj.material = stopLineDecalMaterial;
-                // Width spans the lane, Y = projection depth, Z = stripe thickness
-                slProj.size = new Vector3(laneW, 0.5f, 0.4f);
+                slProj.size = new Vector3(laneW, StopLineDecalDepth, DecalHeightOffset);
                 slProj.drawDistance = decalDrawDistance;
             }
         }
@@ -2071,14 +2051,14 @@ public class RoadNetworkBuilder : MonoBehaviour
         polyGO.transform.SetParent(roadNetworkRoot.transform);
         if (groundLayer >= 0) polyGO.layer = groundLayer;             // ★ NEW
 
-        if (!string.IsNullOrEmpty(polygonType) && polygonType.ToLowerInvariant().Contains("terrain"))
-            polyGO.transform.localPosition = new Vector3(0f, -0.02f, 0f);
-        if (!string.IsNullOrEmpty(polygonType) && polygonType.ToLowerInvariant().Contains("roadside"))
-            polyGO.transform.localPosition = new Vector3(0f, -0.01f, 0f);
-        if (!string.IsNullOrEmpty(polygonType) && polygonType.ToLowerInvariant().Contains("wood"))
-            polyGO.transform.localPosition = new Vector3(0f, -0.01f, 0f);
-        if (!string.IsNullOrEmpty(polygonType) && polygonType.ToLowerInvariant().Contains("residential"))
-            polyGO.transform.localPosition = new Vector3(0f, -0.01f, 0f);
+        if (!string.IsNullOrEmpty(polygonType))
+        {
+            string polyTypeLower = polygonType.ToLowerInvariant();
+            if (polyTypeLower.Contains("terrain"))
+                polyGO.transform.localPosition = new Vector3(0f, PolygonTerrainYOffset, 0f);
+            else if (polyTypeLower.Contains("roadside") || polyTypeLower.Contains("wood") || polyTypeLower.Contains("residential"))
+                polyGO.transform.localPosition = new Vector3(0f, PolygonDefaultYOffset, 0f);
+        }
 
         var mf = polyGO.AddComponent<MeshFilter>();
         var mr = polyGO.AddComponent<MeshRenderer>();
@@ -2091,7 +2071,7 @@ public class RoadNetworkBuilder : MonoBehaviour
         // (not just one axis) to catch roughly-square large polygons.
         Bounds polyBounds = polyMesh.bounds;
         float polyDiag = Mathf.Sqrt(polyBounds.size.x * polyBounds.size.x + polyBounds.size.z * polyBounds.size.z);
-        bool isLargePoly = polyDiag > 500f;
+        bool isLargePoly = polyDiag > LargePolygonDiagonalThreshold;
         if (isLargePoly)
         {
             var bc = polyGO.AddComponent<BoxCollider>();
@@ -2131,7 +2111,9 @@ public class RoadNetworkBuilder : MonoBehaviour
         return l.Contains("wood") || l.Contains("terrain") || l.Contains("roadside") || l.Contains("residential");
     }
 
-    private Material GetFallbackMaterial() => new Material(Shader.Find("Standard"));
+    private Material _cachedFallbackMaterial;
+    private Material GetFallbackMaterial() =>
+        _cachedFallbackMaterial ??= new Material(Shader.Find("Standard"));
 
     private Mesh CreateLaneMesh(Vector3[] lanePoints, float roadWidth, float uvScaleU, float uvScaleV)
     {
@@ -2230,10 +2212,6 @@ public class RoadNetworkBuilder : MonoBehaviour
         }
         if (boundaryPts == null || boundaryPts.Length < 2) return;
 
-        const float stepSize = 3f;        // spacing between decals (m)
-        const float sampleStep = 0.25f;     // resolution for span detection (m)
-        Vector3 baseSize = new Vector3(0.1f, 0.2f, 3f);
-
         int count = boundaryPts.Length;
         float[] cum = new float[count];
         cum[0] = 0f;
@@ -2247,7 +2225,7 @@ public class RoadNetworkBuilder : MonoBehaviour
         bool wasOutside = false;
         float spanStart = 0f;
 
-        for (float d = 0f; d <= total; d += sampleStep)
+        for (float d = 0f; d <= total; d += MarkingSampleStep)
         {
             GetPointOnPolyline(boundaryPts, cum, d, out Vector3 pos, out _);
             bool inside = IsInsideAnyJunction(pos);
@@ -2267,11 +2245,11 @@ public class RoadNetworkBuilder : MonoBehaviour
         // 2) Spawn decals inside spans only
         foreach (var sp in spans)
         {
-            for (float d = sp.s; d <= sp.e; d += stepSize)
+            for (float d = sp.s; d <= sp.e; d += MarkingStepSize)
             {
                 GetPointOnPolyline(boundaryPts, cum, d, out Vector3 center, out Vector3 dir);
 
-                float halfLen = baseSize.z * 0.5f;
+                float halfLen = MarkingDecalLength * 0.5f;
 
                 // clamp projector length if near span edges
                 float maxBack = Mathf.Min(halfLen, d - sp.s);
@@ -2291,7 +2269,7 @@ public class RoadNetworkBuilder : MonoBehaviour
 
                 var proj = decalObj.AddComponent<DecalProjector>();
                 proj.material = roadMarkingMaterial;
-                proj.size = new Vector3(baseSize.x, baseSize.y, length * 2f); // because length we computed is halfBack+halfFwd
+                proj.size = new Vector3(MarkingDecalWidth, MarkingDecalDepth, length * 2f);
                 proj.drawDistance = decalDrawDistance;
             }
         }

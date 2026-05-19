@@ -55,17 +55,7 @@ public class SplineTreePlacer : MonoBehaviour
         // 1. Build cumulative arc-length table by sampling the spline
         float[] cumLengths = new float[arcSamples + 1];
         float[] tValues = new float[arcSamples + 1];
-        cumLengths[0] = 0f;
-        tValues[0] = 0f;
-        Vector3 prev = spline.GetPoint(0f);
-        for (int i = 1; i <= arcSamples; i++)
-        {
-            float t = (float)i / arcSamples;
-            Vector3 curr = spline.GetPoint(t);
-            cumLengths[i] = cumLengths[i - 1] + Vector3.Distance(prev, curr);
-            tValues[i] = t;
-            prev = curr;
-        }
+        BuildArcLengthTable(spline, arcSamples, cumLengths, tValues);
 
         float totalLength = cumLengths[arcSamples];
         if (totalLength < spacing)
@@ -210,20 +200,8 @@ public class SplineTreePlacer : MonoBehaviour
         const int gizmoSamples = 60;
         float[] cumLengths = new float[gizmoSamples + 1];
         float[] tValues = new float[gizmoSamples + 1];
-        Vector3 prev;
-        try { prev = spline.GetPoint(0f); }
+        try { BuildArcLengthTable(spline, gizmoSamples, cumLengths, tValues); }
         catch { return; }
-
-        for (int i = 1; i <= gizmoSamples; i++)
-        {
-            float t = (float)i / gizmoSamples;
-            Vector3 curr;
-            try { curr = spline.GetPoint(t); }
-            catch { return; }
-            cumLengths[i] = cumLengths[i - 1] + Vector3.Distance(prev, curr);
-            tValues[i] = t;
-            prev = curr;
-        }
 
         float totalLength = cumLengths[gizmoSamples];
         Gizmos.color = new Color(0.2f, 0.8f, 0.2f, 0.75f);
@@ -235,6 +213,22 @@ public class SplineTreePlacer : MonoBehaviour
             try { Gizmos.DrawSphere(spline.GetPoint(t), 0.5f); }
             catch { return; }
             dist += spacing;
+        }
+    }
+
+    // Samples the spline at equal t intervals and fills cumulative arc-length + t arrays
+    private static void BuildArcLengthTable(Spline spline, int samples, float[] cumLengths, float[] tValues)
+    {
+        cumLengths[0] = 0f;
+        tValues[0] = 0f;
+        Vector3 prev = spline.GetPoint(0f);
+        for (int i = 1; i <= samples; i++)
+        {
+            float t = (float)i / samples;
+            Vector3 curr = spline.GetPoint(t);
+            cumLengths[i] = cumLengths[i - 1] + Vector3.Distance(prev, curr);
+            tValues[i] = t;
+            prev = curr;
         }
     }
 
