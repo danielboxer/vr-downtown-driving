@@ -1014,10 +1014,122 @@ public class RoadNetworkBuilder : MonoBehaviour
         return dir.sqrMagnitude > 0.0001f ? dir.normalized : Vector3.zero;
     }
 
+    private const float DefaultLaneWidth = 3.2f;
+
+    private static float GetLaneWidth(RoadLaneData lane) =>
+        lane.laneWidth > 0 ? (float)lane.laneWidth : DefaultLaneWidth;
+
+    private static Vector3 RightDirection(Vector3 forward) => new(forward.z, 0f, -forward.x);
+
+    /// <summary>
+    /// Extracts the approach geometry for an edge arriving at a junction: rightmost lane
+    /// endpoint, approach direction, individual lane width, and total road width.
+    /// </summary>
+    private bool GetEdgeApproachGeometry(
+        RoadEdgeData edge,
+        out Vector3 laneEnd, out Vector3 approachDir,
+        out float laneWidth, out float totalRoadWidth)
+    {
+        laneEnd = Vector3.zero;
+        approachDir = Vector3.forward;
+        laneWidth = DefaultLaneWidth;
+        totalRoadWidth = 0f;
+
+        var lanes = edge.GetLaneDataList();
+        if (lanes.Count == 0) return false;
+        var lane = lanes[0];
+        if (lane.shapePoints == null || lane.shapePoints.Count < 2) return false;
+
+        foreach (var ln in lanes)
+            totalRoadWidth += GetLaneWidth(ln);
+
+        laneWidth = GetLaneWidth(lane);
+
+        int last = lane.shapePoints.Count - 1;
+        laneEnd = ToUnity(lane.shapePoints[last][0], lane.shapePoints[last][1]);
+        Vector3 prevPt = ToUnity(lane.shapePoints[last - 1][0], lane.shapePoints[last - 1][1]);
+        approachDir = (laneEnd - prevPt).normalized;
+
+        return true;
+    }
+
+    /// <summary>
+    /// Adds a pole collider to a traffic light GameObject. For mirrored lights (localScale -1 X),
+    /// uses a child object to counter-scale and avoid "negative size BoxCollider" warnings.
+    /// </summary>
+    private void AddTrafficLightCollider(GameObject go, bool isMirrored)
+    {
+        if (!addTrafficLightColliders) return;
+
+        if (isMirrored)
+        {
+            GameObject colHost = new GameObject("Collider");
+            colHost.transform.SetParent(go.transform);
+            colHost.transform.localPosition = Vector3.zero;
+            colHost.transform.localRotation = Quaternion.identity;
+            colHost.transform.localScale = new Vector3(-1f, 1f, 1f);
+            var col = colHost.AddComponent<BoxCollider>();
+            col.size = trafficLightColliderSize;
+            col.center = trafficLightColliderCenter;
+        }
+        else
+        {
+            var col = go.AddComponent<BoxCollider>();
+            col.size = trafficLightColliderSize;
+            col.center = trafficLightColliderCenter;
+        }
+    }
+
+    /// <summary>
+    /// Computes the primary and mirror traffic light positions for an edge arriving at a junction.
+    /// Used by the T-intersection fix to determine adjacent light positions.
+    /// </summary>
+    private bool ComputeEdgeLightPositions(
+        RoadEdgeData edge, RoadEdgeData excludeEdge, string junctionId, Vector3 junctionCenter,
+        out Vector3 primaryPos, out Vector3 mirrorPos)
+    {
+        primaryPos = mirrorPos = junctionCenter;
+
+        if (!GetEdgeApproachGeometry(edge, out Vector3 laneEnd, out Vector3 dir, out float lw, out float totalWidth))
+            return false;
+
+        float forwardDist = Vector3.Dot(junctionCenter - laneEnd, dir);
+        Vector3 farSideBase = laneEnd + dir * (2f * forwardDist);
+        Vector3 rightDir = RightDirection(dir);
+        float curbOffset = trafficLightCurbOffset;
+
+        primaryPos = farSideBase + rightDir * (lw * 0.5f + curbOffset);
+
+        // Default mirror fallback
+        mirrorPos = primaryPos - rightDir * (2f * totalWidth + 2f * curbOffset);
+
+        // Search for opposing edge for a better mirror position
+        float bestAlignment = 0.5f;
+        foreach (var cand in edgeRecords.Values)
+        {
+            var candTo = cand.GetToJunction();
+            if (candTo == null || candTo.junctionId != junctionId) continue;
+            if (cand == edge || cand == excludeEdge) continue;
+
+            if (!GetEdgeApproachGeometry(cand, out Vector3 opEnd, out Vector3 opDir, out float opLaneW, out _))
+                continue;
+
+            float alignment = Vector3.Dot(opDir, -dir);
+            if (alignment > bestAlignment)
+            {
+                bestAlignment = alignment;
+                Vector3 opRightDir = RightDirection(opDir);
+                mirrorPos = opEnd + opRightDir * (opLaneW * 0.5f + curbOffset);
+            }
+        }
+
+        return true;
+    }
+
     private float GetTriggerWidth(float roadWidth, float laneWidth)
     {
         if (laneWidth <= 0f)
-            laneWidth = laneMeshScaleWidth > 0f ? laneMeshScaleWidth : 3.2f;
+            laneWidth = laneMeshScaleWidth > 0f ? laneMeshScaleWidth : DefaultLaneWidth;
 
         return Mathf.Max(roadWidth, laneWidth * Mathf.Max(1f, triggerMinimumLaneCount));
     }
@@ -1031,7 +1143,7 @@ public class RoadNetworkBuilder : MonoBehaviour
         if (totalRoadWidth <= 0f)
             totalRoadWidth = GetTriggerWidth(0f, laneMeshScaleWidth);
 
-        Vector3 tdRightDir = new Vector3(approachDir.z, 0f, -approachDir.x);
+        Vector3 tdRightDir = RightDirection(approachDir);
 
         GameObject tdGO = new GameObject($"TurnTrigger_{junctionId}_{suffix}");
         tdGO.transform.SetParent(parent);
@@ -1212,45 +1324,20 @@ public class RoadNetworkBuilder : MonoBehaviour
                 Vector3 approachDir = Vector3.forward;
                 Vector3 stopLinePos = junctionCenter;
                 float totalRoadWidth = 0f;
-                float laneW = 3.2f; // width of rightmost lane, used to center the stop-line trigger
+                float laneW = DefaultLaneWidth;
 
-                if (edgeRecords.TryGetValue(edgeId, out RoadEdgeData edgeData))
+                if (edgeRecords.TryGetValue(edgeId, out RoadEdgeData edgeData)
+                    && GetEdgeApproachGeometry(edgeData, out Vector3 laneEnd, out approachDir, out laneW, out totalRoadWidth))
                 {
-                    // Sum total road width across all lanes
-                    foreach (var ln in edgeData.GetLaneDataList())
-                    {
-                        float w = (float)ln.laneWidth;
-                        totalRoadWidth += (w > 0f ? w : 3.2f);
-                    }
+                    stopLinePos = laneEnd;
 
-                    var lanes = edgeData.GetLaneDataList();
-                    if (lanes.Count > 0)
-                    {
-                        // Use the rightmost lane (index 0 in SUMO) which is closest to the curb
-                        var lane = lanes[0];
-                        if (lane.shapePoints.Count >= 2)
-                        {
-                            int last = lane.shapePoints.Count - 1;
-                            Vector3 laneEnd = ToUnity(lane.shapePoints[last][0], lane.shapePoints[last][1]);
-                            stopLinePos = laneEnd;
+                    // Move the light to the far side of the junction (opposite the stop line)
+                    float forwardDist = Vector3.Dot(junctionCenter - laneEnd, approachDir);
+                    Vector3 farSideBase = laneEnd + approachDir * (2f * forwardDist);
+                    Vector3 rightDir = RightDirection(approachDir);
 
-                            Vector3 prevPt = ToUnity(lane.shapePoints[last - 1][0], lane.shapePoints[last - 1][1]);
-                            approachDir = (laneEnd - prevPt).normalized;
-
-                            // Move the light to the far side of the junction (opposite the stop line)
-                            float forwardDist = Vector3.Dot(junctionCenter - laneEnd, approachDir);
-                            Vector3 farSideBase = laneEnd + approachDir * (2f * forwardDist);
-
-                            float laneW_inner = (float)lane.laneWidth;
-                            if (laneW_inner <= 0f) laneW_inner = 3.2f;
-                            laneW = laneW_inner;
-                            Vector3 rightDir = new Vector3(approachDir.z, 0f, -approachDir.x);
-                            float curbOffset = trafficLightCurbOffset;
-
-                            // Primary: right of rightmost lane edge
-                            laneEndPos = farSideBase + rightDir * (laneW_inner * 0.5f + curbOffset);
-                        }
-                    }
+                    // Primary: right of rightmost lane edge
+                    laneEndPos = farSideBase + rightDir * (laneW * 0.5f + trafficLightCurbOffset);
                 }
                 if (totalRoadWidth <= 0f) totalRoadWidth = GetTriggerWidth(0f, laneW);
                 float triggerRoadWidth = GetTriggerWidth(totalRoadWidth, laneW);
@@ -1258,10 +1345,10 @@ public class RoadNetworkBuilder : MonoBehaviour
                 // Left-side mirror position: find the opposing incoming edge (arrives at this junction from
                 // approx. the opposite direction) and use its rightmost lane endpoint directly.
                 // This is more accurate than estimating from totalRoadWidth for asymmetric junctions.
-                Vector3 mirrorRightDir = new Vector3(approachDir.z, 0f, -approachDir.x);
-                float mirrorCurbOffset = trafficLightCurbOffset;
+                Vector3 mirrorRightDir = RightDirection(approachDir);
                 // Default fallback: assume symmetric road (incoming width == opposing width)
-                Vector3 leftSidePos = laneEndPos - mirrorRightDir * (2f * totalRoadWidth + 2f * mirrorCurbOffset);
+                Vector3 leftSidePos = laneEndPos - mirrorRightDir * (2f * totalRoadWidth + 2f * trafficLightCurbOffset);
+                bool foundOpposingEdge = false;
                 {
                     float bestOpposingAlignment = 0.5f; // minimum dot-product threshold
                     foreach (var cand in edgeRecords.Values)
@@ -1270,78 +1357,119 @@ public class RoadNetworkBuilder : MonoBehaviour
                         if (candTo == null || candTo.junctionId != jId) continue;
                         if (cand == edgeData) continue;
 
-                        var candLanes = cand.GetLaneDataList();
-                        if (candLanes.Count == 0) continue;
-                        var cl0 = candLanes[0];
-                        if (cl0.shapePoints == null || cl0.shapePoints.Count < 2) continue;
-
-                        int li = cl0.shapePoints.Count - 1;
-                        Vector3 op0 = ToUnity(cl0.shapePoints[li - 1][0], cl0.shapePoints[li - 1][1]);
-                        Vector3 op1 = ToUnity(cl0.shapePoints[li][0], cl0.shapePoints[li][1]);
-                        Vector3 opApproachDir = (op1 - op0).normalized;
+                        if (!GetEdgeApproachGeometry(cand, out Vector3 opLaneEnd, out Vector3 opApproachDir, out float opLaneW, out _))
+                            continue;
 
                         // Opposing edge must arrive from approximately the opposite direction
                         float alignment = Vector3.Dot(opApproachDir, -approachDir);
                         if (alignment > bestOpposingAlignment)
                         {
                             bestOpposingAlignment = alignment;
-                            float opLaneW = (float)cl0.laneWidth;
-                            if (opLaneW <= 0f) opLaneW = 3.2f;
-                            // opLaneEnd is already at the far side of the junction for the opposing approach
-                            Vector3 opLaneEnd = ToUnity(cl0.shapePoints[li][0], cl0.shapePoints[li][1]);
-                            Vector3 opRightDir = new Vector3(opApproachDir.z, 0f, -opApproachDir.x);
-                            leftSidePos = opLaneEnd + opRightDir * (opLaneW * 0.5f + mirrorCurbOffset);
+                            foundOpposingEdge = true;
+                            Vector3 opRightDir = RightDirection(opApproachDir);
+                            leftSidePos = opLaneEnd + opRightDir * (opLaneW * 0.5f + trafficLightCurbOffset);
                         }
                     }
+                }
+
+                // T-intersection fix: when no opposing edge exists, find the adjacent traffic
+                // lights closest to the missing roadway side and position the stem's lights
+                // slightly inward from them to avoid overlap.
+                if (!foundOpposingEdge)
+                {
+                    Vector3 rightDir = RightDirection(approachDir);
+                    float curbOffset = trafficLightCurbOffset;
+
+                    // Compute the positions of all adjacent edges' traffic lights (primary + mirror)
+                    var adjacentPositions = new List<Vector3>();
+                    foreach (var cand in edgeRecords.Values)
+                    {
+                        var candTo = cand.GetToJunction();
+                        if (candTo == null || candTo.junctionId != jId) continue;
+                        if (cand == edgeData) continue;
+
+                        if (ComputeEdgeLightPositions(cand, edgeData, jId, junctionCenter, out var candPrimary, out var candMirror))
+                        {
+                            adjacentPositions.Add(candPrimary);
+                            adjacentPositions.Add(candMirror);
+                        }
+                    }
+
+                    // Among all adjacent light positions, find the right-most and left-most
+                    // that are on the stem's far side (closest to the missing roadway)
+                    Vector3? bestRight = null;
+                    Vector3? bestLeft = null;
+                    float bestRightScore = float.NegativeInfinity;
+                    float bestLeftScore = float.NegativeInfinity;
+
+                    foreach (var pos in adjacentPositions)
+                    {
+                        float fwd = Vector3.Dot(pos - stopLinePos, approachDir);
+                        if (fwd < 0f) continue; // behind the stop line, not on far side
+
+                        float lateral = Vector3.Dot(pos - stopLinePos, rightDir);
+                        if (lateral > 0f && fwd > bestRightScore)
+                        {
+                            bestRightScore = fwd;
+                            bestRight = pos;
+                        }
+                        if (lateral < 0f && fwd > bestLeftScore)
+                        {
+                            bestLeftScore = fwd;
+                            bestLeft = pos;
+                        }
+                    }
+
+                    // Position slightly inward from the adjacent lights
+                    if (bestRight.HasValue)
+                        laneEndPos = bestRight.Value - rightDir * curbOffset;
+                    if (bestLeft.HasValue)
+                        leftSidePos = bestLeft.Value + rightDir * curbOffset;
                 }
 
                 // Primary Head: first linkIndex for this edge gets the visible ThreeLight (or Middle variant when narrow)
                 int primaryLink = linkIndices[0];
                 float tlSeparation = Vector3.Distance(laneEndPos, leftSidePos);
-                bool useMiddlePrefab = middlePrefab != null && tlSeparation < middleTrafficLightThreshold;
+                // T-intersections always use the middle prefab since there's no opposing roadway
+                bool useMiddlePrefab = middlePrefab != null && (!foundOpposingEdge || tlSeparation < middleTrafficLightThreshold);
                 GameObject activePrefab = useMiddlePrefab ? middlePrefab : tlPrefab;
-                // When using MiddleTrafficLight, swap head/mirror positions so the sign faces correctly.
-                Vector3 headPos = useMiddlePrefab ? leftSidePos : laneEndPos;
-                Vector3 mirrorPos = useMiddlePrefab ? laneEndPos : leftSidePos;
-                GameObject head = (GameObject)PrefabUtility.InstantiatePrefab(activePrefab);
-                head.name = $"Head{primaryLink}";
-                head.transform.SetParent(junctionGO.transform);
-                head.transform.position = headPos;
-                // Face toward oncoming traffic (the light faces the driver)
-                head.transform.rotation = Quaternion.LookRotation(-approachDir, Vector3.up);
+                GameObject head;
 
-                // Optional pole collider on the primary head
-                if (addTrafficLightColliders)
+                // T-intersection: place a single centered middle light (no mirror needed)
+                if (!foundOpposingEdge && useMiddlePrefab)
                 {
-                    var headCol = head.AddComponent<BoxCollider>();
-                    headCol.size = trafficLightColliderSize;
-                    headCol.center = trafficLightColliderCenter;
+                    Vector3 centerPos = (laneEndPos + leftSidePos) * 0.5f;
+                    head = (GameObject)PrefabUtility.InstantiatePrefab(activePrefab);
+                    head.name = $"Head{primaryLink}";
+                    head.transform.SetParent(junctionGO.transform);
+                    head.transform.position = centerPos;
+                    head.transform.rotation = Quaternion.LookRotation(-approachDir, Vector3.up);
+                    AddTrafficLightCollider(head, isMirrored: false);
+                    SetLayerRecursively(head, envDetailLayer);
                 }
-                // Traffic light heads (and child Mirror) are env detail: hidden from mirror cameras
-                SetLayerRecursively(head, envDetailLayer);
-
-                // Mirrored light on the opposite side (child of primary so state syncs)
-                GameObject mirror = (GameObject)PrefabUtility.InstantiatePrefab(activePrefab);
-                mirror.name = "Mirror";
-                mirror.transform.SetParent(head.transform);
-                mirror.transform.position = mirrorPos;
-                mirror.transform.rotation = Quaternion.LookRotation(-approachDir, Vector3.up);
-                // Flip the mirror along the local X axis
-                mirror.transform.localScale = new Vector3(-1f, 1f, 1f);
-
-                // Optional pole collider on the mirror. The mirror has localScale (-1,1,1) for the
-                // visual flip, so attach the collider to a child that counter-scales back to (1,1,1)
-                // to avoid the "negative size BoxCollider" warning from the physics engine.
-                if (addTrafficLightColliders)
+                else
                 {
-                    GameObject mirrorColHost = new GameObject("Collider");
-                    mirrorColHost.transform.SetParent(mirror.transform);
-                    mirrorColHost.transform.localPosition = Vector3.zero;
-                    mirrorColHost.transform.localRotation = Quaternion.identity;
-                    mirrorColHost.transform.localScale = new Vector3(-1f, 1f, 1f); // cancels parent -1 X
-                    var mirrorCol = mirrorColHost.AddComponent<BoxCollider>();
-                    mirrorCol.size = trafficLightColliderSize;
-                    mirrorCol.center = trafficLightColliderCenter;
+                    // When using MiddleTrafficLight, swap head/mirror positions so the sign faces correctly.
+                    Vector3 headPos = useMiddlePrefab ? leftSidePos : laneEndPos;
+                    Vector3 mirrorPos = useMiddlePrefab ? laneEndPos : leftSidePos;
+                    head = (GameObject)PrefabUtility.InstantiatePrefab(activePrefab);
+                    head.name = $"Head{primaryLink}";
+                    head.transform.SetParent(junctionGO.transform);
+                    head.transform.position = headPos;
+                    // Face toward oncoming traffic (the light faces the driver)
+                    head.transform.rotation = Quaternion.LookRotation(-approachDir, Vector3.up);
+                    AddTrafficLightCollider(head, isMirrored: false);
+                    SetLayerRecursively(head, envDetailLayer);
+
+                    // Mirrored light on the opposite side (child of primary so state syncs)
+                    GameObject mirror = (GameObject)PrefabUtility.InstantiatePrefab(activePrefab);
+                    mirror.name = "Mirror";
+                    mirror.transform.SetParent(head.transform);
+                    mirror.transform.position = mirrorPos;
+                    mirror.transform.rotation = Quaternion.LookRotation(-approachDir, Vector3.up);
+                    // Flip the mirror along the local X axis
+                    mirror.transform.localScale = new Vector3(-1f, 1f, 1f);
+                    AddTrafficLightCollider(mirror, isMirrored: true);
                 }
 
                 // ── Stop-line trigger for driving evaluation ──
@@ -1379,7 +1507,7 @@ public class RoadNetworkBuilder : MonoBehaviour
                     int linkIdx = linkIndices[i];
                     GameObject stub = new GameObject($"Head{linkIdx}");
                     stub.transform.SetParent(junctionGO.transform);
-                    stub.transform.position = laneEndPos;
+                    stub.transform.position = head.transform.position;
 
                     // Create minimal children so SimulationController's SetSignalState works
                     new GameObject("green_light").transform.SetParent(stub.transform);
@@ -1520,9 +1648,8 @@ public class RoadNetworkBuilder : MonoBehaviour
                 Vector3 approachDir = (laneEnd - prevPt).normalized;
 
                 // Place sign on the right curb (same convention as traffic lights)
-                Vector3 rightDir = new Vector3(approachDir.z, 0f, -approachDir.x);
-                float laneW = (float)rightLane.laneWidth;
-                if (laneW <= 0f) laneW = 3.2f;
+                Vector3 rightDir = RightDirection(approachDir);
+                float laneW = GetLaneWidth(rightLane);
                 float curbOffset = 0.5f;
                 Vector3 signPos = laneEnd + rightDir * (laneW * 0.5f + curbOffset);
                 signPos.y += signHeightOffset;
@@ -1830,8 +1957,7 @@ public class RoadNetworkBuilder : MonoBehaviour
             Vector3 decalPos = laneEnd - approachDir * arrowSetbackFromJunction;
             decalPos.y += 0.4f;
 
-            float laneW = (float)lane.laneWidth;
-            if (laneW <= 0f) laneW = 3.2f;
+            float laneW = GetLaneWidth(lane);
 
             // Arrow decal
             if (mat != null)
