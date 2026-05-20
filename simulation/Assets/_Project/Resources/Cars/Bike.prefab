@@ -110,15 +110,16 @@ LODGroup:
     - renderer: {fileID: 4612079621919437501}
     - renderer: {fileID: 5262372366844804797}
     - renderer: {fileID: 1310847728081509560}
-  - screenRelativeHeight: 0.15
+  - screenRelativeHeight: 0.2
     fadeTransitionWidth: 0
     renderers:
     - renderer: {fileID: 4144459205162746047}
     - renderer: {fileID: 563889477794911066}
     - renderer: {fileID: 4612079621919437501}
     - renderer: {fileID: 1922275788614389643}
-    - renderer: {fileID: 1922275788614389643}
-  - screenRelativeHeight: 0.05
+    - renderer: {fileID: 1430848380057841702}
+    - renderer: {fileID: 4392036759475482608}
+  - screenRelativeHeight: 0.1
     fadeTransitionWidth: 0
     renderers:
     - renderer: {fileID: 4144459205162746047}
