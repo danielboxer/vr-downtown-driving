@@ -20,9 +20,15 @@ MonoBehaviour:
   - {fileID: 8300000, guid: 7e4a718e9e64ed940acd9a7de45cbdfa, type: 3}
   - {fileID: 8300000, guid: 6da9300cb5149334f8500883ed474745, type: 3}
   hornVolume: 0.5
+  bellClips:
+  - {fileID: 8300000, guid: b2b0759750a526a47bdfdea2174f1f2c, type: 3}
+  - {fileID: 8300000, guid: f6e9c524a270cf047899bf67c7674157, type: 3}
+  - {fileID: 8300000, guid: eae8818478c0b2542b7c8b0034f58d44, type: 3}
+  bellVolume: 0.8
   hornTriggerDelay: 3
   hornCooldown: 5
   hornTriggerDistance: 18
   hornHonkChance: 0.4
   hornAmbientChance: 0.1
   hornCheckInterval: 0.5
+  detachedDespawnDelay: 90

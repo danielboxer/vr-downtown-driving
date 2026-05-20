@@ -27,9 +27,13 @@ public class VehicleController : MonoBehaviour
     /// <summary>Whether this vehicle is currently close enough for high-detail behaviours.</summary>
     public bool IsHighDetail { get; private set; } = true;
 
-    // ── Horn audio (fallback when no ScriptableObject is assigned) ──
+    // ── Horn / bell audio (values set via SetConfig from NpcVehicleConfig) ──
     [HideInInspector] public List<AudioClip> hornClips = new List<AudioClip>();
     [HideInInspector] public float hornVolume = 1f;
+    [HideInInspector] public List<AudioClip> bellClips = new List<AudioClip>();
+    [HideInInspector] public float bellVolume = 1f;
+    // True for NPC bike/bicycle types; they ring a bell instead of honking.
+    [HideInInspector] public bool isBike;
     [HideInInspector] public float hornTriggerDelay = 3f;
     [HideInInspector] public float hornCooldown = 5f;
     [HideInInspector] public float hornTriggerDistance = 18f;
@@ -96,6 +100,8 @@ public class VehicleController : MonoBehaviour
 
         hornClips = config.hornClips;
         hornVolume = config.hornVolume;
+        bellClips = config.bellClips;
+        bellVolume = config.bellVolume;
         hornTriggerDelay = config.hornTriggerDelay;
         hornCooldown = config.hornCooldown;
         hornTriggerDistance = config.hornTriggerDistance;
@@ -314,7 +320,10 @@ public class VehicleController : MonoBehaviour
 
     private void CheckHorn()
     {
-        if (hornClips == null || hornClips.Count == 0) return;
+        // Bikes use bell clips when available; cars use horn clips.
+        List<AudioClip> activeClips = (isBike && bellClips != null && bellClips.Count > 0) ? bellClips : hornClips;
+        float activeVolume = (isBike && bellClips != null && bellClips.Count > 0) ? bellVolume : hornVolume;
+        if (activeClips == null || activeClips.Count == 0) return;
 
         ResolveSimulationController();
 
@@ -374,9 +383,9 @@ public class VehicleController : MonoBehaviour
         }
 
         EnsureHornSource();
-        AudioClip clip = hornClips[Random.Range(0, hornClips.Count)];
+        AudioClip clip = activeClips[Random.Range(0, activeClips.Count)];
         if (clip != null)
-            _hornSource.PlayOneShot(clip, hornVolume);
+            _hornSource.PlayOneShot(clip, activeVolume);
         _lastHornTime = Time.time;
     }
 
