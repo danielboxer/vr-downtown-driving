@@ -24,6 +24,12 @@ public class NpcVehicleConfig : ScriptableObject
     public List<AudioClip> hornClips = new List<AudioClip>();
     [Range(0f, 2f)]
     public float hornVolume = 1f;
+
+    [Header("Bell Audio (Bikes)")]
+    [Tooltip("Short bell clips used by NPC bikes instead of the car horn. A random one plays each ring.")]
+    public List<AudioClip> bellClips = new List<AudioClip>();
+    [Range(0f, 2f)]
+    public float bellVolume = 1f;
     [Tooltip("Seconds an NPC must be stationary before honking.")]
     public float hornTriggerDelay = 3f;
     [Tooltip("Minimum seconds between honks from the same NPC.")]

@@ -92,6 +92,8 @@ public class SimulationController : MonoBehaviour
     {
         public string sumoVehicleType;
         public GameObject unityVehiclePrefab;
+        [Tooltip("Check for bike/bicycle types so NPC vehicles use bell audio instead of car horn.")]
+        public bool isBike;
     }
 
     [Serializable]
@@ -475,6 +477,7 @@ public class SimulationController : MonoBehaviour
                     vc = newVehicle.AddComponent<VehicleController>();
 
                 ApplyNpcSettings(vc);
+                vc.isBike = IsVehicleBikeType(vehicle.type);
                 vc.ResetForSumoControl(newPosition, newRotation, vehicleSpeed, vehicleVerticalSpeed, vehicleLateralSpeed);
 
                 vehicleObjects.Add(vehicle.vehicle_id, newVehicle);
@@ -665,6 +668,17 @@ public class SimulationController : MonoBehaviour
         }
 
         return vehiclePrefab;
+    }
+
+    private bool IsVehicleBikeType(string sumoVehicleType)
+    {
+        for (int i = 0; i < carModelsList.Count; i++)
+        {
+            CarModel carModel = carModelsList[i];
+            if (carModel != null && carModel.sumoVehicleType == sumoVehicleType)
+                return carModel.isBike;
+        }
+        return false;
     }
 
     private GameObject BorrowVehicleFromPool(GameObject prefab, string vehicleId, Vector3 position, Quaternion rotation)
