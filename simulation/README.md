@@ -2,6 +2,10 @@
 
 The simulation extends the Sumo2Unity project. See their documentation [here](https://github.com/SimuTraffX-Lab/SUMO2Unity/blob/main/README.md).
 
+|                                                                 |                                                                       |
+| --------------------------------------------------------------- | --------------------------------------------------------------------- |
+| ![Car driving at Yonge and Dundas](../img/simulation_car_1.png) | ![Bike approaching right turn](../img/simulation_bike_right_turn.png) |
+
 ## Cloning this repository
 
 > [!WARNING]
@@ -63,6 +67,9 @@ Six scenarios across two vehicle modes. Select one in the tool before starting U
 | downtown_bike    | Bike    | Free ride                               |
 | right_turn_bike  | Bike    | Right turn at a signalized intersection |
 
+| Right turn (car)                                                                       | Right turn (bike)                                                                        |
+| -------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| ![Top-down view of car right turn route](../img/simulation_topdown_right_turn_car.png) | ![Top-down view of bike right turn route](../img/simulation_topdown_right_turn_bike.png) |
 
 ## Controls
 
