@@ -4,6 +4,11 @@ Geo-accurate digital twin of the Yonge and Dundas intersection in Toronto. Model
 
 The exported FBX is located [here](../simulation/Assets/downtown/). The `.blend` source file is not included in this repository.
 
+|                                                             |                                                                    |                                                           |
+| ----------------------------------------------------------- | ------------------------------------------------------------------ | --------------------------------------------------------- |
+| ![Yonge Street east view](../img/simulation_yonge_east.png) | ![Sankofa Square](../img/simulation_sankofa_square.png)            | ![Student Learning Centre](../img/simulation_slc.png)     |
+| ![Yonge Street west](../img/simulation_yonge_west_1.png)    | ![Yonge Street west alternate](../img/simulation_yonge_west_2.png) | ![Full intersection overview](../img/simulation_full.png) |
+
 ## Modeling Pipeline
 
 - Reference geometry: Blosm (OpenStreetMap import)
