@@ -8,7 +8,7 @@
     <input>
         <additional-files value="../downtown.poly.xml"/>
         <route-files value="right_turn_bike.rou.xml"/>
-        <sumo-net-file value="../right_turn.net.xml"/>
+        <sumo-net-file value="../downtown.net.xml"/>
     </input>
 
     <output>

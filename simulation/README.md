@@ -67,6 +67,8 @@ Six scenarios across two vehicle modes. Select one in the tool before starting U
 | downtown_bike    | Bike    | Free ride                               |
 | right_turn_bike  | Bike    | Right turn at a signalized intersection |
 
+The right_turn_car uses a slightly modified [network](/simulation/Scenarios/right_turn.net.xml) which removes priority for the starting roadway (one way road). This is so that traffic on Yonge doesn't stop for you when you're exiting. However for the right_turn_bike, the regular downtown.net file is used since removing priority causes cars to get stuck in the one way road.
+
 | Right turn (car)                                                                       | Right turn (bike)                                                                        |
 | -------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
 | ![Top-down view of car right turn route](../img/simulation_topdown_right_turn_car.png) | ![Top-down view of bike right turn route](../img/simulation_topdown_right_turn_bike.png) |
