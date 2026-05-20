@@ -15,8 +15,7 @@ public class TurnDirectionTrigger : MonoBehaviour
     [Tooltip("Turn direction this trigger represents.")]
     public DrivingEvaluator.SignalDirection direction;
 
-    [Tooltip("The road approach direction (world space) this trigger was built for. " +
-             "Used by DrivingEvaluator to classify right/left/wrong-way via dot product.")]
+    [Tooltip("Road approach direction used by DrivingEvaluator for turn-signal checks.")]
     public Vector3 approachDir;
 
     /// <summary>Raised when the ego vehicle enters the trigger.</summary>

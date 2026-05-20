@@ -29,6 +29,11 @@ public class DrivingEvaluator : MonoBehaviour
     [Tooltip("Seconds between speeding violation log entries (prevents per-frame spam).")]
     public float speedingLogCooldown = 5f;
 
+    [Header("Stop Line Evaluation")]
+    [Tooltip("Minimum dot-product alignment required for a stop-line trigger to count as the active approach.")]
+    [Range(-1f, 1f)]
+    [SerializeField] private float stopLineApproachAlignmentThreshold = 0.3f;
+
     [Header("Audio Feedback")]
     [Tooltip("Play a warning sound when the evaluator records a notable event.")]
     [SerializeField] private bool playWarningSounds = true;
@@ -158,13 +163,11 @@ public class DrivingEvaluator : MonoBehaviour
     private float _lastSpeedingLogTime = -10f;
     private Coroutine _warningCoroutine;
 
-    // ── Turn-direction tracking ──
-    // Set each time the ego crosses a stop line so the following turn trigger can
-    // determine whether the car turned right, left, or took the wrong road.
+    // Last valid stop-line approach, used for turn-signal direction checks.
     private string _lastStopLineJunctionId;
     private Vector3 _lastStopLineApproachDir;
 
-    // Bundles the warning tone and optional voice clip for a single evaluator event.
+    // Warning tone + optional voice prompt.
     private struct PendingWarning
     {
         public AudioClip warnClip;
@@ -301,19 +304,13 @@ public class DrivingEvaluator : MonoBehaviour
     {
         if (!_evaluationEnabled) return;
 
-        // ── 1. Update approach tracking ──
-        // Only update when velocity is aligned with this stop line's direction so a
-        // mid-intersection clip from an adjacent road does not overwrite the true approach.
-        bool velocityAligned = _egoRb == null ||
-            Vector3.Dot(_egoRb.linearVelocity.normalized, trigger.transform.forward) > 0.3f;
+        // Ignore overlapping stop-line triggers from other approaches.
+        if (!IsEgoApproachingStopLine(trigger, ego))
+            return;
 
-        if (velocityAligned)
-        {
-            _lastStopLineJunctionId = trigger.junctionId;
-            _lastStopLineApproachDir = trigger.transform.forward;
-        }
+        _lastStopLineJunctionId = trigger.junctionId;
+        _lastStopLineApproachDir = NormalizeHorizontal(trigger.transform.forward);
 
-        // ── 2. Red light check (always performed) ──
         if (simController != null)
         {
             string state = simController.GetTrafficLightState(trigger.junctionId);
@@ -339,6 +336,37 @@ public class DrivingEvaluator : MonoBehaviour
         }
     }
 
+    private bool IsEgoApproachingStopLine(StopLineTrigger trigger, Collider ego)
+    {
+        Vector3 approachDir = NormalizeHorizontal(trigger.transform.forward);
+        if (approachDir == Vector3.zero)
+            return true;
+
+        Rigidbody rb = _egoRb != null ? _egoRb : ego.attachedRigidbody;
+        if (rb != null)
+        {
+            Vector3 velocity = NormalizeHorizontal(rb.linearVelocity);
+            if (velocity != Vector3.zero)
+                return Vector3.Dot(velocity, approachDir) > stopLineApproachAlignmentThreshold;
+
+            Vector3 rbForward = NormalizeHorizontal(rb.transform.forward);
+            if (rbForward != Vector3.zero)
+                return Vector3.Dot(rbForward, approachDir) > stopLineApproachAlignmentThreshold;
+        }
+
+        Vector3 egoForward = NormalizeHorizontal(ego.transform.forward);
+        if (egoForward != Vector3.zero)
+            return Vector3.Dot(egoForward, approachDir) > stopLineApproachAlignmentThreshold;
+
+        return true;
+    }
+
+    private static Vector3 NormalizeHorizontal(Vector3 value)
+    {
+        value.y = 0f;
+        return value.sqrMagnitude > 0.0001f ? value.normalized : Vector3.zero;
+    }
+
     private void HandleTurnDirectionCrossing(TurnDirectionTrigger trigger, Collider ego)
     {
         if (!_evaluationEnabled) return;
@@ -349,11 +377,7 @@ public class DrivingEvaluator : MonoBehaviour
             trigger.junctionId != _lastStopLineJunctionId)
             return;
 
-        // Compare this trigger's approach direction against the direction recorded at the
-        // stop line. This classifies the turn without needing per-trigger type fields:
-        //   dot ~  1 → same approach → RIGHT turn (car exiting same road it approached on)
-        //   dot ~ -1 → opposite approach → LEFT turn
-        //   dot ~  0 → perpendicular road → ignore (car grazes adjacent trigger mid-turn)
+        // Same/opposite approaches map to right/left turns; perpendicular grazes are ignored.
         float d = Vector3.Dot(_lastStopLineApproachDir, trigger.approachDir);
 
         bool isRight = d > 0.5f;
