@@ -211,6 +211,8 @@ public class RoadNetworkBuilder : MonoBehaviour
     public Vector3 streetLampColliderSize = new Vector3(0.15f, 3f, 0.15f);
     [Tooltip("Local-space center of the street lamp box collider. Y=1.5 places the base at ground level.")]
     public Vector3 streetLampColliderCenter = new Vector3(0f, 1.5f, 0f);
+    [Tooltip("Minimum world-space distance (XZ) between any two lamp bases. Prevents lamps from touching on narrow roads.")]
+    public float lampMinProximity = 6f;
     [Tooltip("Lamp prefab (with speed limit sign) used for the single lamp placed closest to the midpoint of each block side. Falls back to the regular lamp if null.")]
     public GameObject lampWithSignPrefab;
 
@@ -1735,6 +1737,10 @@ public class RoadNetworkBuilder : MonoBehaviour
         // then innerSlopeWidth clears the ramp, then lampCurbOffset positions within the flat top.
         float sidewalkInset = innerSlopeWidth + lampCurbOffset;
 
+        // Shared list of placed lamp positions used to prevent lamps from being placed too
+        // close to each other across opposite sidewalks on narrow roads.
+        var placedLampPositions = new List<Vector3>();
+
         foreach (var edgeData in edgeRecords.Values)
         {
             var lanes = edgeData.GetLaneDataList();
@@ -1748,7 +1754,7 @@ public class RoadNetworkBuilder : MonoBehaviour
             {
                 float w = GetMappedLaneWidth(firstLane.laneId);
                 var sidewalkPts = ComputeLaneEdge(firstLane, w, false, sidewalkInset, sidewalkHeight);
-                PlaceLampsAlongEdge(sidewalkPts, lampPrefab, signLampPrefab, lampsRoot.transform, leftSide: false, ref lampCount);
+                PlaceLampsAlongEdge(sidewalkPts, lampPrefab, signLampPrefab, lampsRoot.transform, leftSide: false, ref lampCount, placedLampPositions);
             }
 
             // Left side: leftmost lane outer edge -- only if no opposite edge exists
@@ -1759,7 +1765,7 @@ public class RoadNetworkBuilder : MonoBehaviour
                 {
                     float w = GetMappedLaneWidth(lastLane.laneId);
                     var sidewalkPts = ComputeLaneEdge(lastLane, w, true, sidewalkInset, sidewalkHeight);
-                    PlaceLampsAlongEdge(sidewalkPts, lampPrefab, signLampPrefab, lampsRoot.transform, leftSide: true, ref lampCount);
+                    PlaceLampsAlongEdge(sidewalkPts, lampPrefab, signLampPrefab, lampsRoot.transform, leftSide: true, ref lampCount, placedLampPositions);
                 }
             }
         }
@@ -1778,8 +1784,9 @@ public class RoadNetworkBuilder : MonoBehaviour
     /// land right at junction edges.
     /// leftSide: true if this is the left (median-facing) sidewalk, used to orient lamps inward.
     /// signPrefab: when non-null, the lamp closest to the block midpoint uses this prefab instead.
+    /// placedPositions: shared list of already-placed lamp world positions used for proximity checks.
     /// </summary>
-    private void PlaceLampsAlongEdge(Vector3[] pts, GameObject prefab, GameObject signPrefab, Transform parent, bool leftSide, ref int count)
+    private void PlaceLampsAlongEdge(Vector3[] pts, GameObject prefab, GameObject signPrefab, Transform parent, bool leftSide, ref int count, List<Vector3> placedPositions)
     {
         if (pts.Length < 2) return;
 
@@ -1814,22 +1821,42 @@ public class RoadNetworkBuilder : MonoBehaviour
                 float yaw = leftSide ? 90f : -90f;
                 Quaternion rot = Quaternion.LookRotation(dir, Vector3.up) * Quaternion.Euler(0f, yaw, 0f);
 
-                // Use the sign lamp prefab for the lamp closest to the block midpoint
-                bool isMidpointLamp = signPrefab != null
-                    && Mathf.Abs(nextDist - totalLength * 0.5f) < lampSpacing * 0.5f;
-                GameObject lampPrefabToUse = isMidpointLamp ? signPrefab : prefab;
-
-                GameObject lamp = (GameObject)PrefabUtility.InstantiatePrefab(lampPrefabToUse);
-                lamp.name = $"StreetLamp_{count++}";
-                lamp.transform.SetParent(parent);
-                lamp.transform.position = pos;
-                lamp.transform.rotation = rot;
-
-                if (addStreetLampColliders)
+                // Skip this position if another lamp is already within the minimum proximity
+                // (prevents lamps on opposite narrow-road sidewalks from touching each other).
+                bool tooClose = false;
+                float minProxSq = lampMinProximity * lampMinProximity;
+                foreach (var existing in placedPositions)
                 {
-                    var col = lamp.AddComponent<BoxCollider>();
-                    col.size = streetLampColliderSize;
-                    col.center = streetLampColliderCenter;
+                    float dx = existing.x - pos.x;
+                    float dz = existing.z - pos.z;
+                    if (dx * dx + dz * dz < minProxSq)
+                    {
+                        tooClose = true;
+                        break;
+                    }
+                }
+
+                if (!tooClose)
+                {
+                    // Use the sign lamp prefab for the lamp closest to the block midpoint
+                    bool isMidpointLamp = signPrefab != null
+                        && Mathf.Abs(nextDist - totalLength * 0.5f) < lampSpacing * 0.5f;
+                    GameObject lampPrefabToUse = isMidpointLamp ? signPrefab : prefab;
+
+                    GameObject lamp = (GameObject)PrefabUtility.InstantiatePrefab(lampPrefabToUse);
+                    lamp.name = $"StreetLamp_{count++}";
+                    lamp.transform.SetParent(parent);
+                    lamp.transform.position = pos;
+                    lamp.transform.rotation = rot;
+
+                    if (addStreetLampColliders)
+                    {
+                        var col = lamp.AddComponent<BoxCollider>();
+                        col.size = streetLampColliderSize;
+                        col.center = streetLampColliderCenter;
+                    }
+
+                    placedPositions.Add(pos);
                 }
 
                 nextDist += lampSpacing;
