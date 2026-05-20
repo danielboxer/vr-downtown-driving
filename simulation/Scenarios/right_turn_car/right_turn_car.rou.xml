@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on 2026-04-28 18:29:42 by Eclipse SUMO netedit Version 1.22.0
+<!-- generated on 2026-05-19 21:03:46 by Eclipse SUMO netedit Version 1.22.0
 -->
 
 <routes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/routes_file.xsd">
@@ -18,10 +18,9 @@
     <!-- Vehicles, persons and containers (sorted by depart) -->
     <flow id="f_1_bike" type="bike" begin="0.00" departLane="0" from="79" to="71" end="3600.00" vehsPerHour="1000"/>
     <flow id="f_2" type="301" begin="0.00" from="98" to="23" end="3600.00" vehsPerHour="100"/>
-    <!-- <flow id="f_5" type="306" begin="0.00" departLane="1" from="79" to="103" end="3600.00" vehsPerHour="300"/> -->
     <flow id="f_6" type="302" begin="0.00" departLane="1" from="79" to="103" end="3600.00" vehsPerHour="600"/>
     <flow id="f_3" type="304" begin="300.00" from="90" to="24" via="87" end="3600.00" vehsPerHour="50"/>
     <flow id="f_4" type="305" begin="300.00" from="88" to="12" end="3600.00" vehsPerHour="50"/>
     <trip id="f_0.0" type="EgoCar" depart="540.00" from="62" to="78"/>
-    <flow id="f_7" type="303" begin="600.00" from="62" to="24" via="87" end="3600.00" vehsPerHour="10"/>
+    <flow id="f_7" type="303" begin="600.00" from="62" to="43" via="87" end="3600.00" vehsPerHour="10"/>
 </routes>
