@@ -32,11 +32,6 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: Material
-    second: {fileID: 2100000, guid: 34057368b2f762a4cadeaaa6b5d2a4ae, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
       name: billboard black
     second: {fileID: 2100000, guid: c4ce0ab5f5b16114684324654bef49ae, type: 2}
   - first:
@@ -107,11 +102,6 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: canada_computers
-    second: {fileID: 2100000, guid: 968b4065a4323084cba5639ff760b231, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
       name: cola billboard
     second: {fileID: 2100000, guid: 3796cc61613c3c34ca88d9471af07178, type: 2}
   - first:
@@ -122,18 +112,18 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: daves
-    second: {fileID: 2100000, guid: 6c8a7470f2370e54589366d23afd0f4e, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
       name: doordash ad
     second: {fileID: 2100000, guid: 0520d2cbea2ad5945a394ce04d9200b2, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: eaton_front
-    second: {fileID: 2100000, guid: 962800bad3e87754c82dcacd2a576704, type: 2}
+      name: dundas_atlas
+    second: {fileID: 2100000, guid: d4ab84bf882012d42801105a619a4230, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: dundas_atlas_windows
+    second: {fileID: 2100000, guid: bba28f0a30ea1df4db3e87d215970b87, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
@@ -152,123 +142,8 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: footlocker
-    second: {fileID: 2100000, guid: 9fc97efda3810da44a49b86df1147796, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: footlocker_roof
-    second: {fileID: 2100000, guid: 1f3fc56deb2fc724fb797724d36a07a1, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: healthy planet front
-    second: {fileID: 2100000, guid: d3bfb1043cb9f12438ddcf41b27b4241, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: healthy planet side
-    second: {fileID: 2100000, guid: ab1e6ed08570e6c45b6050b8adb2b271, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: hm_front
-    second: {fileID: 2100000, guid: 6c2310fbe6f57a942b955f9d4011e76e, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: hm_side_left
-    second: {fileID: 2100000, guid: ba7f93186e16d854ca635ae1cf335304, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: hm_side_right
-    second: {fileID: 2100000, guid: 1c486cd324fc86e4489a982d2e11ee65, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: hmart
-    second: {fileID: 2100000, guid: 120f829c16d551d4ba272ca2aa1de086, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: jack sign
-    second: {fileID: 2100000, guid: 18e95cfd25660be46bbfb8cb37b1aadd, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: jolibee
-    second: {fileID: 2100000, guid: a1610a91e8862fb48937aee4628b86e1, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: ohyo
-    second: {fileID: 2100000, guid: 20fb61764bae20940b294c943769f6c0, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: rogers_front
-    second: {fileID: 2100000, guid: 4ccb51019ebbb464183d3e579ee06641, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: rogers_left
-    second: {fileID: 2100000, guid: a373e90da95f9484bb08683c6eba7ef1, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: rogers_right
-    second: {fileID: 2100000, guid: 3c963ff2ef4aca54fae283a29feeecf8, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: roundbout
-    second: {fileID: 2100000, guid: dc5f632a98f41fd419dd49d9cc4a8fdd, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: sam record man
-    second: {fileID: 2100000, guid: 26dedc396154d13488c070f7dec3e2a5, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
       name: samsung billboard
     second: {fileID: 2100000, guid: e27ca8a9ad11c5d4c8444fdb8f66bea8, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: sankofa_square_pot
-    second: {fileID: 2100000, guid: 8e636b06a06315447ae37dd3e5b00485, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: slc bottom
-    second: {fileID: 2100000, guid: 4d0220f3dc058ac46a3332136e007f61, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: slc front
-    second: {fileID: 2100000, guid: ba5bdc1aedce75642a4245bddfcee97c, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: slc triangle
-    second: {fileID: 2100000, guid: f15931f3ec36ca64fa8d639b0d182ab7, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: slc_side_left
-    second: {fileID: 2100000, guid: f24f5629ef86b1243bf9301ded91d74f, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: slc_side_right
-    second: {fileID: 2100000, guid: d611212cd52fa394bac8ff8a36bdbbf0, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: street_warehouse
-    second: {fileID: 2100000, guid: 478a1e742fa32cf44b14d3f2f43d97e3, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
@@ -277,113 +152,48 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: tenor_far_right
-    second: {fileID: 2100000, guid: 20c31a98776a3c942b6e31d55a34d3ba, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: tenor_front_cylinder
-    second: {fileID: 2100000, guid: 16c08eaa446e2a04ca203d237f0e73a9, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: tenor_front_entrance
-    second: {fileID: 2100000, guid: 89fe93d2126903043894b6c22f8aaac5, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: tenor_front_far_right
-    second: {fileID: 2100000, guid: 6a482f708430d9c4d9e0957406d62b49, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: tenor_front_shakeshack_right
-    second: {fileID: 2100000, guid: 4634d77d5897ac84b97f4f28659dec63, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: tenor_front_top
-    second: {fileID: 2100000, guid: b6d21bb6b3b06574e91698c21424ba62, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: tenor_left_little_canada_to_grill
-    second: {fileID: 2100000, guid: 3ee4938079a822a40a00c3a2986ab7cb, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: tenor_left_rolltation_top
-    second: {fileID: 2100000, guid: aaa5c794608767643af7b06ba6e68dbf, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: tenor_left_shakeshack
-    second: {fileID: 2100000, guid: a9d65c89a7881ab41a22100d4ba249a3, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: tenor_left_shakeshack_far_left
-    second: {fileID: 2100000, guid: 3b7bbf1dca8c0294cb616846f5b46ade, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: tenor_left_winners
-    second: {fileID: 2100000, guid: 6a96343e479365e418e28c2919e6c386, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: tenor_right_be_great
-    second: {fileID: 2100000, guid: 18876b4610a527540ade0ae82bcb8e52, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: tenor_right_front
-    second: {fileID: 2100000, guid: 6018cb612e94e6c4fbf4bdf7582889a0, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: theatrics
-    second: {fileID: 2100000, guid: 56974f976c32f7042b6b843cea50965b, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
       name: tim hortons billboard
     second: {fileID: 2100000, guid: d0fb893a772c57b489d535d6bde0c405, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: ttc_back
-    second: {fileID: 2100000, guid: 9e79ca8acc551384a91656e5fb074cfe, type: 2}
+      name: yonge_atlas_1
+    second: {fileID: 2100000, guid: 8c4b0ae2a9e84e94abaab648e62a48f8, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: ttc_front
-    second: {fileID: 2100000, guid: 157565282663caa4cac4b6f66a174222, type: 2}
+      name: yonge_atlas_1_windows
+    second: {fileID: 2100000, guid: 2637762034d47914a8c6cfc46f94375e, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: ttc_side
-    second: {fileID: 2100000, guid: bf8bd22562820c147b1c85b15412a181, type: 2}
+      name: yonge_atlas_2
+    second: {fileID: 2100000, guid: fa08a2d24eb65274a89c0f190f47eae3, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: uniqlo_side
-    second: {fileID: 2100000, guid: 000cb3a2af03cfd4bb8d40e53f175285, type: 2}
+      name: yonge_atlas_2_windows
+    second: {fileID: 2100000, guid: 9119ff4c57e118b48b45cc1383af74f2, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: west49 front
-    second: {fileID: 2100000, guid: 8c9c75f6e62e17a43acb0006cb2aac94, type: 2}
+      name: yonge_atlas_3
+    second: {fileID: 2100000, guid: 8ff13eeb11e722f49ad7a5cc66ba71b8, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: west49 side
-    second: {fileID: 2100000, guid: a720b568a65884a4fa518ef5defefff3, type: 2}
+      name: yonge_atlas_3_windows
+    second: {fileID: 2100000, guid: 9544bd368c487dd4e846406300843183, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: west49 top
-    second: {fileID: 2100000, guid: 6b17aac1632f87c4cb6983dc7f038c04, type: 2}
+      name: yonge_dundas_atlas
+    second: {fileID: 2100000, guid: 4632ea6824e27c64fa660a61c8319b3d, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: yonge_dundas_atlas_windows
+    second: {fileID: 2100000, guid: 34486aa92df61e841b64429f69f9cf92, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

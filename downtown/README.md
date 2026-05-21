@@ -32,7 +32,7 @@ The exported FBX is located [here](../simulation/Assets/downtown/). The `.blend`
 After importing the FBX:
 
 - Model tab: enable **Generate Lightmap UVs**, Min Lightmap Resolution 4
-- Materials tab: **Extract Textures**, **Extract Materials**
+- Materials tab: **Extract Materials**
 - Add MeshCollider to all buildings
 - Mark as **Static**
 - Bake lightmap (Window > Rendering > Lighting > Generate Lighting)
