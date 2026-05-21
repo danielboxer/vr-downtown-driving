@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -8,6 +9,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 using UnityEngine.XR;
+using UnityEngine.XR.Interaction.Toolkit.Inputs.Simulation;
 using Debug = UnityEngine.Debug;
 
 /// <summary>
@@ -74,22 +76,11 @@ public class MenuController : MonoBehaviour
         _scenarioLabel = FindFirstObjectByType<ScenarioLabel>();
 
         // Auto-enable the interaction simulator when no real XR device is running.
+        // Use a coroutine so we can wait for the XR display subsystem to finish
+        // initializing (some headsets, e.g. Quest 3 via SteamVR, are not yet active
+        // when Start() runs, which would incorrectly enable the simulator).
         if (xrInteractionSimulator != null)
-            xrInteractionSimulator.SetActive(!XRSettings.isDeviceActive);
-
-        // Auto-find the simulator HUD if not manually assigned (it's instantiated as a
-        // child of the simulator prefab in Awake, so it exists by the time Start runs).
-        if (xrSimulatorHUD == null && xrInteractionSimulator != null)
-        {
-            foreach (Transform child in xrInteractionSimulator.transform)
-            {
-                if (child.name.StartsWith("XR Interaction Simulator UI"))
-                {
-                    xrSimulatorHUD = child.gameObject;
-                    break;
-                }
-            }
-        }
+            StartCoroutine(AutoConfigureSimulator());
 
         // Panel starts hidden; FPS and toggle button start visible.
         _displayVisible = true;
@@ -242,6 +233,24 @@ public class MenuController : MonoBehaviour
     {
         if (xrInteractionSimulator != null)
         {
+            // Block enabling the simulator while a real XR headset is active. The
+            // simulator removes the real HMD from the Input System on enable, which
+            // breaks TrackedPoseDriver head tracking for the rest of the play session
+            // even after the simulator is turned off again.
+            bool hasActiveDisplay = false;
+            var displays = new List<XRDisplaySubsystem>();
+            SubsystemManager.GetSubsystems(displays);
+            foreach (var d in displays)
+            {
+                if (d.running) { hasActiveDisplay = true; break; }
+            }
+
+            if (hasActiveDisplay && !xrInteractionSimulator.activeSelf)
+            {
+                ShowFeedback("Headset connected - simulator unavailable");
+                return;
+            }
+
             bool next = !xrInteractionSimulator.activeSelf;
             xrInteractionSimulator.SetActive(next);
             ShowFeedback(next ? "XR Simulator: ON" : "XR Simulator: OFF");
@@ -275,6 +284,68 @@ public class MenuController : MonoBehaviour
         if (_feedbackCoroutine != null)
             StopCoroutine(_feedbackCoroutine);
         _feedbackCoroutine = StartCoroutine(FeedbackRoutine(message));
+    }
+
+    // Waits up to 3 seconds for the XR display subsystem to start running, then
+    // enables the simulator only if no real XR display is active. Using
+    // XRDisplaySubsystem.running is more reliable than XRSettings.isDeviceActive
+    // because some headsets (e.g. Quest 3 via SteamVR) are not yet active at
+    // the time Start() executes.
+    private IEnumerator AutoConfigureSimulator()
+    {
+        var displays = new List<XRDisplaySubsystem>();
+        float timeout = 3f;
+        float elapsed = 0f;
+
+        while (elapsed < timeout)
+        {
+            SubsystemManager.GetSubsystems(displays);
+            bool hasRunningDisplay = false;
+            foreach (var d in displays)
+            {
+                if (d.running) { hasRunningDisplay = true; break; }
+            }
+
+            if (hasRunningDisplay)
+            {
+                // Real headset confirmed active: keep simulator disabled.
+                xrInteractionSimulator.SetActive(false);
+                break;
+            }
+
+            elapsed += Time.unscaledDeltaTime;
+            yield return null;
+        }
+
+        // If we timed out with no running display, enable the simulator.
+        if (!xrInteractionSimulator.activeSelf)
+        {
+            var displays2 = new List<XRDisplaySubsystem>();
+            SubsystemManager.GetSubsystems(displays2);
+            bool hasRunningDisplay = false;
+            foreach (var d in displays2)
+            {
+                if (d.running) { hasRunningDisplay = true; break; }
+            }
+            xrInteractionSimulator.SetActive(!hasRunningDisplay);
+        }
+
+        // Auto-find the simulator HUD now that the prefab Awake has run.
+        if (xrSimulatorHUD == null)
+        {
+            foreach (Transform child in xrInteractionSimulator.transform)
+            {
+                if (child.name.StartsWith("XR Interaction Simulator UI"))
+                {
+                    xrSimulatorHUD = child.gameObject;
+                    break;
+                }
+            }
+        }
+
+        // Sync HUD visibility with the current display state.
+        if (xrSimulatorHUD != null)
+            xrSimulatorHUD.SetActive(xrInteractionSimulator.activeSelf && _displayVisible);
     }
 
     private IEnumerator FeedbackRoutine(string message)
