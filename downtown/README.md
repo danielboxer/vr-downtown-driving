@@ -59,7 +59,3 @@ Atlas textures (hero buildings):
 
 Mask maps:
 - Uncheck sRGB
-
-Normal maps:
-- For the concrete normal map on hero buildings, set Normal Scale to ~0.3 in the material
-
