@@ -17,6 +17,8 @@ The exported FBX is located [here](../simulation/Assets/downtown/). The `.blend`
 - UV mapping: projection mapping onto extruded OSM geometry
 - Two blocks of Yonge and one block of Dundas done photorealistically; remaining buildings use PBR facade variants
 
+- Use material combiner addon to make each block of buildings a 8k atlas
+
 ## FBX Export Settings (Blender)
 
 - Path Mode: Copy, Embed Textures
@@ -40,7 +42,6 @@ Material setup
 
 - Setup the mask maps for all PBR textures
 - For all PBR textures (with normal maps), press "Fix Now" on the normal maps
-- Increase smoothness of some buildings that are mostly windows
 
 Texture setup:
 
@@ -48,6 +49,8 @@ Select all downtown textures and apply:
 
 - Stream Mipmap Levels: On
 - Filter Mode: Trilinear
+- Mipmap filtering: Kaiser
+- Aniso Level: 8 or 16 for buildings, for billboards, leave it at 1
 
 Select all mask maps and uncheck sRGB
 
