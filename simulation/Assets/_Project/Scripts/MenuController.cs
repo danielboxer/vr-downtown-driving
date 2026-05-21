@@ -40,6 +40,14 @@ public class MenuController : MonoBehaviour
     [Tooltip("The XR Interaction Simulator UI overlay. Toggle independently of the simulator itself.")]
     public GameObject xrSimulatorHUD;
 
+    [Header("Button Labels")]
+    [Tooltip("TMP label on the Display toggle button; set automatically to show current state.")]
+    public TextMeshProUGUI displayButtonLabel;
+    [Tooltip("TMP label on the Controller Visuals toggle button; set automatically to show current state.")]
+    public TextMeshProUGUI controllerButtonLabel;
+    [Tooltip("TMP label on the XR Simulator toggle button; set automatically to show current state.")]
+    public TextMeshProUGUI simulatorButtonLabel;
+
     [Header("Feedback")]
     [Tooltip("TMP text element inside the menu panel that shows brief action feedback.")]
     public TextMeshProUGUI feedbackText;
@@ -113,6 +121,11 @@ public class MenuController : MonoBehaviour
         _displayVisible = true;
         _menuOpen = false;
         RefreshUI();
+
+        // Set initial button label states. The simulator label is set at the
+        // end of AutoConfigureSimulator() once its state is resolved.
+        SetToggleLabel(displayButtonLabel, "Display", _displayVisible);
+        SetToggleLabel(controllerButtonLabel, "Controllers", _controllersVisible);
     }
 
     private void OnEnable()
@@ -167,6 +180,7 @@ public class MenuController : MonoBehaviour
         _displayVisible = !_displayVisible;
         RefreshUI();
         ShowFeedback(_displayVisible ? "Display on" : "Display hidden");
+        SetToggleLabel(displayButtonLabel, "Display", _displayVisible);
     }
 
     /// <summary>Launches the ScenarioManager PyInstaller binary in a separate process.</summary>
@@ -281,6 +295,7 @@ public class MenuController : MonoBehaviour
             bool next = !xrInteractionSimulator.activeSelf;
             xrInteractionSimulator.SetActive(next);
             ShowFeedback(next ? "XR Simulator: ON" : "XR Simulator: OFF");
+            SetToggleLabel(simulatorButtonLabel, "XR Sim", next);
         }
         else
         {
@@ -295,6 +310,7 @@ public class MenuController : MonoBehaviour
         foreach (var r in _controllerRenderers)
             r.enabled = _controllersVisible;
         ShowFeedback(_controllersVisible ? "Controllers: visible" : "Controllers: hidden");
+        SetToggleLabel(controllerButtonLabel, "Controllers", _controllersVisible);
     }
 
     /// <summary>Hides or shows the XR Interaction Simulator HUD overlay without disabling the simulator input.</summary>
@@ -382,6 +398,16 @@ public class MenuController : MonoBehaviour
         // Sync HUD visibility with the current display state.
         if (xrSimulatorHUD != null)
             xrSimulatorHUD.SetActive(xrInteractionSimulator.activeSelf && _displayVisible);
+
+        // Update simulator button label now that auto-configure has settled.
+        SetToggleLabel(simulatorButtonLabel, "XR Sim", xrInteractionSimulator.activeSelf);
+    }
+
+    // Sets a toggle button's label to "<name>: ON" or "<name>: OFF".
+    private static void SetToggleLabel(TextMeshProUGUI label, string name, bool on)
+    {
+        if (label != null)
+            label.text = $"{name}: {(on ? "ON" : "OFF")}";
     }
 
     private IEnumerator FeedbackRoutine(string message)
