@@ -9,6 +9,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 using UnityEngine.XR;
+using Unity.XR.CoreUtils;
 using UnityEngine.XR.Interaction.Toolkit.Inputs.Simulation;
 using Debug = UnityEngine.Debug;
 
@@ -61,6 +62,10 @@ public class MenuController : MonoBehaviour
     private bool _displayVisible = true;
     // whether the menu panel is currently open
     private bool _menuOpen = false;
+    // whether the physical XR controller visuals are shown
+    private bool _controllersVisible = false;
+    // cached renderers on the Left Hand and Right Hand XR controller visual prefabs
+    private Renderer[] _controllerRenderers = System.Array.Empty<Renderer>();
 
     private void Awake()
     {
@@ -74,6 +79,28 @@ public class MenuController : MonoBehaviour
         _tiltSteering = FindFirstObjectByType<TiltSteeringProvider>();
         _fpsDisplay = FindFirstObjectByType<Fps>();
         _scenarioLabel = FindFirstObjectByType<ScenarioLabel>();
+
+        // Cache renderers on the XR controller visual prefabs so they can be
+        // hidden during the study without disabling the TrackedPoseDrivers.
+        var xrOrigin = FindFirstObjectByType<XROrigin>();
+        if (xrOrigin != null)
+        {
+            Transform offset = xrOrigin.CameraFloorOffsetObject != null
+                ? xrOrigin.CameraFloorOffsetObject.transform
+                : xrOrigin.transform;
+            var renderers = new List<Renderer>();
+            Transform leftHand = offset.Find("Left Hand");
+            Transform rightHand = offset.Find("Right Hand");
+            if (leftHand != null)
+                renderers.AddRange(leftHand.GetComponentsInChildren<Renderer>(true));
+            if (rightHand != null)
+                renderers.AddRange(rightHand.GetComponentsInChildren<Renderer>(true));
+            _controllerRenderers = renderers.ToArray();
+        }
+
+        // Apply the default hidden state to all cached controller renderers.
+        foreach (var r in _controllerRenderers)
+            r.enabled = _controllersVisible;
 
         // Auto-enable the interaction simulator when no real XR device is running.
         // Use a coroutine so we can wait for the XR display subsystem to finish
@@ -247,7 +274,7 @@ public class MenuController : MonoBehaviour
 
             if (hasActiveDisplay && !xrInteractionSimulator.activeSelf)
             {
-                ShowFeedback("Headset connected - simulator unavailable");
+                ShowFeedback("Headset connected, simulator unavailable");
                 return;
             }
 
@@ -259,6 +286,15 @@ public class MenuController : MonoBehaviour
         {
             Debug.LogWarning("[MenuController] No XR Interaction Simulator assigned.");
         }
+    }
+
+    /// <summary>Hides or shows the XR controller visual models (Left Hand / Right Hand renderers) without affecting tracking.</summary>
+    public void OnToggleControllerVisuals()
+    {
+        _controllersVisible = !_controllersVisible;
+        foreach (var r in _controllerRenderers)
+            r.enabled = _controllersVisible;
+        ShowFeedback(_controllersVisible ? "Controllers: visible" : "Controllers: hidden");
     }
 
     /// <summary>Hides or shows the XR Interaction Simulator HUD overlay without disabling the simulator input.</summary>
