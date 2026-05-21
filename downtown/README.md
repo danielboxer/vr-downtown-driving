@@ -40,7 +40,7 @@ After importing the FBX:
 
 Material setup
 
-- Setup the mask maps for all PBR textures
+- Setup the mask maps for all PBR textures, adjust Smoothness slider based on the material, 0.98 looks good for windows, 0.2 for others, 0.9 for billboards
 - For all PBR textures (with normal maps), press "Fix Now" on the normal maps
 
 Texture setup:
@@ -50,7 +50,16 @@ Select all downtown textures and apply:
 - Stream Mipmap Levels: On
 - Filter Mode: Trilinear
 - Mipmap filtering: Kaiser
-- Aniso Level: 8 or 16 for buildings, for billboards, leave it at 1
+- Aniso Level: 4
 
-Select all mask maps and uncheck sRGB
+Atlas textures (hero buildings):
+- Max size 8192
+- Wrap mode: Clamp
+- Compression: High Quality
+
+Mask maps:
+- Uncheck sRGB
+
+Normal maps:
+- For the concrete normal map on hero buildings, set Normal Scale to ~0.3 in the material
 
