@@ -70,8 +70,9 @@ public class MenuController : MonoBehaviour
     private bool _displayVisible = true;
     // whether the menu panel is currently open
     private bool _menuOpen = false;
-    // whether the physical XR controller visuals are shown
-    private bool _controllersVisible = false;
+    // whether the physical XR controller visuals are shown; starts true to match
+    // the actual visible default when the XR Origin hasn't loaded yet
+    private bool _controllersVisible = true;
     // cached renderers on the Left Hand and Right Hand XR controller visual prefabs
     private Renderer[] _controllerRenderers = System.Array.Empty<Renderer>();
 
@@ -89,26 +90,9 @@ public class MenuController : MonoBehaviour
         _scenarioLabel = FindFirstObjectByType<ScenarioLabel>();
 
         // Cache renderers on the XR controller visual prefabs so they can be
-        // hidden during the study without disabling the TrackedPoseDrivers.
-        var xrOrigin = FindFirstObjectByType<XROrigin>();
-        if (xrOrigin != null)
-        {
-            Transform offset = xrOrigin.CameraFloorOffsetObject != null
-                ? xrOrigin.CameraFloorOffsetObject.transform
-                : xrOrigin.transform;
-            var renderers = new List<Renderer>();
-            Transform leftHand = offset.Find("Left Hand");
-            Transform rightHand = offset.Find("Right Hand");
-            if (leftHand != null)
-                renderers.AddRange(leftHand.GetComponentsInChildren<Renderer>(true));
-            if (rightHand != null)
-                renderers.AddRange(rightHand.GetComponentsInChildren<Renderer>(true));
-            _controllerRenderers = renderers.ToArray();
-        }
-
-        // Apply the default hidden state to all cached controller renderers.
-        foreach (var r in _controllerRenderers)
-            r.enabled = _controllersVisible;
+        // toggled without disabling the TrackedPoseDrivers.
+        CacheControllerRenderers();
+        // Controllers start visible (_controllersVisible = true matches their default state).
 
         // Auto-enable the interaction simulator when no real XR device is running.
         // Use a coroutine so we can wait for the XR display subsystem to finish
@@ -306,7 +290,24 @@ public class MenuController : MonoBehaviour
     /// <summary>Hides or shows the XR controller visual models (Left Hand / Right Hand renderers) without affecting tracking.</summary>
     public void OnToggleControllerVisuals()
     {
-        _controllersVisible = !_controllersVisible;
+        // Always re-cache so the correct vehicle's renderers are used after a switch.
+        CacheControllerRenderers();
+
+        if (_controllerRenderers.Length == 0)
+        {
+            ShowFeedback("Controller visuals not found");
+            return;
+        }
+
+        // Derive the new state from the actual renderers rather than the tracked flag:
+        // if any are currently visible, hide all; if all are hidden, show all.
+        // This avoids sync issues when switching vehicles.
+        bool anyVisible = false;
+        foreach (var r in _controllerRenderers)
+        {
+            if (r.enabled) { anyVisible = true; break; }
+        }
+        _controllersVisible = !anyVisible;
         foreach (var r in _controllerRenderers)
             r.enabled = _controllersVisible;
         ShowFeedback(_controllersVisible ? "Controllers: visible" : "Controllers: hidden");
@@ -408,6 +409,30 @@ public class MenuController : MonoBehaviour
     {
         if (label != null)
             label.text = $"{name}: {(on ? "ON" : "OFF")}";
+    }
+
+    // Finds the Left Hand and Right Hand Renderer components under the XR Origin
+    // and caches them in _controllerRenderers. Safe to call multiple times;
+    // searches all active XROrigins so it works for any active vehicle.
+    private void CacheControllerRenderers()
+    {
+        // Search all active XR Origins so the correct vehicle is found regardless
+        // of scene order (handles both EgoCar and EgoBike being in the same scene).
+        var origins = FindObjectsByType<XROrigin>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+        var renderers = new List<Renderer>();
+        foreach (var origin in origins)
+        {
+            Transform offset = origin.CameraFloorOffsetObject != null
+                ? origin.CameraFloorOffsetObject.transform
+                : origin.transform;
+            Transform leftHand = offset.Find("Left Hand");
+            Transform rightHand = offset.Find("Right Hand");
+            if (leftHand != null)
+                renderers.AddRange(leftHand.GetComponentsInChildren<Renderer>(true));
+            if (rightHand != null)
+                renderers.AddRange(rightHand.GetComponentsInChildren<Renderer>(true));
+        }
+        _controllerRenderers = renderers.ToArray();
     }
 
     private IEnumerator FeedbackRoutine(string message)
