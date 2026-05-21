@@ -16,6 +16,7 @@ public class Speedometer : MonoBehaviour
     private float timeSinceLastUpdate = 0f;
     private float m_Speed = 0f;
     private int _lastDisplayedSpeed = -1;
+    private bool _wasInSpecialMode = false; // Tracks when leaving reverse/signal mode to force a redraw
 
     [Tooltip("Seconds per flash half-cycle for the turn signal arrow. Lower = faster. Match to your blinker sound interval.")]
     public float signalFlashInterval = 0.5f;
@@ -76,9 +77,18 @@ public class Speedometer : MonoBehaviour
                         m_text.text = "R";
                     else
                         m_text.text = arrow.Trim();
+
+                    _wasInSpecialMode = true;
                 }
                 else
                 {
+                    // Force a redraw on the first update after leaving reverse or signal mode
+                    if (_wasInSpecialMode)
+                    {
+                        _lastDisplayedSpeed = -1;
+                        _wasInSpecialMode = false;
+                    }
+
                     // Only allocate a new string when the displayed value actually changes
                     int speedInt = (int)m_Speed;
                     if (speedInt != _lastDisplayedSpeed)
