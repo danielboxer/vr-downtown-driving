@@ -6,25 +6,31 @@ using UnityEngine.XR;
 using UnityEngine.XR.Interaction.Toolkit.Inputs.Simulation;
 
 /// <summary>
-/// Reads the vector between the left and right XR controllers and maps its
-/// continuous rotation around a vehicle-relative axis to a -1…+1 steering
-
-/// value. Attach to each ego vehicle alongside the UserControl script.
+/// Maps XR controller steering to a -1…+1 steering value. By default it reads
+/// the position vector between the left and right controllers (used by car mode).
+/// Rotation-only mode reads controller rotations instead, which avoids relying on
+/// controller position tracking (used by bike mode).
+/// Attach to each ego vehicle alongside the UserControl script.
 /// CarUserControl / BikeUserControl will use <see cref="SteerValue"/> when
 /// this component is present, enabled, and both controllers provide data.
 /// </summary>
 public class TiltSteeringProvider : MonoBehaviour
 {
+    public enum ControllerTrackingMode { PositionVector, RotationOnly }
     public enum SteerAxis { Roll, Yaw, Pitch }
 
+    [Header("Controller Tracking")]
+    [Tooltip("Position Vector uses the line between controllers. Rotation Only uses controller rotations and ignores controller positions.")]
+    public ControllerTrackingMode controllerTrackingMode = ControllerTrackingMode.PositionVector;
+
     [Header("Controller Wheel")]
-    [Tooltip("Optional tracked left controller transform. If assigned with Right Controller Transform, world-space transform positions are used instead of raw XR devicePosition values.")]
+    [Tooltip("Optional tracked left controller transform. In Position Vector mode this uses world-space positions; in Rotation Only mode this uses world-space rotations.")]
     public Transform leftControllerTransform;
 
-    [Tooltip("Optional tracked right controller transform. If assigned with Left Controller Transform, world-space transform positions are used instead of raw XR devicePosition values.")]
+    [Tooltip("Optional tracked right controller transform. In Position Vector mode this uses world-space positions; in Rotation Only mode this uses world-space rotations.")]
     public Transform rightControllerTransform;
 
-    [Tooltip("Optional transform that converts raw XR devicePosition values from tracking space to world space when controller transforms are not assigned.")]
+    [Tooltip("Optional transform that converts raw XR devicePosition/deviceRotation values from tracking space to world space when controller transforms are not assigned.")]
     public Transform devicePositionSpace;
 
     [Tooltip("Minimum distance between controllers before the controller vector is considered valid.")]
@@ -65,7 +71,7 @@ public class TiltSteeringProvider : MonoBehaviour
     public bool requireHeadset = true;
 
     [Header("Calibration")]
-    [Tooltip("Auto-calibrate center the first time a valid two-controller vector arrives.")]
+    [Tooltip("Auto-calibrate center the first time valid controller steering input arrives.")]
     public bool calibrateOnEnable = true;
 
     [Header("Controller Vector Debug")]
@@ -85,7 +91,7 @@ public class TiltSteeringProvider : MonoBehaviour
     /// <summary>Current steering value from -1 (full left) to +1 (full right).</summary>
     public float SteerValue { get; private set; }
 
-    /// <summary>True when both XR controllers are detected and the controller vector is usable.</summary>
+    /// <summary>True when both XR controllers are detected and the configured steering input is usable.</summary>
     public bool HasController { get; private set; }
 
     /// <summary>Clamped physical controller/cradle angle in degrees relative to the active center, before invertSteering is applied.</summary>
@@ -110,6 +116,8 @@ public class TiltSteeringProvider : MonoBehaviour
     private float _lastWrappedAngle;
     private bool _hasLastWrappedAngle;
     private bool _calibrated;
+    private Quaternion _leftCenterRotation = Quaternion.identity;
+    private Quaternion _rightCenterRotation = Quaternion.identity;
     private LineRenderer _runtimeProjectedLineRenderer;
 
     private void Awake()
@@ -146,14 +154,9 @@ public class TiltSteeringProvider : MonoBehaviour
         // The simulator presence doesn't change at runtime, so one check suffices.
         _simulatorActive = FindFirstObjectByType<XRInteractionSimulator>() != null;
         _calibrated = false;
-        _hasLastWrappedAngle = false;
         _currentUnwrappedAngle = 0f;
         _centerAngle = 0f;
-        HasController = false;
-        SteerValue = 0f;
-        ControllerWheelAngle = 0f;
-        SteeringWheelAngle = 0f;
-        SetLineVisible(false);
+        ClearSteeringState(true);
         _keyboardSteerAction?.Enable();
     }
 
@@ -161,11 +164,7 @@ public class TiltSteeringProvider : MonoBehaviour
     {
         InputDevices.deviceConnected -= OnXRDeviceChanged;
         InputDevices.deviceDisconnected -= OnXRDeviceChanged;
-        HasController = false;
-        SteerValue = 0f;
-        ControllerWheelAngle = 0f;
-        SteeringWheelAngle = 0f;
-        SetLineVisible(false);
+        ClearSteeringState(false);
         _keyboardSteerAction?.Disable();
     }
 
@@ -192,23 +191,22 @@ public class TiltSteeringProvider : MonoBehaviour
         // keyboard steering.
         if (requireHeadset && (_simulatorActive || !_headsetConnected))
         {
-            HasController = false;
-            SteerValue = 0f;
-            ControllerWheelAngle = 0f;
-            SteeringWheelAngle = 0f;
-            SetLineVisible(false);
+            ClearSteeringState(false);
             return;
         }
 
+        if (controllerTrackingMode == ControllerTrackingMode.RotationOnly)
+            UpdateFromControllerRotations();
+        else
+            UpdateFromControllerPositions();
+    }
+
+    private void UpdateFromControllerPositions()
+    {
         if (!TryReadControllerPositions(out Vector3 leftPosition, out Vector3 rightPosition) ||
             !TryCalculateWrappedAngle(leftPosition, rightPosition, out float wrappedAngle))
         {
-            HasController = false;
-            SteerValue = 0f;
-            ControllerWheelAngle = 0f;
-            SteeringWheelAngle = 0f;
-            _hasLastWrappedAngle = false;
-            SetLineVisible(false);
+            ClearSteeringState(true);
             // Keyboard fallback: no controller vector, but keyboard may still steer.
             TryApplyKeyboardSteering();
             return;
@@ -242,36 +240,69 @@ public class TiltSteeringProvider : MonoBehaviour
 
         // Auto-calibrate on first valid two-controller vector after enable.
         if (!_calibrated && calibrateOnEnable)
-        {
             SetCenter(currentAngle);
-        }
 
-        currentAngle = ClampTrackedAnglePastSteeringLock(currentAngle);
-        _currentUnwrappedAngle = currentAngle;
-
-        float lockAngle = Mathf.Max(1f, maxSteerAngle);
-        float rawControllerWheelAngle = currentAngle - _centerAngle;
-        float rawSteeringWheelAngle = invertSteering ? -rawControllerWheelAngle : rawControllerWheelAngle;
-
-        // These are the angles used by vehicle input and wheel/handlebar visuals.
-        // They stop at the software steering lock even if the physical cradle keeps rotating.
-        ControllerWheelAngle = Mathf.Clamp(rawControllerWheelAngle, -lockAngle, lockAngle);
-        SteeringWheelAngle = Mathf.Clamp(rawSteeringWheelAngle, -lockAngle, lockAngle);
-
-        SteerValue = SteeringWheelAngle / lockAngle;
+        ApplyTrackedSteeringAngle(currentAngle);
     }
 
-    /// <summary>Set the current two-controller vector as the steering center.</summary>
-    public void Calibrate()
+    private void UpdateFromControllerRotations()
     {
+        if (!TryReadControllerRotations(out Quaternion leftRotation, out Quaternion rightRotation))
+        {
+            ClearSteeringState(true);
+            // Keyboard fallback: no controller rotations, but keyboard may still steer.
+            TryApplyKeyboardSteering();
+            return;
+        }
+
+        HasController = true;
+        SetLineVisible(false);
+
+        // Keyboard override: keep the same behavior as position-based steering.
+        if (TryApplyKeyboardSteering())
+        {
+            if (!_calibrated && calibrateOnEnable)
+                SetRotationCenter(leftRotation, rightRotation);
+            return;
+        }
+
+        // Rotation-only steering has no meaningful absolute neutral angle; the
+        // first valid rotation pair seeds the neutral pose. Manual calibration
+        // can recenter this at any time.
+        if (!_calibrated)
+            SetRotationCenter(leftRotation, rightRotation);
+
+        if (!TryCalculateWrappedAngle(leftRotation, rightRotation, out float wrappedAngle))
+        {
+            ClearSteeringState(true);
+            TryApplyKeyboardSteering();
+            return;
+        }
+
+        ApplyTrackedSteeringAngle(UpdateUnwrappedAngle(wrappedAngle));
+    }
+
+    /// <summary>Set the current controller steering input as the steering center.</summary>
+    public bool Calibrate()
+    {
+        if (controllerTrackingMode == ControllerTrackingMode.RotationOnly)
+        {
+            if (!TryReadControllerRotations(out Quaternion leftRotation, out Quaternion rightRotation))
+                return false;
+
+            SetRotationCenter(leftRotation, rightRotation);
+            return true;
+        }
+
         if (!TryReadControllerPositions(out Vector3 leftPosition, out Vector3 rightPosition) ||
             !TryCalculateWrappedAngle(leftPosition, rightPosition, out float wrappedAngle))
         {
-            return;
+            return false;
         }
 
         float currentAngle = UpdateUnwrappedAngle(wrappedAngle);
         SetCenter(currentAngle);
+        return true;
     }
 
     /// <summary>
@@ -293,9 +324,51 @@ public class TiltSteeringProvider : MonoBehaviour
         return true;
     }
 
+    private void ApplyTrackedSteeringAngle(float currentAngle)
+    {
+        currentAngle = ClampTrackedAnglePastSteeringLock(currentAngle);
+        _currentUnwrappedAngle = currentAngle;
+
+        float lockAngle = Mathf.Max(1f, maxSteerAngle);
+        float rawControllerWheelAngle = currentAngle - _centerAngle;
+        float rawSteeringWheelAngle = invertSteering ? -rawControllerWheelAngle : rawControllerWheelAngle;
+
+        // These are the angles used by vehicle input and wheel/handlebar visuals.
+        // They stop at the software steering lock even if the physical cradle keeps rotating.
+        ControllerWheelAngle = Mathf.Clamp(rawControllerWheelAngle, -lockAngle, lockAngle);
+        SteeringWheelAngle = Mathf.Clamp(rawSteeringWheelAngle, -lockAngle, lockAngle);
+
+        SteerValue = SteeringWheelAngle / lockAngle;
+    }
+
+    private void ClearSteeringState(bool resetAngleTracking)
+    {
+        HasController = false;
+        SteerValue = 0f;
+        ControllerWheelAngle = 0f;
+        SteeringWheelAngle = 0f;
+        if (resetAngleTracking)
+            _hasLastWrappedAngle = false;
+        SetLineVisible(false);
+    }
+
     private void SetCenter(float angle)
     {
         _centerAngle = angle;
+        _calibrated = true;
+    }
+
+    private void SetRotationCenter(Quaternion leftRotation, Quaternion rightRotation)
+    {
+        _leftCenterRotation = NormalizeQuaternion(leftRotation);
+        _rightCenterRotation = NormalizeQuaternion(rightRotation);
+        _centerAngle = 0f;
+        _currentUnwrappedAngle = 0f;
+        _lastWrappedAngle = 0f;
+        _hasLastWrappedAngle = true;
+        ControllerWheelAngle = 0f;
+        SteeringWheelAngle = 0f;
+        SteerValue = 0f;
         _calibrated = true;
     }
 
@@ -340,6 +413,56 @@ public class TiltSteeringProvider : MonoBehaviour
         return HasUsableControllerVector(leftPosition, rightPosition);
     }
 
+    private bool TryReadControllerRotations(out Quaternion leftRotation, out Quaternion rightRotation)
+    {
+        leftRotation = Quaternion.identity;
+        rightRotation = Quaternion.identity;
+
+        if (leftControllerTransform != null && rightControllerTransform != null)
+        {
+            leftRotation = leftControllerTransform.rotation;
+            rightRotation = rightControllerTransform.rotation;
+        }
+        else
+        {
+            XRController leftController = XRController.leftHand;
+            XRController rightController = XRController.rightHand;
+
+            if (leftController == null || rightController == null ||
+                leftController.deviceRotation == null || rightController.deviceRotation == null)
+            {
+                return false;
+            }
+
+            leftRotation = leftController.deviceRotation.ReadValue();
+            rightRotation = rightController.deviceRotation.ReadValue();
+
+            if (devicePositionSpace != null)
+            {
+                leftRotation = devicePositionSpace.rotation * leftRotation;
+                rightRotation = devicePositionSpace.rotation * rightRotation;
+            }
+        }
+
+        if (!IsUsableRotation(leftRotation) || !IsUsableRotation(rightRotation))
+        {
+            return false;
+        }
+
+        ConvertControllerRotationsToSteeringReferenceSpace(ref leftRotation, ref rightRotation);
+        return IsUsableRotation(leftRotation) && IsUsableRotation(rightRotation);
+    }
+
+    private void ConvertControllerRotationsToSteeringReferenceSpace(ref Quaternion leftRotation, ref Quaternion rightRotation)
+    {
+        // Compare rotations in the vehicle/steering-reference frame so simply
+        // turning the bike or car in world space does not look like steering.
+        Transform reference = steeringReference != null ? steeringReference : transform;
+        Quaternion inverseReferenceRotation = Quaternion.Inverse(reference.rotation);
+        leftRotation = inverseReferenceRotation * leftRotation;
+        rightRotation = inverseReferenceRotation * rightRotation;
+    }
+
     private bool HasUsableControllerVector(Vector3 leftPosition, Vector3 rightPosition)
     {
         if (!IsFinite(leftPosition) || !IsFinite(rightPosition))
@@ -380,6 +503,27 @@ public class TiltSteeringProvider : MonoBehaviour
         return true;
     }
 
+    private bool TryCalculateWrappedAngle(Quaternion leftRotation, Quaternion rightRotation, out float wrappedAngle)
+    {
+        wrappedAngle = 0f;
+
+        Vector3 axis = GetLocalSteeringAxis();
+        if (axis.sqrMagnitude < Mathf.Epsilon)
+        {
+            return false;
+        }
+        axis.Normalize();
+
+        if (!TryCalculateSignedTwistAngle(_leftCenterRotation, leftRotation, axis, out float leftAngle) ||
+            !TryCalculateSignedTwistAngle(_rightCenterRotation, rightRotation, axis, out float rightAngle))
+        {
+            return false;
+        }
+
+        wrappedAngle = AverageWrappedAngles(leftAngle, rightAngle);
+        return true;
+    }
+
     private float UpdateUnwrappedAngle(float wrappedAngle)
     {
         if (!_hasLastWrappedAngle)
@@ -408,6 +552,17 @@ public class TiltSteeringProvider : MonoBehaviour
             SteerAxis.Yaw => reference.up,
             SteerAxis.Pitch => reference.right,
             _ => reference.forward
+        };
+    }
+
+    private Vector3 GetLocalSteeringAxis()
+    {
+        return steerAxis switch
+        {
+            SteerAxis.Roll => Vector3.forward,
+            SteerAxis.Yaw => Vector3.up,
+            SteerAxis.Pitch => Vector3.right,
+            _ => Vector3.forward
         };
     }
 
@@ -564,10 +719,103 @@ public class TiltSteeringProvider : MonoBehaviour
         }
     }
 
+    private static bool TryCalculateSignedTwistAngle(Quaternion centerRotation, Quaternion currentRotation, Vector3 axis, out float signedAngle)
+    {
+        signedAngle = 0f;
+
+        if (!IsUsableRotation(centerRotation) || !IsUsableRotation(currentRotation) || axis.sqrMagnitude < Mathf.Epsilon)
+        {
+            return false;
+        }
+
+        axis.Normalize();
+        Quaternion delta = NormalizeQuaternion(currentRotation) * Quaternion.Inverse(NormalizeQuaternion(centerRotation));
+
+        Vector3 deltaVector = new Vector3(delta.x, delta.y, delta.z);
+        Vector3 twistVector = Vector3.Project(deltaVector, axis);
+        Quaternion twist = new Quaternion(twistVector.x, twistVector.y, twistVector.z, delta.w);
+
+        if (!IsUsableRotation(twist))
+        {
+            signedAngle = 0f;
+            return true;
+        }
+
+        twist = NormalizeQuaternion(twist);
+        twist.ToAngleAxis(out float angle, out Vector3 twistAxis);
+        if (!IsFinite(twistAxis))
+        {
+            return false;
+        }
+
+        if (angle > 180f)
+        {
+            angle -= 360f;
+        }
+
+        if (Vector3.Dot(twistAxis, axis) < 0f)
+        {
+            angle = -angle;
+        }
+
+        signedAngle = Mathf.DeltaAngle(0f, angle);
+        return true;
+    }
+
+    private static float AverageWrappedAngles(float firstAngle, float secondAngle)
+    {
+        float firstRadians = firstAngle * Mathf.Deg2Rad;
+        float secondRadians = secondAngle * Mathf.Deg2Rad;
+        float x = Mathf.Cos(firstRadians) + Mathf.Cos(secondRadians);
+        float y = Mathf.Sin(firstRadians) + Mathf.Sin(secondRadians);
+
+        if (x * x + y * y < Mathf.Epsilon)
+        {
+            return firstAngle;
+        }
+
+        return Mathf.Atan2(y, x) * Mathf.Rad2Deg;
+    }
+
+    private static Quaternion NormalizeQuaternion(Quaternion value)
+    {
+        float magnitude = Mathf.Sqrt(value.x * value.x + value.y * value.y + value.z * value.z + value.w * value.w);
+        if (magnitude <= Mathf.Epsilon)
+        {
+            return Quaternion.identity;
+        }
+
+        float inverseMagnitude = 1f / magnitude;
+        return new Quaternion(
+            value.x * inverseMagnitude,
+            value.y * inverseMagnitude,
+            value.z * inverseMagnitude,
+            value.w * inverseMagnitude);
+    }
+
+    private static bool IsUsableRotation(Quaternion value)
+    {
+        if (!IsFinite(value))
+        {
+            return false;
+        }
+
+        float sqrMagnitude = value.x * value.x + value.y * value.y + value.z * value.z + value.w * value.w;
+        return sqrMagnitude > Mathf.Epsilon;
+    }
+
     private static bool IsFinite(Vector3 value)
     {
         return float.IsFinite(value.x) &&
                float.IsFinite(value.y) &&
                float.IsFinite(value.z);
+    }
+
+    private static bool IsFinite(Quaternion value)
+    {
+        return float.IsFinite(value.x) &&
+               float.IsFinite(value.y) &&
+               float.IsFinite(value.z) &&
+               float.IsFinite(value.w);
     }
 }
