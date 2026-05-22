@@ -905,6 +905,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ec843d34e21ba0147aa498d33db6bbc4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TiltSteeringProvider
+  controllerTrackingMode: 1
   leftControllerTransform: {fileID: 4305006667695379524}
   rightControllerTransform: {fileID: 4422305147435418156}
   devicePositionSpace: {fileID: 3487285337310022582}
@@ -916,6 +917,7 @@ MonoBehaviour:
   invertSteering: 0
   inputActions: {fileID: 0}
   actionMapName: Driving
+  requireHeadset: 1
   calibrateOnEnable: 0
   drawProjectedControllerLine: 0
   projectedControllerLineRenderer: {fileID: 0}
@@ -977,7 +979,7 @@ Transform:
   m_GameObject: {fileID: 4181878413488772468}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 1.117, z: -0.844}
+  m_LocalPosition: {x: 0, y: 1.253, z: -0.844}
   m_LocalScale: {x: 0.6666667, y: 0.6666667, z: 0.6666667}
   m_ConstrainProportionsScale: 0
   m_Children:

@@ -85,7 +85,6 @@ public class MenuController : MonoBehaviour
     private void Start()
     {
         _scenarioManager = FindFirstObjectByType<ScenarioManager>();
-        _tiltSteering = FindFirstObjectByType<TiltSteeringProvider>();
         _fpsDisplay = FindFirstObjectByType<Fps>();
         _scenarioLabel = FindFirstObjectByType<ScenarioLabel>();
 
@@ -230,15 +229,38 @@ public class MenuController : MonoBehaviour
     /// <summary>Triggers calibrate-steering (same as the Calibrate keybind).</summary>
     public void OnCalibrateSteering()
     {
-        if (_tiltSteering != null)
+        _tiltSteering = ResolveActiveTiltSteering();
+        if (_tiltSteering == null)
         {
-            _tiltSteering.Calibrate();
+            Debug.LogWarning("[MenuController] No active TiltSteeringProvider found in scene.");
+            ShowFeedback("No active steering controller");
+            return;
+        }
+
+        if (_tiltSteering.Calibrate())
+        {
             ShowFeedback("Steering calibrated");
         }
         else
         {
-            Debug.LogWarning("[MenuController] No TiltSteeringProvider found in scene.");
+            Debug.LogWarning($"[MenuController] Steering calibration failed on {_tiltSteering.gameObject.name}: controller input not available.");
+            ShowFeedback("Steering calibration failed");
         }
+    }
+
+    private TiltSteeringProvider ResolveActiveTiltSteering()
+    {
+        if (_tiltSteering != null && _tiltSteering.isActiveAndEnabled)
+            return _tiltSteering;
+
+        var providers = FindObjectsByType<TiltSteeringProvider>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+        foreach (var provider in providers)
+        {
+            if (provider.isActiveAndEnabled)
+                return provider;
+        }
+
+        return null;
     }
 
     /// <summary>Restarts the scenario and sends the SUMO restart command</summary>
@@ -533,4 +555,3 @@ public class MenuController : MonoBehaviour
         return WaitForSingleObject(_scenarioManagerHandle, 0) == WAIT_TIMEOUT;
     }
 }
-
