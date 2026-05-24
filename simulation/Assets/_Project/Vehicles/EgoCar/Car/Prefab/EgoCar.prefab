@@ -1302,19 +1302,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ec843d34e21ba0147aa498d33db6bbc4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TiltSteeringProvider
+  controllerTrackingMode: 0
   leftControllerTransform: {fileID: 2847646671621489584}
   rightControllerTransform: {fileID: 581594654919732073}
   devicePositionSpace: {fileID: 866563749239405964}
   minControllerSeparation: 0.1
   steeringReference: {fileID: 5240819467718178132}
   steerAxis: 0
-  maxSteerAngle: 450
+  maxSteerAngle: 300
   savedAnglePastSteeringLock: 360
   invertSteering: 1
   inputActions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   actionMapName: Driving
   requireHeadset: 1
   calibrateOnEnable: 0
+  rotationSmoothingTime: 0.05
+  steeringDeadZone: 0
   drawProjectedControllerLine: 0
   projectedControllerLineRenderer: {fileID: 0}
   drawDebugLine: 0
