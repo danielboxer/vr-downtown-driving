@@ -65,16 +65,18 @@ public class MenuController : MonoBehaviour
     private Fps _fpsDisplay;
     private ScenarioLabel _scenarioLabel;
     private Process _scenarioManagerProcess;
+    private Coroutine _controllerVisibilitySyncCoroutine;
 
     // whether the HUD elements (FPS counter + toggle button) are shown
     private bool _displayVisible = true;
     // whether the menu panel is currently open
     private bool _menuOpen = false;
-    // whether the physical XR controller visuals are shown; starts true to match
-    // the actual visible default when the XR Origin hasn't loaded yet
-    private bool _controllersVisible = true;
+    // whether the physical XR controller visuals are shown
+    private bool _controllersVisible = false;
     // cached renderers on the Left Hand and Right Hand XR controller visual prefabs
     private Renderer[] _controllerRenderers = System.Array.Empty<Renderer>();
+    private float _nextControllerVisibilitySyncTime;
+    private const float ControllerVisibilitySyncInterval = 0.25f;
 
     private void Awake()
     {
@@ -87,11 +89,13 @@ public class MenuController : MonoBehaviour
         _scenarioManager = FindFirstObjectByType<ScenarioManager>();
         _fpsDisplay = FindFirstObjectByType<Fps>();
         _scenarioLabel = FindFirstObjectByType<ScenarioLabel>();
+        if (_scenarioManager != null)
+            _scenarioManager.OnScenarioChanged += OnScenarioChanged;
 
         // Cache renderers on the XR controller visual prefabs so they can be
         // toggled without disabling the TrackedPoseDrivers.
         CacheControllerRenderers();
-        // Controllers start visible (_controllersVisible = true matches their default state).
+        SetControllerRenderersVisible(_controllersVisible);
 
         // Auto-enable the interaction simulator when no real XR device is running.
         // Use a coroutine so we can wait for the XR display subsystem to finish
@@ -127,6 +131,26 @@ public class MenuController : MonoBehaviour
             _toggleMenuAction.performed -= OnToggleMenuPerformed;
             _toggleMenuAction.Disable();
         }
+    }
+
+    private void OnDestroy()
+    {
+        if (_scenarioManager != null)
+            _scenarioManager.OnScenarioChanged -= OnScenarioChanged;
+    }
+
+    private void LateUpdate()
+    {
+        if (_controllersVisible)
+            return;
+
+        if (Time.unscaledTime >= _nextControllerVisibilitySyncTime)
+        {
+            _nextControllerVisibilitySyncTime = Time.unscaledTime + ControllerVisibilitySyncInterval;
+            CacheControllerRenderers();
+        }
+
+        SetControllerRenderersVisible(false);
     }
 
     private void OnToggleMenuPerformed(InputAction.CallbackContext ctx)
@@ -330,10 +354,25 @@ public class MenuController : MonoBehaviour
             if (r.enabled) { anyVisible = true; break; }
         }
         _controllersVisible = !anyVisible;
-        foreach (var r in _controllerRenderers)
-            r.enabled = _controllersVisible;
+        SetControllerRenderersVisible(_controllersVisible);
         ShowFeedback(_controllersVisible ? "Controllers: visible" : "Controllers: hidden");
         SetToggleLabel(controllerButtonLabel, "Controllers", _controllersVisible);
+    }
+
+    private void OnScenarioChanged(ScenarioId scenario)
+    {
+        if (_controllerVisibilitySyncCoroutine != null)
+            StopCoroutine(_controllerVisibilitySyncCoroutine);
+        _controllerVisibilitySyncCoroutine = StartCoroutine(SyncControllerVisibilityAfterScenarioChange());
+    }
+
+    private IEnumerator SyncControllerVisibilityAfterScenarioChange()
+    {
+        yield return null;
+
+        CacheControllerRenderers();
+        SetControllerRenderersVisible(_controllersVisible);
+        _controllerVisibilitySyncCoroutine = null;
     }
 
     /// <summary>Hides or shows the XR Interaction Simulator HUD overlay without disabling the simulator input.</summary>
@@ -455,6 +494,12 @@ public class MenuController : MonoBehaviour
                 renderers.AddRange(rightHand.GetComponentsInChildren<Renderer>(true));
         }
         _controllerRenderers = renderers.ToArray();
+    }
+
+    private void SetControllerRenderersVisible(bool visible)
+    {
+        foreach (var r in _controllerRenderers)
+            r.enabled = visible;
     }
 
     private IEnumerator FeedbackRoutine(string message)
