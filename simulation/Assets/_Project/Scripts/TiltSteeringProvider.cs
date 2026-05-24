@@ -74,6 +74,15 @@ public class TiltSteeringProvider : MonoBehaviour
     [Tooltip("Auto-calibrate center the first time valid controller steering input arrives.")]
     public bool calibrateOnEnable = true;
 
+    [Header("Rotation Steering Refinement")]
+    [Tooltip("Time constant (seconds) for low-pass filtering the rotation-only steer output. 0 = off. ~0.05s is a light filter that removes Quest 3 tracking jitter; ~0.15s is heavy. Frame-rate independent.")]
+    [Min(0f)]
+    public float rotationSmoothingTime = 0.05f;
+
+    [Tooltip("Fraction of the full steer range around center treated as zero. Removes small bias from calibration error. The outer range is rescaled so ±1 is still reachable. 0 = off.")]
+    [Range(0f, 0.25f)]
+    public float steeringDeadZone = 0f;
+
     [Header("Controller Vector Debug")]
     [Tooltip("Draw the controller vector projected onto the active steering plane and centered between the controllers. This is the vector actually used for steering.")]
     public bool drawProjectedControllerLine = true;
@@ -116,6 +125,7 @@ public class TiltSteeringProvider : MonoBehaviour
     private float _lastWrappedAngle;
     private bool _hasLastWrappedAngle;
     private bool _calibrated;
+    private float _smoothedSteerValue;
     private Quaternion _leftCenterRotation = Quaternion.identity;
     private Quaternion _rightCenterRotation = Quaternion.identity;
     private LineRenderer _runtimeProjectedLineRenderer;
@@ -280,6 +290,7 @@ public class TiltSteeringProvider : MonoBehaviour
         }
 
         ApplyTrackedSteeringAngle(UpdateUnwrappedAngle(wrappedAngle));
+        ApplySmoothingAndDeadZone();
     }
 
     /// <summary>Set the current controller steering input as the steering center.</summary>
@@ -341,10 +352,51 @@ public class TiltSteeringProvider : MonoBehaviour
         SteerValue = SteeringWheelAngle / lockAngle;
     }
 
+    /// <summary>
+    /// Applies low-pass smoothing and dead zone to the current <see cref="SteerValue"/>.
+    /// Only called in rotation-only mode after angle tracking is applied.
+    /// </summary>
+    private void ApplySmoothingAndDeadZone()
+    {
+        // Frame-rate independent EMA: alpha approaches 1 as deltaTime grows.
+        if (rotationSmoothingTime > 0f && Time.deltaTime > 0f)
+        {
+            float alpha = 1f - Mathf.Exp(-Time.deltaTime / rotationSmoothingTime);
+            _smoothedSteerValue += (SteerValue - _smoothedSteerValue) * alpha;
+            SteerValue = _smoothedSteerValue;
+        }
+        else
+        {
+            _smoothedSteerValue = SteerValue;
+        }
+
+        if (steeringDeadZone > 0f)
+            SteerValue = ApplyDeadZone(SteerValue, steeringDeadZone);
+
+        // Keep angle properties in sync with the post-processed steer value so
+        // handlebar/wheel visuals reflect the smoothed output.
+        float lockAngle = Mathf.Max(1f, maxSteerAngle);
+        SteeringWheelAngle = SteerValue * lockAngle;
+        ControllerWheelAngle = invertSteering ? -SteeringWheelAngle : SteeringWheelAngle;
+    }
+
+    /// <summary>
+    /// Rescales <paramref name="value"/> so the band [-deadZone, +deadZone] maps to zero
+    /// and the outer range is stretched to keep ±1 reachable.
+    /// </summary>
+    private static float ApplyDeadZone(float value, float deadZone)
+    {
+        float absValue = Mathf.Abs(value);
+        if (absValue <= deadZone)
+            return 0f;
+        return Mathf.Sign(value) * (absValue - deadZone) / (1f - deadZone);
+    }
+
     private void ClearSteeringState(bool resetAngleTracking)
     {
         HasController = false;
         SteerValue = 0f;
+        _smoothedSteerValue = 0f;
         ControllerWheelAngle = 0f;
         SteeringWheelAngle = 0f;
         if (resetAngleTracking)
@@ -369,6 +421,7 @@ public class TiltSteeringProvider : MonoBehaviour
         ControllerWheelAngle = 0f;
         SteeringWheelAngle = 0f;
         SteerValue = 0f;
+        _smoothedSteerValue = 0f;
         _calibrated = true;
     }
 
