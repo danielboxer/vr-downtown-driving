@@ -1,11 +1,13 @@
-﻿using AsyncIO;
+﻿using System.Collections.Concurrent;
+using UnityEngine;
+#if !UNITY_WEBGL
+using AsyncIO;
 using NetMQ;
 using NetMQ.Sockets;
-using System.Collections.Concurrent;
 using System.Threading;
-using UnityEngine;
 using System;
 using Stopwatch = System.Diagnostics.Stopwatch;
+#endif
 
 [System.Serializable]
 public class CommonMessage
@@ -22,7 +24,9 @@ public static class RecordingManager
 
 public class ExchangeData : MonoBehaviour
 {
+#if !UNITY_WEBGL
     private SimulationController _SimulationController;
+#endif
 
     // Queue of JSON command strings to send to Python on the next background-thread iteration.
     // Enqueue via SendCommand(); the background thread drains this each loop.
@@ -34,6 +38,7 @@ public class ExchangeData : MonoBehaviour
         _commandQueue.Enqueue(commandJson);
     }
 
+#if !UNITY_WEBGL
     // Thread for background communication
     private Thread _communicationThread;
     private bool _isRunning = false;
@@ -43,10 +48,12 @@ public class ExchangeData : MonoBehaviour
     private double _nextVehicleSendTime;
     private double _sendInterval;
     private static readonly double StopwatchToSeconds = 1.0 / Stopwatch.Frequency;
+#endif
 
 
     public void Start()
     {
+#if !UNITY_WEBGL
         _SimulationController = GetComponent<SimulationController>();
 
         // Pre-compute the send interval (unityStepLength doesn't change at runtime)
@@ -57,8 +64,10 @@ public class ExchangeData : MonoBehaviour
         _isRunning = true;
         _communicationThread = new Thread(Run);
         _communicationThread.Start();
+#endif
     }
 
+#if !UNITY_WEBGL
     void OnDestroy()
     {
         // Stop the communication thread; NetMQConfig.Cleanup() runs in the thread's finally block
@@ -142,4 +151,5 @@ public class ExchangeData : MonoBehaviour
             Debug.Log("ExchangeData thread terminated gracefully.");
         }
     }
+#endif
 }

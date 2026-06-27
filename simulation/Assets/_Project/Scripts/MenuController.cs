@@ -1,9 +1,11 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+#if !UNITY_WEBGL
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
+#endif
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -65,7 +67,9 @@ public class MenuController : MonoBehaviour
     private TiltSteeringProvider _tiltSteering;
     private Fps _fpsDisplay;
     private ScenarioLabel _scenarioLabel;
+#if !UNITY_WEBGL
     private Process _scenarioManagerProcess;
+#endif
     private Coroutine _controllerVisibilitySyncCoroutine;
 
     // whether the HUD elements (FPS counter + toggle button) are shown
@@ -200,6 +204,9 @@ public class MenuController : MonoBehaviour
     /// <summary>Launches the ScenarioManager PyInstaller binary in a separate process.</summary>
     public void OnOpenScenarioManager()
     {
+#if UNITY_WEBGL
+        ShowFeedback("Scenario Manager unavailable in web build");
+#else
         // Absolute Inspector override takes priority.
         // In the Editor, default to simulation/build/ScenarioManager.exe.
         // In a standalone build, default to ScenarioManager.exe beside the game .exe.
@@ -255,6 +262,7 @@ public class MenuController : MonoBehaviour
             Debug.LogError($"[MenuController] Failed to launch Scenario Manager: {ex.Message}");
             ShowFeedback($"Launch failed: {ex.Message}");
         }
+#endif
     }
 
     /// <summary>Triggers calibrate-steering (same as the Calibrate keybind).</summary>
@@ -562,6 +570,7 @@ public class MenuController : MonoBehaviour
 #endif
     }
 
+#if !UNITY_WEBGL
     // ── Win32 P/Invoke — bypasses Mono's broken Process.Start on Windows builds ──
 
     [StructLayout(LayoutKind.Sequential)]
@@ -623,4 +632,5 @@ public class MenuController : MonoBehaviour
         const uint WAIT_TIMEOUT = 0x00000102;
         return WaitForSingleObject(_scenarioManagerHandle, 0) == WAIT_TIMEOUT;
     }
+#endif
 }
