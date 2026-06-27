@@ -621,6 +621,9 @@ public class DrivingEvaluator : MonoBehaviour
 
     private void ExportCsv()
     {
+#if UNITY_WEBGL
+        Debug.Log("[DrivingEvaluator] CSV export is unavailable in WebGL builds.");
+#else
         string resultsDir = LocateOrCreateResultsFolder();
         string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
         string fileName = $"evaluation_{_activeScenario}_{timestamp}.csv";
@@ -657,8 +660,10 @@ public class DrivingEvaluator : MonoBehaviour
 
         File.WriteAllText(filePath, sb.ToString(), Encoding.UTF8);
         Debug.Log($"[DrivingEvaluator] CSV exported to: {filePath}");
+#endif
     }
 
+#if !UNITY_WEBGL
     /// <summary>Finds (or creates) Results folder, matching the project convention.</summary>
     private static string LocateOrCreateResultsFolder()
     {
@@ -671,4 +676,5 @@ public class DrivingEvaluator : MonoBehaviour
         Directory.CreateDirectory(dir);
         return dir;
     }
+#endif
 }
