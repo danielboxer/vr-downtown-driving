@@ -7,6 +7,7 @@ using System.Text;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.UI;
 using UnityEngine.UI;
 using UnityEngine.XR;
 using Unity.XR.CoreUtils;
@@ -96,6 +97,12 @@ public class MenuController : MonoBehaviour
         // toggled without disabling the TrackedPoseDrivers.
         CacheControllerRenderers();
         SetControllerRenderersVisible(_controllersVisible);
+
+        // The menu is a screen-space canvas, so only the mouse can click it.
+        // Default to a mouse-owned pointer so clicks work with no headset
+        // (simulator/web); AutoConfigureSimulator upgrades to a unified pointer
+        // when a real headset is running so the operator's mouse still works.
+        SetMenuPointerForHeadset(false);
 
         // Auto-enable the interaction simulator when no real XR device is running.
         // Use a coroutine so we can wait for the XR display subsystem to finish
@@ -463,6 +470,23 @@ public class MenuController : MonoBehaviour
 
         // Update simulator button label now that auto-configure has settled.
         SetToggleLabel(simulatorButtonLabel, "XR Sim", xrInteractionSimulator.activeSelf);
+
+        // Simulator active means no real headset; flip the menu pointer mode to
+        // match so the mouse drives the menu in both cases.
+        SetMenuPointerForHeadset(!xrInteractionSimulator.activeSelf);
+    }
+
+    // A real headset feeds tracked-device input into the UI module. With a unified
+    // pointer that lets the operator's mouse share one pointer with the headset
+    // (needed when the headset is on). Without a headset, the simulator's tracked
+    // input would steal that single pointer, so the mouse needs its own.
+    private void SetMenuPointerForHeadset(bool headsetRunning)
+    {
+        var uiModule = FindFirstObjectByType<InputSystemUIInputModule>();
+        if (uiModule != null)
+            uiModule.pointerBehavior = headsetRunning
+                ? UIPointerBehavior.SingleUnifiedPointer
+                : UIPointerBehavior.SingleMouseOrPenButMultiTouchAndTrack;
     }
 
     // Sets a toggle button's label to "<name>: ON" or "<name>: OFF".
