@@ -1,0 +1,77 @@
+name: Web Release (itch.io)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - simulation/inno_setup_script.iss
+
+concurrency:
+  group: web-release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web:
+    name: Build WebGL and push to itch.io
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          lfs: true
+
+      - name: Get version from Inno Setup script
+        id: get_version
+        shell: bash
+        run: |
+          v=$(grep -oP '#define MyAppVersion "\K[^"]+' simulation/inno_setup_script.iss)
+          if [ -z "$v" ]; then echo "Could not find MyAppVersion"; exit 1; fi
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Unity Library folder
+        uses: actions/cache@v5
+        with:
+          path: simulation/Library
+          key: Library-WebGL-${{ hashFiles('simulation/Assets/**', 'simulation/Packages/**', 'simulation/ProjectSettings/**') }}
+          restore-keys: |
+            Library-WebGL-
+            Library-
+
+      - name: Build Unity project (WebGL)
+        uses: game-ci/unity-builder@v5.0.0
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          projectPath: simulation
+          targetPlatform: WebGL
+          buildProfile: 'Assets/Settings/Build Profiles/Web - Desktop - Release.asset'
+          buildsPath: simulation/build
+          buildName: web
+          versioning: Custom
+          version: ${{ steps.get_version.outputs.version }}
+          allowDirtyBuild: true
+
+      # Verify where index.html landed. butler must push the folder that
+      # contains index.html, Build/, and TemplateData/.
+      - name: Show build output
+        run: ls -R simulation/build/WebGL
+
+      - name: Install butler
+        run: |
+          curl -L -o butler.zip https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default
+          unzip butler.zip
+          chmod +x butler
+          ./butler -V
+
+      - name: Push to itch.io
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+        run: |
+          ./butler push simulation/build/WebGL/web j03e/downtown-driving:html \
+            --userversion "${{ steps.get_version.outputs.version }}"
