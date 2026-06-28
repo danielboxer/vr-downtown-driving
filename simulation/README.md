@@ -6,17 +6,6 @@ The simulation extends the Sumo2Unity project. See their documentation [here](ht
 | --------------------------------------------------------------- | --------------------------------------------------------------------- |
 | ![Car driving at Yonge and Dundas](../img/simulation_car_1.png) | ![Bike approaching right turn](../img/simulation_bike_right_turn.png) |
 
-## Cloning this repository
-
-> [!WARNING]
-> This repository uses **Git LFS** for large binary assets (textures, 3D models, audio, and `.unity` scene files). **Do not download the ZIP from GitHub**. LFS files are not included in ZIP downloads.
-
-Install [Git LFS](https://git-lfs.com) first, then clone normally:
-
-```powershell
-git clone https://github.com/danielboxer/vr-downtown-driving.git
-```
-
 ## Building the Unity project
 
 First install IL2CPP module
