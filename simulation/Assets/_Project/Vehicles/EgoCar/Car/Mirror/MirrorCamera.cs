@@ -38,6 +38,13 @@ public class MirrorMovement : MonoBehaviour
             _mirrorCamera.enabled = false;
         }
 
+#if UNITY_WEBGL && !UNITY_EDITOR
+        // Skip mirrors on the flat web build: three extra full-scene passes for no gain,
+        // since the parallax is VR-head driven. Stop the script so LateUpdate never renders.
+        enabled = false;
+        return;
+#endif
+
         CaptureInitialPose();
     }
 
