@@ -179,6 +179,7 @@ MonoBehaviour:
   playerOrigin: {fileID: 7461314806338748540}
   sensitivity: 1
   renderEveryNFrames: 4
+  webGLRenderEveryNFrames: 8
   frameOffset: 0
 --- !u!1 &1018234889824760928
 GameObject:
@@ -694,6 +695,7 @@ MonoBehaviour:
   playerOrigin: {fileID: 7461314806338748540}
   sensitivity: 1
   renderEveryNFrames: 4
+  webGLRenderEveryNFrames: 8
   frameOffset: 2
 --- !u!1 &2047086997564762175
 GameObject:
@@ -2516,6 +2518,7 @@ MonoBehaviour:
   playerOrigin: {fileID: 7461314806338748540}
   sensitivity: 1
   renderEveryNFrames: 4
+  webGLRenderEveryNFrames: 8
   frameOffset: 1
 --- !u!1 &6667165719046367945
 GameObject:

@@ -20,6 +20,9 @@ public class MirrorMovement : MonoBehaviour
     [Tooltip("Render the mirror every N frames. 1 = every frame. 2 = every other frame (~45 fps at 90 Hz). Keeps mirrors near real-time while saving GPU cost.")]
     [Range(1, 4)] public int renderEveryNFrames = 2;
 
+    [Tooltip("Web build only: render the mirror this much less often. Web is GPU-bound and each mirror is a full extra scene pass. Stagger frameOffset across the mirrors so they don't all render on the same frame.")]
+    [Range(1, 12)] public int webGLRenderEveryNFrames = 4;
+
     [Tooltip("Frame offset for staggering multiple mirrors. Set mirrors to renderEveryNFrames=3 and offsets 0, 1, 2 so only one mirror renders per frame instead of all at once.")]
     [Range(0, 3)] public int frameOffset = 0;
 
@@ -37,13 +40,6 @@ public class MirrorMovement : MonoBehaviour
         {
             _mirrorCamera.enabled = false;
         }
-
-#if UNITY_WEBGL && !UNITY_EDITOR
-        // Skip mirrors on the flat web build: three extra full-scene passes for no gain,
-        // since the parallax is VR-head driven. Stop the script so LateUpdate never renders.
-        enabled = false;
-        return;
-#endif
 
         CaptureInitialPose();
     }
@@ -76,7 +72,11 @@ public class MirrorMovement : MonoBehaviour
         transform.SetPositionAndRotation(cameraWorldPosition, cameraWorldRotation);
 
         // Only render on the designated frame interval to save GPU cost.
-        if (_mirrorCamera != null && (Time.frameCount + frameOffset) % renderEveryNFrames == 0)
+        int interval = renderEveryNFrames;
+#if UNITY_WEBGL && !UNITY_EDITOR
+        interval = webGLRenderEveryNFrames;
+#endif
+        if (_mirrorCamera != null && (Time.frameCount + frameOffset) % interval == 0)
         {
             _mirrorCamera.Render();
         }
