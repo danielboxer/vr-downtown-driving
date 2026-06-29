@@ -199,9 +199,15 @@ public class SimulationController : MonoBehaviour
 
         _scenarioManager = GetComponent<ScenarioManager>();
 
-        // Ensure ExchangeData component is present (added here if not already on the GameObject)
+        // Live builds talk to SUMO over the network via ExchangeData; the WebGL build
+        // has no SUMO, so it replays a baked recording via SimulationReplayer instead.
+#if UNITY_WEBGL
+        if (GetComponent<SimulationReplayer>() == null)
+            gameObject.AddComponent<SimulationReplayer>();
+#else
         if (GetComponent<ExchangeData>() == null)
             gameObject.AddComponent<ExchangeData>();
+#endif
 
         // Auto-find the Junctions root if not assigned in the Inspector
         if (junctions == null)
