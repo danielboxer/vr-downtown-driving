@@ -4,6 +4,10 @@ vehicle_data_report.txt
 rtf_report.txt
 Results/
 
+# baked SUMO traffic recordings (generated in CI by python/record_scenario.py)
+/[Aa]ssets/StreamingAssets/Recordings/
+/[Aa]ssets/StreamingAssets/Recordings.meta
+
 # generated on unity build
 Assets/Resources/
 Assets/Resources.meta

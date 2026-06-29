@@ -41,6 +41,20 @@ jobs:
             Library-WebGL-
             Library-
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # Bake SUMO traffic into StreamingAssets before the build. eclipse-sumo is
+      # pinned to the version the scenarios were authored with so bakes are stable.
+      - name: Bake SUMO traffic recordings
+        working-directory: simulation/python
+        run: |
+          python -m venv "$RUNNER_TEMP/sumo-venv"
+          "$RUNNER_TEMP/sumo-venv/bin/pip" install --quiet eclipse-sumo==1.22.0 traci==1.22.0
+          "$RUNNER_TEMP/sumo-venv/bin/python" record_scenario.py --all
+
       - name: Build Unity project (WebGL)
         uses: game-ci/unity-builder@v5.0.0
         env:

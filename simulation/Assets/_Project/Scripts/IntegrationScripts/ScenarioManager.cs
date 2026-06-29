@@ -63,8 +63,13 @@ public class ScenarioManager : MonoBehaviour
 
     private void Start()
     {
-        // apply default immediately (no fade on initial load)
+        // apply default immediately (no fade on initial load). The WebGL build has no
+        // Scenario Manager to switch scenarios, so it boots straight into downtown.
+#if UNITY_WEBGL
+        ApplyScenarioImmediate(ScenarioId.downtown_car);
+#else
         ApplyScenarioImmediate(defaultScenario);
+#endif
     }
 
     private void OnDestroy()
@@ -147,6 +152,35 @@ public class ScenarioManager : MonoBehaviour
         if (vrQuadGO != null) Destroy(vrQuadGO);
         _fadeCoroutine = null;
         _pendingScenario = null;
+    }
+
+    /// <summary>
+    /// Fades to black, runs <paramref name="atBlack"/>, then fades back in. Used by the
+    /// replay loop to hide the traffic reset seam. Kept independent of the scenario-change
+    /// fade so it doesn't disturb _fadeCoroutine / _pendingScenario state.
+    /// </summary>
+    public Coroutine FadeThrough(Action atBlack)
+    {
+        return StartCoroutine(FadeThroughRoutine(atBlack));
+    }
+
+    private IEnumerator FadeThroughRoutine(Action atBlack)
+    {
+        GameObject quadGO = null;
+        Renderer quadRenderer = null;
+        Camera cam = Camera.main;
+        if (cam != null && vrFadeMaterial != null)
+        {
+            quadGO = CreateFadeQuad(cam);
+            quadRenderer = quadGO.GetComponent<Renderer>();
+            quadRenderer.material = Instantiate(vrFadeMaterial);
+        }
+
+        yield return FadeOverlay(quadRenderer, 0f, 1f);
+        atBlack?.Invoke();
+        yield return FadeOverlay(quadRenderer, 1f, 0f);
+
+        if (quadGO != null) Destroy(quadGO);
     }
 
     private IEnumerator FadeOverlay(Renderer quadRenderer, float from, float to)
