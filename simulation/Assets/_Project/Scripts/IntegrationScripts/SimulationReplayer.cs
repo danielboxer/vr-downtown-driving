@@ -153,12 +153,21 @@ public class SimulationReplayer : MonoBehaviour
         Debug.Log($"[SimulationReplayer] Loaded {_records.Count} records for {scenario}");
     }
 
-    private void ParseRecords(byte[] gzData)
+    private void ParseRecords(byte[] data)
     {
         _records.Clear();
-        using (var input = new MemoryStream(gzData))
-        using (var gzip = new GZipStream(input, CompressionMode.Decompress))
-        using (var reader = new StreamReader(gzip, Encoding.UTF8))
+
+        // The recording is gzip on disk, but some servers send the .gz with
+        // Content-Encoding: gzip, so the browser inflates it before it reaches us
+        // (UnityWebRequest goes through fetch). Inflate only when the gzip magic
+        // bytes are present; otherwise the data is already plain JSON.
+        bool gzipped = data.Length >= 2 && data[0] == 0x1f && data[1] == 0x8b;
+
+        Stream input = new MemoryStream(data);
+        if (gzipped)
+            input = new GZipStream(input, CompressionMode.Decompress);
+
+        using (var reader = new StreamReader(input, Encoding.UTF8))
         {
             string line;
             while ((line = reader.ReadLine()) != null)
