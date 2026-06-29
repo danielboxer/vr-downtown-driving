@@ -9,12 +9,80 @@ on:
   workflow_dispatch:
 
 concurrency:
+  # don't cancel mid-publish: a half-cancelled run can create the github release or
+  # push one itch channel without the other.
   group: release-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
-  release:
-    name: Build and Release
+  web:
+    name: Build WebGL and push to itch.io
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Get version from Inno Setup script
+        id: get_version
+        shell: bash
+        run: |
+          v=$(grep -oP '#define MyAppVersion "\K[^"]+' simulation/inno_setup_script.iss)
+          if [ -z "$v" ]; then echo "Could not find MyAppVersion"; exit 1; fi
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Unity Library folder
+        uses: actions/cache@v5
+        with:
+          path: simulation/Library
+          key: Library-WebGL-${{ hashFiles('simulation/Assets/**', 'simulation/Packages/**', 'simulation/ProjectSettings/**') }}
+          restore-keys: |
+            Library-WebGL-
+            Library-
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.1.0
+
+      # Bake SUMO traffic into StreamingAssets before the build. eclipse-sumo is
+      # pinned to the version the scenarios were authored with so bakes are stable.
+      # --no-project: record_scenario only needs traci/sumo, not the project's deps.
+      - name: Bake SUMO traffic recordings
+        working-directory: simulation/python
+        run: uv run --no-project --python 3.12 --with eclipse-sumo==1.22.0 --with traci==1.22.0 record_scenario.py --all
+
+      - name: Build Unity project (WebGL)
+        uses: game-ci/unity-builder@v5.0.0
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          projectPath: simulation
+          targetPlatform: WebGL
+          buildProfile: 'Assets/Settings/Build Profiles/Web - Desktop - Release.asset'
+          buildsPath: simulation/build
+          buildName: web
+          versioning: Custom
+          version: ${{ steps.get_version.outputs.version }}
+          allowDirtyBuild: true
+
+      - name: Install butler
+        run: |
+          curl -L -o butler.zip https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default
+          unzip butler.zip
+          chmod +x butler
+          ./butler -V
+
+      # push the folder that contains index.html, Build/, and TemplateData/.
+      - name: Push to itch.io
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+        run: |
+          ./butler push simulation/build/WebGL/web j03e/downtown-driving:html \
+            --userversion "${{ steps.get_version.outputs.version }}"
+
+  windows:
+    name: Build Windows installer, release, push to itch.io
     # windows-2022 is required: the project uses IL2CPP
     runs-on: windows-2022
     timeout-minutes: 90
@@ -27,8 +95,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
         with:
-          fetch-depth: 0
-          lfs: true
+          fetch-tags: true # the skip-if-tag-exists check needs tags, not full history
 
       - name: Get version from Inno Setup script
         id: get_version
@@ -99,22 +166,43 @@ jobs:
         shell: pwsh
         run: .\build-installer.ps1
 
-      # ── GitHub Release ───────────────────────────────────────────────────────
-
-      - name: Attest installer provenance
-        uses: actions/attest-build-provenance@v2
-        with:
-          subject-path: simulation/build/installer/*.exe
-
-      - name: Create GitHub Release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Locate installer
+        id: installer
         shell: pwsh
         run: |
-          $tag = "${{ steps.get_version.outputs.version }}"
           $installer = Get-ChildItem -Path "simulation\build\installer" -Filter "*.exe" | Select-Object -First 1
           if (-not $installer) {
             Write-Error "No installer .exe found in simulation\build\installer"
             exit 1
           }
-          gh release create $tag $installer.FullName --title $tag
+          "path=$($installer.FullName)" >> $env:GITHUB_OUTPUT
+
+      # ── GitHub Release ───────────────────────────────────────────────────────
+
+      - name: Attest installer provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: ${{ steps.installer.outputs.path }}
+
+      - name: Create GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: pwsh
+        run: gh release create "${{ steps.get_version.outputs.version }}" "${{ steps.installer.outputs.path }}" --title "${{ steps.get_version.outputs.version }}"
+
+      # ── itch.io ──────────────────────────────────────────────────────────────
+
+      - name: Install butler
+        shell: pwsh
+        run: |
+          curl.exe -L -o butler.zip https://broth.itch.zone/butler/windows-amd64/LATEST/archive/default
+          Expand-Archive butler.zip -DestinationPath butler-bin -Force
+          ./butler-bin/butler.exe -V
+
+      - name: Push Windows installer to itch.io
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+        shell: pwsh
+        run: |
+          ./butler-bin/butler.exe push "${{ steps.installer.outputs.path }}" j03e/downtown-driving:windows `
+            --userversion "${{ steps.get_version.outputs.version }}"
