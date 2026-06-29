@@ -130,6 +130,7 @@ public class SimulationReplayer : MonoBehaviour
             {
                 Debug.LogWarning($"[SimulationReplayer] No recording for {scenario} ({req.error})");
                 _loading = false;
+                HideWebLoadingOverlay();
                 yield break;
             }
             gz = req.downloadHandler.data;
@@ -151,6 +152,21 @@ public class SimulationReplayer : MonoBehaviour
         _loading = false;
         _loaded = true;
         Debug.Log($"[SimulationReplayer] Loaded {_records.Count} records for {scenario}");
+        HideWebLoadingOverlay();
+    }
+
+    // Fades out the WebGL template's scene-load overlay once the recording is
+    // loaded (or failed) and the scene is up. No-op off the web build.
+#if UNITY_WEBGL && !UNITY_EDITOR
+    [System.Runtime.InteropServices.DllImport("__Internal")]
+    private static extern void HideLoadingOverlay();
+#endif
+
+    private void HideWebLoadingOverlay()
+    {
+#if UNITY_WEBGL && !UNITY_EDITOR
+        HideLoadingOverlay();
+#endif
     }
 
     private void ParseRecords(byte[] data)
