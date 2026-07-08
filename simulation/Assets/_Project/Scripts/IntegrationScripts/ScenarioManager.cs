@@ -22,6 +22,8 @@ public class ScenarioManager : MonoBehaviour
     [Header("Default (used when running without SUMO)")]
     [Tooltip("Scenario to activate at Start if no config message arrives")]
     public ScenarioId defaultScenario = ScenarioId.calibration_car;
+    [Tooltip("When true, the default scenario is not applied at Start; call StartScenario() (e.g. from the main menu Play button) instead.")]
+    public bool deferStart = false;
 
     [Header("Transition")]
     [Tooltip("Transparent black material for the fade quad")]
@@ -63,8 +65,17 @@ public class ScenarioManager : MonoBehaviour
 
     private void Start()
     {
-        // apply default immediately (no fade on initial load). The WebGL build has no
-        // Scenario Manager to switch scenarios, so it boots straight into downtown.
+        if (!deferStart)
+            StartScenario();
+    }
+
+    /// <summary>
+    /// Applies the default scenario (no fade). The WebGL build has no Scenario Manager
+    /// to switch scenarios, so it boots straight into downtown. Called at Start unless
+    /// deferStart is set, in which case the main menu Play button calls it.
+    /// </summary>
+    public void StartScenario()
+    {
 #if UNITY_WEBGL
         ApplyScenarioImmediate(ScenarioId.downtown_car);
 #else
@@ -110,6 +121,21 @@ public class ScenarioManager : MonoBehaviour
         {
             ApplyScenarioImmediate(id);
         }
+    }
+
+    /// <summary>
+    /// Tears the scenario down to the pre-Play state: ends evaluation, clears NPC
+    /// vehicles and disables the ego vehicles. Used when returning to the main menu.
+    /// </summary>
+    public void StopScenario()
+    {
+        if (drivingEvaluator != null && _scenarioActive)
+            drivingEvaluator.EndEvaluation();
+        if (_simController != null)
+            _simController.ClearAllNpcVehicles();
+        if (egoCar != null) egoCar.SetActive(false);
+        if (egoBike != null) egoBike.SetActive(false);
+        _scenarioActive = false;
     }
 
     /// <summary>
