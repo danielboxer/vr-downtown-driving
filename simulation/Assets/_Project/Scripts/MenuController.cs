@@ -42,6 +42,8 @@ public class MenuController : MonoBehaviour
     public GameObject xrInteractionSimulator;
     [Tooltip("The XR Interaction Simulator UI overlay. Toggle independently of the simulator itself.")]
     public GameObject xrSimulatorHUD;
+    [Tooltip("When true, the simulator is not auto-configured at Start; call RunSimulatorSetup() (e.g. from the main menu Play button) instead.")]
+    public bool deferSimulatorSetup = false;
 
     [Header("Button Labels")]
     [Tooltip("TMP label on the Display toggle button; set automatically to show current state.")]
@@ -60,6 +62,9 @@ public class MenuController : MonoBehaviour
     [Header("Input")]
     [Tooltip("Assign InputSystem_Actions asset. The ToggleMenu action is resolved from the Driving map.")]
     public InputActionAsset inputActions;
+
+    /// <summary>Fired when the menu panel opens (true) or closes (false). The main menu uses this to return after Options.</summary>
+    public event Action<bool> MenuOpenChanged;
 
     private InputAction _toggleMenuAction;
     private Coroutine _feedbackCoroutine;
@@ -112,7 +117,7 @@ public class MenuController : MonoBehaviour
         // Use a coroutine so we can wait for the XR display subsystem to finish
         // initializing (some headsets, e.g. Quest 3 via SteamVR, are not yet active
         // when Start() runs, which would incorrectly enable the simulator).
-        if (xrInteractionSimulator != null)
+        if (xrInteractionSimulator != null && !deferSimulatorSetup)
             StartCoroutine(AutoConfigureSimulator());
 
         // Panel starts hidden; FPS and toggle button start visible.
@@ -188,8 +193,22 @@ public class MenuController : MonoBehaviour
     /// <summary>Opens or closes the menu panel. Wire to the HUD toggle button and the panel's close button.</summary>
     public void OnToggleMenu()
     {
-        _menuOpen = !_menuOpen;
+        SetMenuOpen(!_menuOpen);
+    }
+
+    /// <summary>Opens or closes the menu panel explicitly.</summary>
+    public void SetMenuOpen(bool open)
+    {
+        _menuOpen = open;
         RefreshUI();
+        MenuOpenChanged?.Invoke(_menuOpen);
+    }
+
+    /// <summary>Runs the deferred XR simulator auto-configuration (called from the main menu Play button).</summary>
+    public void RunSimulatorSetup()
+    {
+        if (xrInteractionSimulator != null)
+            StartCoroutine(AutoConfigureSimulator());
     }
 
     /// <summary>Hides or shows the FPS counter and HUD toggle button.</summary>
