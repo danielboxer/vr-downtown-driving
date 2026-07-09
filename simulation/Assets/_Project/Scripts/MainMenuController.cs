@@ -36,6 +36,9 @@ public class MainMenuController : MonoBehaviour
     [Tooltip("AudioListener active only while the menu is showing (the ego vehicle's listener takes over during play).")]
     public AudioListener menuAudioListener;
 
+    [Tooltip("Cinemachine flythrough camera rig shown behind the menu; disabled on Play so the ego camera takes over.")]
+    public GameObject flythroughRig;
+
     [Header("HUD hidden while the menu is up")]
     [Tooltip("The in-game menu toggle button. Shown when Options is open so the panel can be closed, hidden otherwise.")]
     public GameObject openMenuButton;
@@ -81,6 +84,7 @@ public class MainMenuController : MonoBehaviour
         if (aboutPanel != null) aboutPanel.SetActive(false);
         SetHudVisible(false);
         if (menuAudioListener != null) menuAudioListener.enabled = true;
+        if (flythroughRig != null) flythroughRig.SetActive(true);
     }
 
     public void Play()
@@ -94,6 +98,7 @@ public class MainMenuController : MonoBehaviour
         if (aboutPanel != null) aboutPanel.SetActive(false);
 
         if (menuAudioListener != null) menuAudioListener.enabled = false;
+        if (flythroughRig != null) flythroughRig.SetActive(false);
         SetHudVisible(true);
         Time.timeScale = 1f;
         if (scenarioManager != null)
