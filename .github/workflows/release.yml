@@ -133,6 +133,27 @@ jobs:
           path: simulation/build/sumo-win64-1.22.0.msi
           key: sumo-1.22.0
 
+      # github windows runners intermittently boot with the Docker Engine service
+      # stopped, which kills the containerized il2cpp build before unity starts.
+      # see actions/runner-images#13729. start it and wait until it responds.
+      - name: Ensure Docker Engine is running
+        shell: pwsh
+        run: |
+          $deadline = (Get-Date).AddMinutes(3)
+          while ((Get-Date) -lt $deadline) {
+            if ((Get-Service docker).Status -ne 'Running') {
+              Start-Service docker -ErrorAction SilentlyContinue
+            }
+            docker info *> $null
+            if ($LASTEXITCODE -eq 0) {
+              Write-Host "Docker Engine is ready."
+              exit 0
+            }
+            Start-Sleep -Seconds 5
+          }
+          Write-Error "Docker Engine did not become ready in time."
+          exit 1
+
       - name: Build Unity project (StandaloneWindows64 / IL2CPP)
         uses: game-ci/unity-builder@v5.0.0
         env:
