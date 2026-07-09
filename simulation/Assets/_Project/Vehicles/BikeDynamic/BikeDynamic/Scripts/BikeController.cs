@@ -51,6 +51,7 @@ namespace UnityStandardAssets.Bike
         public float CurrentSteerAngle { get { return m_SteerAngle; } }
         public float CurrentSpeed { get { return m_Rigidbody.linearVelocity.magnitude * 2.23693629f; } }
         public float MaxSpeed { get { return m_Topspeed; } }
+        public float MaxSpeedMs { get { return m_SpeedType == BikeSpeedType.KPH ? m_Topspeed / 3.6f : m_Topspeed / 2.23693629f; } }
         public float AccelInput { get; private set; }
 
         private void Awake()

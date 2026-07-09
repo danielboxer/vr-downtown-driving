@@ -10,6 +10,7 @@ namespace UnityStandardAssets.Vehicles.Car
         private CarAudio m_CarAudio; // The car audio controller
         private FollowCurve m_FollowCurve; // Steering influence blending (spline guide)
         private TiltSteeringProvider m_TiltSteering; // Optional tilt-based steering
+        private Rigidbody _rb;
 
         public GameObject m_Wheel; // The steering wheel GameObject
 
@@ -76,6 +77,7 @@ namespace UnityStandardAssets.Vehicles.Car
             m_CarAudio = GetComponent<CarAudio>();
             m_FollowCurve = GetComponent<FollowCurve>();
             m_TiltSteering = GetComponent<TiltSteeringProvider>();
+            _rb = GetComponent<Rigidbody>();
 
             // Resolve actions from the asset by name
             if (inputActions != null)
@@ -235,6 +237,16 @@ namespace UnityStandardAssets.Vehicles.Car
             // CarController.Move clamps accel to [0,1] and footbrake to [-1,0]
             m_Car.Move(steeringInput, accel, -brake, handbrake, _isReverse);
 
+            // VR comfort: replace gradual acceleration with a very fast (~100ms) ramp
+            // to cruise speed or a stop, removing most of the changing-velocity cue
+            // that causes sim sickness. Keyboard keeps normal physics.
+            if (m_TiltSteering != null && m_TiltSteering.enabled && m_TiltSteering.HasController)
+            {
+                bool throttle = accel > 0.05f && brake <= 0.01f;
+                float targetSpeed = throttle ? m_Car.MaxSpeedMs : 0f;
+                Vector3 forward = _isReverse ? -transform.forward : transform.forward;
+                VrFastSpeed.Apply(_rb, targetSpeed, m_Car.MaxSpeedMs, forward);
+            }
         }
 
         private void ActivateTurnSignal(bool left, bool right)

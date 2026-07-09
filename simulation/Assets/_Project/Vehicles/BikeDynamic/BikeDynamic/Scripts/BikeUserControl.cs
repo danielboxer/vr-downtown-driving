@@ -202,9 +202,17 @@ namespace UnityStandardAssets.Bike
             // Pass the input to the bike controller
             m_Bike.Move(h, accel, -brake, 0f, _reverseInput);
 
-            // Cap velocity to the speed ramp fraction of top speed for linear speed control
-            if (_autoAccelActive && _speedRamp < 0.99f)
+            bool vr = m_TiltSteering != null && m_TiltSteering.enabled && m_TiltSteering.HasController;
+            if (vr && !_reverseInput)
             {
+                // VR comfort: very fast (~100ms) ramp to max cruise or a stop,
+                // removing most of the acceleration cue that causes sim sickness.
+                bool throttle = accel > 0f && brake <= 0f;
+                VrFastSpeed.Apply(_rb, throttle ? m_Bike.MaxSpeedMs : 0f, m_Bike.MaxSpeedMs, transform.forward);
+            }
+            else if (!vr && _autoAccelActive && _speedRamp < 0.99f)
+            {
+                // Cap velocity to the speed ramp fraction of top speed for linear speed control
                 float capMs = _speedRamp * (m_Bike.MaxSpeed / 2.23693629f); // top speed in m/s
                 if (_rb.linearVelocity.magnitude > capMs)
                     _rb.linearVelocity = _rb.linearVelocity.normalized * capMs;
