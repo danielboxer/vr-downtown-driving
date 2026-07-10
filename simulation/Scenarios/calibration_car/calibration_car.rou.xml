@@ -13,7 +13,6 @@
     <vType id="306" length="4.81" width="2.16" color="229,229,229"/>
     <vType id="EgoBike" length="1.80" vClass="bicycle" color="16,186,16"/>
     <vType id="EgoCar" length="4.81" width="2.16" color="69,56,56"/>
-    <vType id="EgoScooter" length="1.09" vClass="scooter"/>
     <vType id="bike" length="1.80" maxSpeed="6.00" vClass="bicycle" width="0.65" height="1.70" color="200,50,50"/>
     <!-- Vehicles, persons and containers (sorted by depart) -->
     <trip id="f_0.0" type="EgoCar" depart="540.00" from="62" to="78"/>
