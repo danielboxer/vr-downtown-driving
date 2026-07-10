@@ -22,6 +22,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+        with:
+          fetch-tags: true # the itch-push skip check needs tags, not full history
 
       - name: Get version from Inno Setup script
         id: get_version
@@ -30,6 +32,18 @@ jobs:
           v=$(grep -oP '#define MyAppVersion "\K[^"]+' simulation/inno_setup_script.iss)
           if [ -z "$v" ]; then echo "Could not find MyAppVersion"; exit 1; fi
           echo "version=$v" >> "$GITHUB_OUTPUT"
+
+      - name: Skip itch push if version tag already exists
+        id: skip_check
+        shell: bash
+        run: |
+          tag="v${{ steps.get_version.outputs.version }}"
+          if [ -n "$(git tag -l "$tag")" ]; then
+            echo "Tag $tag already exists - version was not bumped. Skipping itch push."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Cache Unity Library folder
         uses: actions/cache@v5
@@ -75,6 +89,7 @@ jobs:
 
       # push the folder that contains index.html, Build/, and TemplateData/.
       - name: Push to itch.io
+        if: steps.skip_check.outputs.skip != 'true'
         env:
           BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
         run: |
@@ -103,19 +118,23 @@ jobs:
         run: |
           $content = Get-Content simulation\inno_setup_script.iss -Raw
           if ($content -match '#define MyAppVersion "([^"]+)"') {
-            "version=v$($matches[1])" >> $env:GITHUB_OUTPUT
+            "version=$($matches[1])" >> $env:GITHUB_OUTPUT
+            "tag=v$($matches[1])" >> $env:GITHUB_OUTPUT
           } else {
             Write-Error "Could not find MyAppVersion in inno_setup_script.iss"
             exit 1
           }
 
       - name: Skip if version tag already exists
+        id: skip_check
         shell: pwsh
         run: |
-          $tag = "${{ steps.get_version.outputs.version }}"
+          $tag = "${{ steps.get_version.outputs.tag }}"
           if (git tag -l $tag) {
             Write-Host "Tag $tag already exists - version was not bumped. Skipping release."
-            exit 1
+            "skip=true" >> $env:GITHUB_OUTPUT
+          } else {
+            "skip=false" >> $env:GITHUB_OUTPUT
           }
 
       - name: Cache Unity Library folder
@@ -201,15 +220,17 @@ jobs:
       # ── GitHub Release ───────────────────────────────────────────────────────
 
       - name: Attest installer provenance
+        if: steps.skip_check.outputs.skip != 'true'
         uses: actions/attest-build-provenance@v2
         with:
           subject-path: ${{ steps.installer.outputs.path }}
 
       - name: Create GitHub Release
+        if: steps.skip_check.outputs.skip != 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: pwsh
-        run: gh release create "${{ steps.get_version.outputs.version }}" "${{ steps.installer.outputs.path }}" --title "${{ steps.get_version.outputs.version }}"
+        run: gh release create "${{ steps.get_version.outputs.tag }}" "${{ steps.installer.outputs.path }}" --title "${{ steps.get_version.outputs.tag }}"
 
       # ── itch.io ──────────────────────────────────────────────────────────────
 
@@ -221,6 +242,7 @@ jobs:
           ./butler-bin/butler.exe -V
 
       - name: Push Windows installer to itch.io
+        if: steps.skip_check.outputs.skip != 'true'
         env:
           BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
         shell: pwsh

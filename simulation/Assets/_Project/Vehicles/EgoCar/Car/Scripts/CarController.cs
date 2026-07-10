@@ -29,7 +29,7 @@ namespace UnityStandardAssets.Vehicles.Car
         [Range(0, 1)][SerializeField] private float m_TractionControl; // 0 is no traction control, 1 is full interference
         [SerializeField] private float m_FullTorqueOverAllWheels;
         [SerializeField] private float m_ReverseTorque;
-        [SerializeField] private float m_MaxHandbrakeTorque;
+        private const float m_MaxHandbrakeTorque = float.MaxValue;
         [SerializeField] private float m_Downforce = 100f;
         [SerializeField] private SpeedType m_SpeedType;
         [SerializeField] private float m_Topspeed = 200;
@@ -38,17 +38,13 @@ namespace UnityStandardAssets.Vehicles.Car
         [SerializeField] private float m_SlipLimit;
         [SerializeField] public float m_BrakeTorque;
 
-        private Quaternion[] m_WheelMeshLocalRotations;
-        private Vector3 m_Prevpos, m_Pos;
         private float m_SteerAngle;
         private int m_GearNum;
         private float m_GearFactor;
         private float m_OldRotation;
         private float m_CurrentTorque;
         private Rigidbody m_Rigidbody;
-        private const float k_ReversingThreshold = 0.01f;
 
-        public bool Skidding { get; private set; }
         public float BrakeInput { get; private set; }
         public float CurrentSteerAngle { get { return m_SteerAngle; } }
         public float CurrentSpeed { get { return m_Rigidbody.linearVelocity.magnitude * 2.23693629f; } }
@@ -71,14 +67,7 @@ namespace UnityStandardAssets.Vehicles.Car
             // Interpolate Rigidbody so the car's transform is smoothed between physics steps.
             m_Rigidbody.interpolation = RigidbodyInterpolation.Interpolate;
 
-            m_WheelMeshLocalRotations = new Quaternion[4];
-            for (int i = 0; i < 4; i++)
-            {
-                m_WheelMeshLocalRotations[i] = m_WheelMeshes[i].transform.localRotation;
-            }
             m_WheelColliders[0].attachedRigidbody.centerOfMass = m_CentreOfMassOffset;
-
-            m_MaxHandbrakeTorque = float.MaxValue;
 
             m_CurrentTorque = m_FullTorqueOverAllWheels - (m_TractionControl * m_FullTorqueOverAllWheels);
         }
@@ -190,7 +179,6 @@ namespace UnityStandardAssets.Vehicles.Car
             GearChanging();
 
             AddDownForce();
-            //CheckForWheelSpin();
             TractionControl();
         }
 
@@ -301,43 +289,6 @@ namespace UnityStandardAssets.Vehicles.Car
             m_Rigidbody.AddForce(-transform.up * m_Downforce * m_Rigidbody.linearVelocity.magnitude);
         }
 
-
-        // checks if the wheels are spinning and is so does three things
-        // 1) emits particles
-        // 2) plays tiure skidding sounds
-        // 3) leaves skidmarks on the ground
-        // these effects are controlled through the WheelEffects class
-        private void CheckForWheelSpin()
-        {
-            // loop through all wheels
-            for (int i = 0; i < 4; i++)
-            {
-                WheelHit wheelHit;
-                m_WheelColliders[i].GetGroundHit(out wheelHit);
-
-                //// is the tire slipping above the given threshhold
-                //if (Mathf.Abs(wheelHit.forwardSlip) >= m_SlipLimit || Mathf.Abs(wheelHit.sidewaysSlip) >= m_SlipLimit)
-                //{
-                //    m_WheelEffects[i].EmitTyreSmoke();
-
-                //    // avoiding all four tires screeching at the same time
-                //    // if they do it can lead to some strange audio artefacts
-                //    if (!AnySkidSoundPlaying())
-                //    {
-                //        m_WheelEffects[i].PlayAudio();
-                //    }
-                //    continue;
-                //}
-
-                //// if it wasnt slipping stop all the audio
-                //if (m_WheelEffects[i].PlayingAudio)
-                //{
-                //    m_WheelEffects[i].StopAudio();
-                //}
-                //// end the trail generation
-                //m_WheelEffects[i].EndSkidTrail();
-            }
-        }
 
         // crude traction control that reduces the power to wheel if the car is wheel spinning too much
         private void TractionControl()

@@ -18,11 +18,10 @@ import json
 import os
 import sys
 
+from sim_constants import EGO_ID, LATERAL_RESOLUTION, STEP_LENGTH
+
 DEFAULT_SUMO_HOME = "C:\\Program Files (x86)\\Eclipse\\Sumo"
-EGO_ID = "f_0.0"
 EGO_TYPE = "EgoCar"
-STEP_LENGTH = 0.1
-LATERAL_RESOLUTION = 0.3
 TL_INTERVAL = 1.0
 
 

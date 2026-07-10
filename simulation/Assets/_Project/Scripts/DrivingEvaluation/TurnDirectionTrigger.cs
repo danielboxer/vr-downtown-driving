@@ -12,9 +12,6 @@ public class TurnDirectionTrigger : MonoBehaviour
     [Tooltip("SUMO junction ID this trigger belongs to.")]
     public string junctionId;
 
-    [Tooltip("Turn direction this trigger represents.")]
-    public DrivingEvaluator.SignalDirection direction;
-
     [Tooltip("Road approach direction used by DrivingEvaluator for turn-signal checks.")]
     public Vector3 approachDir;
 

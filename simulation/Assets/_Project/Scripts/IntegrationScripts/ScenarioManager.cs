@@ -44,6 +44,8 @@ public class ScenarioManager : MonoBehaviour
     private DrivingEvaluator drivingEvaluator;
     private RouteArrowSpawner _arrowSpawner;
     private Coroutine _fadeCoroutine;
+    // the fade quad created by the running FadeTransition, so an interrupted transition can destroy it
+    private GameObject _activeFadeQuad;
     // tracks the scenario currently being transitioned to (set before the coroutine starts)
     private ScenarioId? _pendingScenario;
     // scene-defined spawn transforms captured in Awake before any physics runs
@@ -113,7 +115,12 @@ public class ScenarioManager : MonoBehaviour
 
         if (vrFadeMaterial != null)
         {
-            if (_fadeCoroutine != null) StopCoroutine(_fadeCoroutine);
+            if (_fadeCoroutine != null)
+            {
+                StopCoroutine(_fadeCoroutine);
+                // the stopped coroutine never reaches its Destroy, so clean up its quad here
+                if (_activeFadeQuad != null) { Destroy(_activeFadeQuad); _activeFadeQuad = null; }
+            }
             _pendingScenario = id;
             _fadeCoroutine = StartCoroutine(FadeTransition(id));
         }
@@ -165,6 +172,7 @@ public class ScenarioManager : MonoBehaviour
             vrQuadGO = CreateFadeQuad(cam);
             vrQuadRenderer = vrQuadGO.GetComponent<Renderer>();
             vrQuadRenderer.material = Instantiate(vrFadeMaterial);
+            _activeFadeQuad = vrQuadGO;
         }
 
         // fade to black
@@ -176,6 +184,7 @@ public class ScenarioManager : MonoBehaviour
         yield return FadeOverlay(vrQuadRenderer, 1f, 0f);
 
         if (vrQuadGO != null) Destroy(vrQuadGO);
+        _activeFadeQuad = null;
         _fadeCoroutine = null;
         _pendingScenario = null;
     }

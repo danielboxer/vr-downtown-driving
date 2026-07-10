@@ -20,9 +20,6 @@ public class Fps : MonoBehaviour
     [Tooltip("TMP Text element that displays the FPS counter.")]
     [SerializeField] private TextMeshProUGUI fpsText;
 
-    // ────────────────────────────────────────────────────────────  references
-    private ExchangeData _ExchangeData;
-
     // ────────────────────────────────────────────────────────────────────────────
     private void OnEnable()
     {
@@ -39,9 +36,6 @@ public class Fps : MonoBehaviour
     // ────────────────────────────────────────────────────────────────────────────
     private void Start()
     {
-        // --------------------------------------------------------  other setup
-        _ExchangeData = GetComponent<ExchangeData>() ?? gameObject.AddComponent<ExchangeData>();
-
         displayedFps = 0f;           // avoid showing 0 initially
     }
 

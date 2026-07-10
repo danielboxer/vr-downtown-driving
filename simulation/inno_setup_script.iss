@@ -7,6 +7,7 @@
 #define MyAppPublisher "Daniel Boxer"
 #define MyAppURL "https://github.com/danielboxer/vr-downtown-driving"
 #define MyAppExeName "VR Downtown Driving.exe"
+#define SumoVersion "1.22.0"
 
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application. Do not use the same AppId value in installers for other applications.
@@ -44,21 +45,15 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
-Name: "sumo"; Description: "Install SUMO 1.22.0 (required for running traffic simulations)"; GroupDescription: "Dependencies:"
+Name: "sumo"; Description: "Install SUMO {#SumoVersion} (required for running traffic simulations)"; GroupDescription: "Dependencies:"
 
 [Files]
-Source: "{#SourcePath}build\StandaloneWindows64\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
-Source: "{#SourcePath}build\StandaloneWindows64\D3D12\*"; DestDir: "{app}\D3D12"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "{#SourcePath}build\StandaloneWindows64\VR Downtown Driving_Data\*"; DestDir: "{app}\VR Downtown Driving_Data"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "{#SourcePath}build\StandaloneWindows64\baselib.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "{#SourcePath}build\StandaloneWindows64\GameAssembly.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "{#SourcePath}build\StandaloneWindows64\UnityCrashHandler64.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "{#SourcePath}build\StandaloneWindows64\UnityPlayer.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#SourcePath}build\StandaloneWindows64\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "*_BurstDebugInformation_DoNotShip\*,*_BackUpThisFolder_ButDontShipItWithYourGame\*"
 Source: "{#SourcePath}build\ScenarioManager.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#SourcePath}Scenarios\*"; DestDir: "{app}\Scenarios"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; SUMO is bundled so users do not need to install it separately.
 ; The MSI is extracted to {tmp} and deleted after the installation completes.
-Source: "{#SourcePath}build\sumo-win64-1.22.0.msi"; DestDir: "{tmp}"; Flags: deleteafterinstall
+Source: "{#SourcePath}build\sumo-win64-{#SumoVersion}.msi"; DestDir: "{tmp}"; Flags: deleteafterinstall
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]
@@ -67,6 +62,6 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: de
 
 [Run]
 ; Install SUMO silently before launching the app (only if the user kept the task checked).
-Filename: msiexec.exe; Parameters: "/i ""{tmp}\sumo-win64-1.22.0.msi"" /quiet /norestart"; StatusMsg: "Installing SUMO 1.22.0 (this may take a moment)..."; Tasks: sumo; Flags: waituntilterminated
+Filename: msiexec.exe; Parameters: "/i ""{tmp}\sumo-win64-{#SumoVersion}.msi"" /quiet /norestart"; StatusMsg: "Installing SUMO {#SumoVersion} (this may take a moment)..."; Tasks: sumo; Flags: waituntilterminated
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
 

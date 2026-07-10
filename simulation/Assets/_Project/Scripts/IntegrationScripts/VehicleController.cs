@@ -57,8 +57,6 @@ public class VehicleController : MonoBehaviour
     private Transform _egoTransform;
     private SimulationController _simController;
     private bool _wasAtRedLight;
-    private Collider[] _colliders;
-    private bool _collidersEnabled = true;
     private float _nextDetailCheckTime;
     private float _nextHornCheckTime;
     private bool _egoTransformResolved;
@@ -175,7 +173,6 @@ public class VehicleController : MonoBehaviour
         EnsureComponents();
 
         IsDetached = true;
-        SetColliderState(true);
 
         rb.isKinematic = false;
         rb.useGravity = true;
@@ -269,9 +266,6 @@ public class VehicleController : MonoBehaviour
     {
         if (rb == null)
             rb = GetComponent<Rigidbody>() ?? gameObject.AddComponent<Rigidbody>();
-
-        if (_colliders == null || _colliders.Length == 0)
-            _colliders = GetComponentsInChildren<Collider>(true);
     }
 
     private void ResolveSimulationController()
@@ -302,20 +296,6 @@ public class VehicleController : MonoBehaviour
 
         float sqrDist = (_egoTransform.position - transform.position).sqrMagnitude;
         IsHighDetail = sqrDist <= highDetailDistanceSqr;
-    }
-
-    private void SetColliderState(bool enabled)
-    {
-        if (_colliders == null) return;
-        if (_collidersEnabled == enabled) return;
-
-        for (int i = 0; i < _colliders.Length; i++)
-        {
-            if (_colliders[i] != null)
-                _colliders[i].enabled = enabled;
-        }
-
-        _collidersEnabled = enabled;
     }
 
     private void CheckHorn()
