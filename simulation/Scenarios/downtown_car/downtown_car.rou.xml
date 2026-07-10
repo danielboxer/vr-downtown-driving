@@ -13,7 +13,6 @@
     <vType id="306" length="4.81" width="2.16" color="229,229,229"/>
     <vType id="EgoBike" length="1.80" vClass="bicycle" color="16,186,16"/>
     <vType id="EgoCar" length="4.81" width="2.16" color="69,56,56"/>
-    <vType id="EgoScooter" length="1.09" vClass="scooter"/>
     <vType id="bike" length="1.80" maxSpeed="6.00" vClass="bicycle" width="0.65" height="1.70" color="200,50,50"/>
     <!-- Vehicles, persons and containers (sorted by depart) -->
     <flow id="f_10_304" type="304" begin="0.00" from="33" to="23" via="9 8 20 19 18 22" end="3600.00" vehsPerHour="200"/>

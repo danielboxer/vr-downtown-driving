@@ -70,7 +70,6 @@ VTYPES = [
     {"id": "306", "length": "4.81", "width": "2.16", "color": "229,229,229"},
     {"id": "EgoBike", "length": "1.80", "vClass": "bicycle", "color": "16,186,16"},
     {"id": "EgoCar", "length": "4.81", "width": "2.16", "color": "69,56,56"},
-    {"id": "EgoScooter", "length": "1.09", "vClass": "scooter"},
     {
         "id": "bike",
         "length": "1.80",
