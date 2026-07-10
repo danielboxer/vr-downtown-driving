@@ -48,6 +48,7 @@ namespace UnityStandardAssets.Vehicles.Car
         public float turnSignalLoopDelay = 0.1f;
 
         private AudioSource m_LowAccel, m_LowDecel, m_HighAccel, m_HighDecel;
+        private AudioSource[] m_EngineSources;
         private AudioSource m_HornSource;
         private AudioSource m_GearChangeSource;
         private AudioSource m_TurnSignalToggleSource;
@@ -68,13 +69,24 @@ namespace UnityStandardAssets.Vehicles.Car
                 m_LowAccel = SetUpEngineAudioSource(lowAccelClip);
                 m_LowDecel = SetUpEngineAudioSource(lowDecelClip);
                 m_HighDecel = SetUpEngineAudioSource(highDecelClip);
+                m_EngineSources = new[] { m_HighAccel, m_LowAccel, m_LowDecel, m_HighDecel };
+            }
+            else
+            {
+                m_EngineSources = new[] { m_HighAccel };
             }
             m_StartedSound = true;
         }
 
         private void StopSound()
         {
-            foreach (var src in GetComponents<AudioSource>()) Destroy(src);
+            // destroy only the engine sources, leaving horn/gear/turn-signal sources intact
+            if (m_EngineSources != null)
+            {
+                foreach (var src in m_EngineSources)
+                    if (src != null) Destroy(src);
+                m_EngineSources = null;
+            }
             m_StartedSound = false;
         }
 

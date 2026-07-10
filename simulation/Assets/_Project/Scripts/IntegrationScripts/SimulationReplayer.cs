@@ -150,8 +150,12 @@ public class SimulationReplayer : MonoBehaviour
         _cursor = 0;
         _clock = 0f;
         _loading = false;
-        _loaded = true;
-        Debug.Log($"[SimulationReplayer] Loaded {_records.Count} records for {scenario}");
+        // treat an empty recording as not-loaded so Update never spins on LoopRestart
+        _loaded = _records.Count > 0;
+        if (_loaded)
+            Debug.Log($"[SimulationReplayer] Loaded {_records.Count} records for {scenario}");
+        else
+            Debug.LogWarning($"[SimulationReplayer] Recording for {scenario} has no playable records");
         HideWebLoadingOverlay();
     }
 

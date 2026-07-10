@@ -17,6 +17,8 @@ from tkinter import filedialog, messagebox, ttk
 
 import zmq  # pip install pyzmq
 
+from sim_constants import EGO_ID, LATERAL_RESOLUTION, STEP_LENGTH
+
 # ════════════════════════════════════════════════════════════════
 #  DEFAULTS (shared by GUI & simulation)
 # ════════════════════════════════════════════════════════════════
@@ -28,8 +30,8 @@ DEFAULTS = {
 # Fields below are hidden from the GUI but still passed to run_sim unchanged.
 _HIDDEN_DEFAULTS = {
     "ExperimentStartTime": 600,
-    "steplength": 0.1,
-    "lateral_resolution": 0.3,
+    "steplength": STEP_LENGTH,
+    "lateral_resolution": LATERAL_RESOLUTION,
     "zoom": 150.0,  # SUMO GUI camera zoom (bigger = closer)
 }
 
@@ -258,7 +260,6 @@ def run_sim(cfg: dict):
     zoom_level = cfg["zoom"]
     subscribe_radius = cfg["subscribe_radius"]
     use_gui = cfg["use_gui"]
-    calc_rtf = cfg["calc_rtf"]
     free_cam = cfg["free_cam"]
 
     scenario_dir = cfg["scenario_dir"]
@@ -329,14 +330,15 @@ def run_sim(cfg: dict):
 
     # ---------- connect TraCI ----------
     try:
-        traci.start(sumo_cmd)
-    except traci.exceptions.TraCIException:
-        # stale connection from a previous run that didn't close cleanly
         try:
-            traci.close()
-        except Exception:
-            pass
-        traci.start(sumo_cmd)
+            traci.start(sumo_cmd)
+        except traci.exceptions.TraCIException:
+            # stale connection from a previous run that didn't close cleanly
+            try:
+                traci.close()
+            except Exception:
+                pass
+            traci.start(sumo_cmd)
     except traci.exceptions.FatalTraCIError:
         logger.info("SUMO connection closed.")
         try:
@@ -350,14 +352,34 @@ def run_sim(cfg: dict):
         except Exception:
             pass
         return
+    except Exception as e:
+        # unresolvable SUMO binary (FileNotFoundError) or a failed retry: report in the
+        # GUI instead of letting the exception escape this daemon thread and leave it
+        # stuck on "Running..." with nothing calling _on_sim_finished.
+        msg = str(e)
+        root.after(0, lambda m=msg: status_var.set(f"Error: SUMO failed to start: {m}"))
+        root.after(0, _on_sim_finished)
+        return
 
     # ---------- gui camera helper ----------
-    ego = "f_0.0"
+    ego = EGO_ID
 
     if use_gui and not free_cam:
         view_id = "View #0"
-        traci.gui.trackVehicle(view_id, ego)
-        traci.gui.setSchema(view_id, "real world")
+        try:
+            traci.gui.trackVehicle(view_id, ego)
+            traci.gui.setSchema(view_id, "real world")
+        except traci.exceptions.TraCIException as e:
+            # a gui view error here must not escape this daemon thread and leave it
+            # stuck on "Running..." with traci still open
+            try:
+                traci.close()
+            except Exception:
+                pass
+            msg = str(e)
+            root.after(0, lambda m=msg: status_var.set(f"Error: SUMO camera setup failed: {m}"))
+            root.after(0, _on_sim_finished)
+            return
 
     # helper respects free_cam flag
     def cam_follow(view_id, veh_id):
@@ -424,11 +446,9 @@ def run_sim(cfg: dict):
             if rem > 0.002:
                 time.sleep(0.001)
 
-    # ---------- constants / RTF path ----------
+    # ---------- constants ----------
     STEP = steplength
     TL_INT = 1.0
-    res_dir = os.path.join(parent_dir, "Results")
-    rtf_f = None
 
     try:
         # outer restart loop: traci.load() reloads SUMO in-place without closing
@@ -441,22 +461,8 @@ def run_sim(cfg: dict):
             while not u_q.empty():
                 u_q.get()
 
-            # open a fresh RTF file for each run
-            if rtf_f:
-                rtf_f.close()
-                rtf_f = None
-            if calc_rtf:
-                os.makedirs(res_dir, exist_ok=True)
-                rtf_f = open(
-                    os.path.join(res_dir, "rtf_report.txt"), "w", encoding="utf-8"
-                )
-                rtf_f.write("Time(s);RTF\n")
-
             # ---------- per-run containers ----------
             start_rec_sent = False
-            start_sim_t = start_wall_t = None
-            rtf_started = False
-            last_sim, last_wall = 0, 0
             last_pos_z.clear()
             next_step = time.perf_counter() + STEP
             last_tl_t = 0.0
@@ -599,7 +605,7 @@ def run_sim(cfg: dict):
                 if use_gui:
                     cam_follow("View #0", ego)
 
-                # ❸ send START_RECORDING after warm-up (independent of RTF)
+                # ❸ send START_RECORDING after warm-up
                 if sim_t >= ExperimentStartTime and not start_rec_sent:
                     pub.send_string(
                         json.dumps(
@@ -608,13 +614,6 @@ def run_sim(cfg: dict):
                         )
                     )
                     start_rec_sent = True
-
-                # ❹ initialise RTF after warm-up (only if enabled)
-                if calc_rtf and (not rtf_started) and sim_t >= ExperimentStartTime:
-                    rtf_started = True
-                    start_sim_t = sim_t
-                    start_wall_t = time.perf_counter()
-                    last_sim, last_wall = sim_t, start_wall_t
 
                 # ❺ collect ego + context vehicles
 
@@ -692,19 +691,6 @@ def run_sim(cfg: dict):
                 # ❽ publish vehicles
                 pub.send_string(vjson)
 
-                # ❽ incremental RTF (if enabled)
-                if calc_rtf and rtf_started and sim_t >= ExperimentStartTime:
-                    now = time.perf_counter()
-                    if sim_t == ExperimentStartTime:
-                        rtf_f.write("0.00;0.00\n")
-                    else:
-                        sim_d = sim_t - last_sim
-                        real_d = now - last_wall
-                        rtf_f.write(
-                            f"{sim_t - ExperimentStartTime:.2f};{sim_d / real_d:.2f}\n"
-                        )
-                    last_sim, last_wall = sim_t, now
-
                 # ❾ step pacing
                 sleep_precise(max(0.0, next_step - time.perf_counter()))
                 next_step += STEP
@@ -754,15 +740,6 @@ def run_sim(cfg: dict):
         except Exception:
             pass
     finally:
-        # overall RTF
-        if calc_rtf and rtf_started:
-            try:
-                total_w = time.perf_counter() - start_wall_t
-                total_sim = traci.simulation.getTime() - start_sim_t
-                if total_w > 0:
-                    logger.info("RTF overall %.2f", total_sim / total_w)
-            except Exception:
-                pass
         if start_rec_sent:
             try:
                 pub.send_string(
@@ -773,8 +750,6 @@ def run_sim(cfg: dict):
                 )
             except Exception:
                 pass
-        if rtf_f:
-            rtf_f.close()
         try:
             traci.close()
         except Exception:
@@ -873,7 +848,6 @@ def start_clicked():
         }
         cfg.update(_HIDDEN_DEFAULTS)
         cfg["use_gui"] = bool(use_gui_var.get())
-        cfg["calc_rtf"] = False
         cfg["free_cam"] = bool(free_cam_var.get())
         cfg["scenario_dir"] = _get_scenario_dir()
     except ValueError:

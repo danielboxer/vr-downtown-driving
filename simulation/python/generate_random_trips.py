@@ -39,7 +39,7 @@ DEFAULT_SEED = 42
 CAR_VTYPES = ["301", "302", "303", "304", "305", "306"]
 BIKE_VTYPE = "bike"
 
-# The ego car's starting edge â€” kept clear of random traffic to prevent congestion
+# The ego car's starting edge, kept clear of random traffic to prevent congestion
 # at t=540 that would block ego vehicle insertion.
 EGO_RESERVED_EDGES: set[str] = {"62"}
 
@@ -219,33 +219,26 @@ def build_route_xml(
         for k, v in attrs.items():
             vtype_elem.set(k, v)
 
-    # Base entries (existing file content): written first, as-is
-    if base_entries:
-        root.append(ET.Comment(" Existing flows / trips "))
-        for attrs in base_entries:
-            tag = attrs.pop("_tag")
-            elem = ET.SubElement(root, tag)
-            for k, v in attrs.items():
-                elem.set(k, v)
-            attrs["_tag"] = tag  # restore so the caller's list is not mutated
-
     # Assign a random car vType to each car entry, bike vType to each bike entry
     for entry in car_entries:
         entry["type"] = rng.choice(CAR_VTYPES)
     for entry in bike_entries:
         entry["type"] = BIKE_VTYPE
 
-    all_random = car_entries + bike_entries
-    # Sort by departure/begin time (SUMO requires sorted order)
-    all_random.sort(key=lambda e: float(e.get("depart") or e.get("begin") or 0))
+    # Merge base and random entries into one list sorted by departure/begin time.
+    # SUMO requires the whole route file sorted, so base entries can't be written
+    # separately ahead of the sorted random ones.
+    all_entries = base_entries + car_entries + bike_entries
+    all_entries.sort(key=lambda e: float(e.get("depart") or e.get("begin") or 0))
 
-    if all_random:
-        root.append(ET.Comment(" Randomly generated trips "))
-        for attrs in all_random:
+    if all_entries:
+        root.append(ET.Comment(" Trips / flows "))
+        for attrs in all_entries:
             tag = attrs.pop("_tag")
             elem = ET.SubElement(root, tag)
             for k, v in attrs.items():
                 elem.set(k, v)
+            attrs["_tag"] = tag  # restore so the caller's list is not mutated
 
     return root
 
@@ -263,7 +256,7 @@ def main() -> None:
         "--period",
         type=float,
         default=DEFAULT_CAR_PERIOD,
-        help="Car departure period in seconds (default %(default)s â†’ ~%(default)s veh/hr)",
+        help="Seconds between car departures (default %(default)s; lower period = denser traffic)",
     )
     parser.add_argument(
         "--bike-period",
@@ -314,7 +307,7 @@ def main() -> None:
         metavar="PATH",
         help=(
             "Existing route file to augment. "
-            "Its trips/flows are preserved under '<!-- Existing flows / trips -->'. "
+            "Its trips/flows are merged with the generated ones and sorted by depart. "
             "Defaults to {scenario}.rou.xml in the scenario folder if it exists."
         ),
     )

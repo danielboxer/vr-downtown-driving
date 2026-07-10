@@ -139,7 +139,6 @@ public class RoadNetworkBuilder : MonoBehaviour
     public Material polygonTerrainMaterial;
     public Material polygonRoadsideMaterial;
     public Material polygonResidentialMaterial;
-    private Material polygonFallbackMaterial;
 
     [Header("Sidewalk")]
     [Tooltip("Enable or disable curb generation entirely.")]
@@ -312,11 +311,11 @@ public class RoadNetworkBuilder : MonoBehaviour
         EnsureDefaultReferences();
 
         laneWidthMap.Clear();
-        junctionRecords?.Clear();
-        laneRecords?.Clear();
-        edgeRecords?.Clear();
-        polygonShapes?.Clear();
         _junctionPolys2D.Clear();
+        laneRecords = new();
+        edgeRecords = new();
+        junctionRecords = new();
+        polygonShapes = new();
 
         sumoXmlFolderPath = sumoFilesFolder;
 
@@ -348,11 +347,6 @@ public class RoadNetworkBuilder : MonoBehaviour
             Debug.LogError($"[RoadNetworkBuilder] No *.net.xml found in '{sumoXmlFolderPath}'.");
             return;
         }
-
-        laneRecords = new();
-        edgeRecords = new();
-        junctionRecords = new();
-        polygonShapes = new();
 
         {
             var serializer = new XmlSerializer(typeof(NetType));
@@ -594,8 +588,8 @@ public class RoadNetworkBuilder : MonoBehaviour
             if (groundLayer >= 0) jObj.layer = groundLayer;           // ★ NEW
             var jMf = jObj.AddComponent<MeshFilter>();
             var jMr = jObj.AddComponent<MeshRenderer>();
-            jMf.mesh = junctionMesh;
-            jMr.material = junctionSurfaceMaterial ?? GetFallbackMaterial();
+            jMf.sharedMesh = junctionMesh;
+            jMr.sharedMaterial = junctionSurfaceMaterial ?? GetFallbackMaterial();
         }
 
         // ★ NEW: make sure every child built above is on the Ground layer
@@ -1183,7 +1177,6 @@ public class RoadNetworkBuilder : MonoBehaviour
 
         var tdTrigger = tdGO.AddComponent<TurnDirectionTrigger>();
         tdTrigger.junctionId = junctionId;
-        tdTrigger.direction = DrivingEvaluator.SignalDirection.Right;
         tdTrigger.approachDir = approachDir;
 
         return true;
@@ -2128,7 +2121,7 @@ public class RoadNetworkBuilder : MonoBehaviour
         if (t.Contains("terrain") && polygonTerrainMaterial != null) return polygonTerrainMaterial;
         if (t.Contains("roadside") && polygonRoadsideMaterial != null) return polygonRoadsideMaterial;
         if (t.Contains("residential") && polygonResidentialMaterial != null) return polygonResidentialMaterial;
-        return polygonFallbackMaterial ?? GetFallbackMaterial();
+        return GetFallbackMaterial();
     }
 
     private bool IsKnownPolygonType(string t)
@@ -2140,7 +2133,7 @@ public class RoadNetworkBuilder : MonoBehaviour
 
     private Material _cachedFallbackMaterial;
     private Material GetFallbackMaterial() =>
-        _cachedFallbackMaterial ??= new Material(Shader.Find("Standard"));
+        _cachedFallbackMaterial ??= new Material(Shader.Find("Universal Render Pipeline/Lit"));
 
     private Mesh CreateLaneMesh(Vector3[] lanePoints, float roadWidth, float uvScaleU, float uvScaleV)
     {

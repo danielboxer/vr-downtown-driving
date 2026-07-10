@@ -121,7 +121,8 @@ public class DrivingEvaluator : MonoBehaviour
     // ── Checklist state ──
     [Header("Checklist")]
     [ReadOnly, SerializeField] private bool _ranRedLight;
-    [ReadOnly, SerializeField] private bool _usedTurnSignal;
+    // cumulative: set once a turn is taken without the correct signal, never reset within a scenario
+    [ReadOnly, SerializeField] private bool _missedTurnSignal;
     [ReadOnly, SerializeField] private bool _hadCollision;
     [ReadOnly, SerializeField] private int _collisionCount;
     [ReadOnly, SerializeField] private bool _exceededSpeedLimit;
@@ -131,8 +132,8 @@ public class DrivingEvaluator : MonoBehaviour
     /// <summary>True if the driver crossed a stop line while the light was red.</summary>
     public bool RanRedLight => _ranRedLight;
 
-    /// <summary>True if the driver had the correct signal on before the stop line.</summary>
-    public bool UsedTurnSignal => _usedTurnSignal;
+    /// <summary>True only if the driver signalled correctly at every turn in this scenario.</summary>
+    public bool UsedTurnSignal => !_missedTurnSignal;
 
     /// <summary>True if the driver collided with anything during this scenario.</summary>
     public bool HadCollision => _hadCollision;
@@ -197,7 +198,7 @@ public class DrivingEvaluator : MonoBehaviour
             : VehicleMode.Car;
 
         _ranRedLight = false;
-        _usedTurnSignal = false;
+        _missedTurnSignal = false;
         _hadCollision = false;
         _collisionCount = 0;
         _exceededSpeedLimit = false;
@@ -234,7 +235,7 @@ public class DrivingEvaluator : MonoBehaviour
         ExportCsv();
 
         Debug.Log($"[DrivingEvaluator] Evaluation ended — scenario: {_activeScenario}, " +
-                  $"red light violation: {_ranRedLight}, turn signal used: {_usedTurnSignal}, " +
+                  $"red light violation: {_ranRedLight}, turn signal used: {!_missedTurnSignal}, " +
                   $"collisions: {_collisionCount}, top speed: {_topSpeedKmh:F0} km/h");
     }
 
@@ -394,13 +395,12 @@ public class DrivingEvaluator : MonoBehaviour
 
         if (signalOn)
         {
-            _usedTurnSignal = true;
             LogEvent(trigger.junctionId, "TurnSignalOK", $"direction={dirLabel}");
             Debug.Log($"[DrivingEvaluator] Turn signal ON at junction {trigger.junctionId} ({dirLabel}) ✓");
         }
         else
         {
-            _usedTurnSignal = false;
+            _missedTurnSignal = true;
             LogEvent(trigger.junctionId, "TurnSignalMissing", $"direction={dirLabel}");
             QueueWarning(turnSignalVoiceClip);
             Debug.LogWarning($"[DrivingEvaluator] MISSING TURN SIGNAL at junction {trigger.junctionId} ({dirLabel})!");
@@ -642,7 +642,8 @@ public class DrivingEvaluator : MonoBehaviour
             sb.Append($"{_vehicleMode};");
             sb.Append($"{e.junctionId};");
             sb.Append($"{e.eventType};");
-            sb.AppendLine(e.detail);
+            // detail is the last column and may itself contain the ';' separator, so swap it out
+            sb.AppendLine(e.detail.Replace(';', '|'));
         }
 
         // Summary row
@@ -651,7 +652,7 @@ public class DrivingEvaluator : MonoBehaviour
         sb.AppendLine($"# Scenario: {_activeScenario}");
         sb.AppendLine($"# Vehicle Mode: {_vehicleMode}");
         sb.AppendLine($"# Red Light Violation: {_ranRedLight}");
-        sb.AppendLine($"# Turn Signal Used: {_usedTurnSignal}");
+        sb.AppendLine($"# Turn Signal Used: {!_missedTurnSignal}");
         sb.AppendLine($"# Collisions: {_collisionCount}");
         sb.AppendLine($"# Exceeded Speed Limit: {_exceededSpeedLimit}");
         sb.AppendLine($"# Speeding Events: {_speedingEventCount}");

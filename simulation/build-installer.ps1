@@ -4,7 +4,7 @@
 #   .\build-installer.ps1 -onlyInno - only run Inno Setup
 #   .\build-installer.ps1 -skipSumo - skip SUMO download (use existing file)
 #
-# Run AFTER Unity has exported its build to build\Windows\.
+# Run AFTER Unity has exported its build to build\StandaloneWindows64\.
 
 param(
     [switch]$onlyPy,

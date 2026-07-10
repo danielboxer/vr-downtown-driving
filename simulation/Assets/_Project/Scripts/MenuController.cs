@@ -637,6 +637,10 @@ public class MenuController : MonoBehaviour
             false, 0, IntPtr.Zero, workingDir, ref si, out var pi);
         if (ok)
         {
+            // Close the previous process handle before overwriting so a relaunch
+            // does not leak the old (signaled) handle.
+            if (_scenarioManagerHandle != IntPtr.Zero)
+                CloseHandle(_scenarioManagerHandle);
             // Keep hProcess open so we can check if it's still running.
             _scenarioManagerHandle = pi.hProcess;
             CloseHandle(pi.hThread);
@@ -649,7 +653,13 @@ public class MenuController : MonoBehaviour
     {
         if (_scenarioManagerHandle == IntPtr.Zero) return false;
         const uint WAIT_TIMEOUT = 0x00000102;
-        return WaitForSingleObject(_scenarioManagerHandle, 0) == WAIT_TIMEOUT;
+        if (WaitForSingleObject(_scenarioManagerHandle, 0) == WAIT_TIMEOUT)
+            return true;
+
+        // Process exited: close and clear the handle so it does not leak.
+        CloseHandle(_scenarioManagerHandle);
+        _scenarioManagerHandle = IntPtr.Zero;
+        return false;
     }
 #endif
 }

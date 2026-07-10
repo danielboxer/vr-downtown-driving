@@ -31,6 +31,7 @@ namespace UnityStandardAssets.Bike
         private BikeController m_BikeController;
         private bool m_StartedSound;
         private AudioSource m_EngineSource;
+        private float m_PitchWithOffset;
 
         private const float SpeedThreshold = 0.1f;
         private const float ThrottleThreshold = 0.05f;
@@ -60,8 +61,8 @@ namespace UnityStandardAssets.Bike
 
             m_EngineSource = CreateEngineAudioSource(engineClip);
 
-            // slight randomisation for natural feel
-            pitchMultiplier *= 1f + Random.Range(-randomPitchOffset, randomPitchOffset);
+            // slight randomisation for natural feel, derived from the stable base so it doesn't drift each start
+            m_PitchWithOffset = pitchMultiplier * (1f + Random.Range(-randomPitchOffset, randomPitchOffset));
 
             m_EngineSource.volume = 0f;
             m_EngineSource.Play();
@@ -82,14 +83,15 @@ namespace UnityStandardAssets.Bike
 
             if (isStopped)
             {
-                StopSound();
+                // silence but keep the source alive; only destroy on true out-of-range in StopSound
+                m_EngineSource.volume = 0f;
                 return;
             }
 
             // pitch scales with speed
             float speedFactor = Mathf.Clamp01(m_BikeController.CurrentSpeed / m_BikeController.MaxSpeed);
             float pitch = Mathf.Lerp(lowPitchMin, lowPitchMax, speedFactor);
-            pitch = Mathf.Min(lowPitchMax, pitch) * pitchMultiplier * highPitchMultiplier;
+            pitch = Mathf.Min(lowPitchMax, pitch) * m_PitchWithOffset * highPitchMultiplier;
 
             m_EngineSource.pitch = pitch;
             m_EngineSource.dopplerLevel = useDoppler ? dopplerLevel : 0f;

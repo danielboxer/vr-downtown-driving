@@ -23,7 +23,7 @@ Download Inno Setup which is used for packaging the Unity build into a single fi
 
 After installing Inno Setup, use `build-installer.ps1` to package a release:
 
-1. In Unity: **File → Build** and set the output folder to `simulation/build/Windows/`
+1. In Unity: **File → Build** and set the output folder to `simulation/build/StandaloneWindows64/`
    *(The script expects the Unity build at that exact path.)*
 2. In a PowerShell terminal from `simulation/`:
 

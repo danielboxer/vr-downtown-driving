@@ -29,7 +29,7 @@ namespace UnityStandardAssets.Bike
         [Range(0, 1)][SerializeField] private float m_TractionControl; // 0 is no traction control, 1 is full interference
         [SerializeField] private float m_FullTorqueOverAllWheels;
         [SerializeField] private float m_ReverseTorque;
-        [SerializeField] private float m_MaxHandbrakeTorque;
+        private const float m_MaxHandbrakeTorque = float.MaxValue;
         [SerializeField] private float m_Downforce = 100f;
         [SerializeField] private BikeSpeedType m_SpeedType;
         [SerializeField] private float m_Topspeed = 200;
@@ -38,15 +38,11 @@ namespace UnityStandardAssets.Bike
         [Tooltip("Extra velocity damping per second at full brake (0 = WheelCollider only, 3-5 = very aggressive stop).")]
         [SerializeField] public float m_SlamBrakeStrength = 4f;
 
-        private Quaternion[] m_WheelMeshLocalRotations;
-        private Vector3 m_Prevpos, m_Pos;
         private float m_SteerAngle;
         private float m_OldRotation;
         private float m_CurrentTorque;
         private Rigidbody m_Rigidbody;
-        private const float k_ReversingThreshold = 0.01f;
 
-        public bool Skidding { get; private set; }
         public float BrakeInput { get; private set; }
         public float CurrentSteerAngle { get { return m_SteerAngle; } }
         public float CurrentSpeed { get { return m_Rigidbody.linearVelocity.magnitude * 2.23693629f; } }
@@ -61,14 +57,8 @@ namespace UnityStandardAssets.Bike
 
         private void Start()
         {
-            m_WheelMeshLocalRotations = new Quaternion[4];
-            for (int i = 0; i < 4; i++)
-            {
-                m_WheelMeshLocalRotations[i] = m_WheelMeshes[i].transform.localRotation;
-            }
             m_WheelColliders[0].attachedRigidbody.centerOfMass = m_CentreOfMassOffset;
 
-            m_MaxHandbrakeTorque = float.MaxValue;
             m_CurrentTorque = m_FullTorqueOverAllWheels - (m_TractionControl * m_FullTorqueOverAllWheels);
         }
 
