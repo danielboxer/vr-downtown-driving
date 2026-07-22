@@ -486,6 +486,17 @@
                 },
                 {
                     "name": "",
+                    "id": "69e512d8-843c-472e-ad62-a0a142c57e30",
+                    "path": "<Mouse>/leftButton",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Toggle Mouse",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
                     "id": "cfb9abc5-87fa-42c9-bdd0-6a65150e573e",
                     "path": "<Mouse>/delta",
                     "interactions": "",
