@@ -95,8 +95,9 @@ public class AmbientLoopPlayer : MonoBehaviour
             yield break;
         }
 
+        // unscaled time so the ambience still fades in while the main menu freezes timeScale
         if (startDelay > 0f)
-            yield return new WaitForSeconds(startDelay);
+            yield return new WaitForSecondsRealtime(startDelay);
 
         _audioSource.clip = ambienceClip;
         _audioSource.loop = loop;
@@ -109,7 +110,7 @@ public class AmbientLoopPlayer : MonoBehaviour
             float elapsed = 0f;
             while (elapsed < fadeInDuration)
             {
-                elapsed += Time.deltaTime;
+                elapsed += Time.unscaledDeltaTime;
                 _audioSource.volume = Mathf.Lerp(0f, volume, Mathf.Clamp01(elapsed / fadeInDuration));
                 yield return null;
             }
