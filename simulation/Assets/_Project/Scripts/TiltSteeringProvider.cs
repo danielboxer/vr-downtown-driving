@@ -103,6 +103,20 @@ public class TiltSteeringProvider : MonoBehaviour
     /// <summary>True when both XR controllers are detected and the configured steering input is usable.</summary>
     public bool HasController { get; private set; }
 
+    /// <summary>True when this provider is enabled and currently steering from a controller. Vehicle controls gate the VR steering/comfort paths on this.</summary>
+    public bool IsActive => enabled && HasController;
+
+    /// <summary>Blend smoothed keyboard/action steering with tilt steering; whichever has more authority wins. Returns actionSteer when no provider is active.</summary>
+    public static float CombineSteer(TiltSteeringProvider provider, float actionSteer)
+    {
+        if (provider != null && provider.IsActive)
+        {
+            float tilt = provider.SteerValue;
+            return Mathf.Abs(tilt) > Mathf.Abs(actionSteer) ? tilt : actionSteer;
+        }
+        return actionSteer;
+    }
+
     /// <summary>Clamped physical controller/cradle angle in degrees relative to the active center, before invertSteering is applied.</summary>
     public float ControllerWheelAngle { get; private set; }
 
