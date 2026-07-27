@@ -140,16 +140,7 @@ namespace UnityStandardAssets.Vehicles.Car
             float rawAction = _steerAction?.ReadValue<float>() ?? 0f;
             // Smooth keyboard input to mimic old Input.GetAxis ramp-up/down
             _smoothedSteer = Mathf.MoveTowards(_smoothedSteer, rawAction, steerSmoothing * Time.deltaTime);
-            float actionSteer = _smoothedSteer;
-            if (m_TiltSteering != null && m_TiltSteering.enabled && m_TiltSteering.HasController)
-            {
-                float tilt = m_TiltSteering.SteerValue;
-                _steerInput = Mathf.Abs(tilt) > Mathf.Abs(actionSteer) ? tilt : actionSteer;
-            }
-            else
-            {
-                _steerInput = actionSteer;
-            }
+            _steerInput = TiltSteeringProvider.CombineSteer(m_TiltSteering, _smoothedSteer);
             _accelInput = _accelAction?.ReadValue<float>() ?? 0f;
             _brakeInput = _brakeAction?.ReadValue<float>() ?? 0f;
             _handbrakeInput = _handbrakeAction?.ReadValue<float>() ?? 0f;
@@ -171,7 +162,6 @@ namespace UnityStandardAssets.Vehicles.Car
             {
                 _isReverse = !_isReverse;
                 m_CarAudio?.PlayGearChange();
-                Debug.Log($"[CarUserControl] Gear: {(_isReverse ? "Reverse" : "Drive")}");
             }
 
             // Right thumbstick up/down = direct gear selection (XR)
@@ -181,7 +171,6 @@ namespace UnityStandardAssets.Vehicles.Car
                 {
                     _isReverse = false;
                     m_CarAudio?.PlayGearChange();
-                    Debug.Log("[CarUserControl] Gear: Drive");
                 }
             }
             if (_gearReverseAction != null && _gearReverseAction.WasPressedThisFrame())
@@ -190,7 +179,6 @@ namespace UnityStandardAssets.Vehicles.Car
                 {
                     _isReverse = true;
                     m_CarAudio?.PlayGearChange();
-                    Debug.Log("[CarUserControl] Gear: Reverse");
                 }
             }
         }
@@ -215,7 +203,7 @@ namespace UnityStandardAssets.Vehicles.Car
             // With the physical controller wheel active, keep the visible steering wheel
             // matched to the user's cradle rotation instead of the small road-wheel angle.
             float targetAngle = steeringInput * m_Car.m_MaximumSteerAngle;
-            if (m_TiltSteering != null && m_TiltSteering.enabled && m_TiltSteering.HasController)
+            if (m_TiltSteering != null && m_TiltSteering.IsActive)
             {
                 currentAngle = m_TiltSteering.SteeringWheelAngle;
             }
@@ -240,7 +228,7 @@ namespace UnityStandardAssets.Vehicles.Car
             // VR comfort: replace gradual acceleration with a very fast (~100ms) ramp
             // to cruise speed or a stop, removing most of the changing-velocity cue
             // that causes sim sickness. Keyboard keeps normal physics.
-            if (m_TiltSteering != null && m_TiltSteering.enabled && m_TiltSteering.HasController)
+            if (m_TiltSteering != null && m_TiltSteering.IsActive)
             {
                 bool throttle = accel > 0.05f && brake <= 0.01f;
                 float targetSpeed = throttle ? m_Car.MaxSpeedMs : 0f;

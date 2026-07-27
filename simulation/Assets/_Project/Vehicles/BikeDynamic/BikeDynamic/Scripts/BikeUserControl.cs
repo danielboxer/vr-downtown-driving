@@ -115,16 +115,7 @@ namespace UnityStandardAssets.Bike
             float rawAction = _steerAction?.ReadValue<float>() ?? 0f;
             // Smooth keyboard input to mimic old Input.GetAxis ramp-up/down
             _smoothedSteer = Mathf.MoveTowards(_smoothedSteer, rawAction, steerSmoothing * Time.deltaTime);
-            float actionSteer = _smoothedSteer;
-            if (m_TiltSteering != null && m_TiltSteering.enabled && m_TiltSteering.HasController)
-            {
-                float tilt = m_TiltSteering.SteerValue;
-                _steerInput = Mathf.Abs(tilt) > Mathf.Abs(actionSteer) ? tilt : actionSteer;
-            }
-            else
-            {
-                _steerInput = actionSteer;
-            }
+            _steerInput = TiltSteeringProvider.CombineSteer(m_TiltSteering, _smoothedSteer);
             // Either trigger can wake auto-accel; once active, trigger amount slows/brakes.
             float rawTrigger = Mathf.Max(
                 _brakeAction?.ReadValue<float>() ?? 0f,
@@ -187,7 +178,7 @@ namespace UnityStandardAssets.Bike
             // With the physical bike handlebar cradle active, keep the visible handlebar
             // matched to the user's cradle angle instead of the smaller road-wheel angle.
             float visualAngle = targetAngle;
-            if (m_TiltSteering != null && m_TiltSteering.enabled && m_TiltSteering.HasController)
+            if (m_TiltSteering != null && m_TiltSteering.IsActive)
             {
                 visualAngle = Mathf.Clamp(
                     m_TiltSteering.SteeringWheelAngle,
@@ -202,7 +193,7 @@ namespace UnityStandardAssets.Bike
             // Pass the input to the bike controller
             m_Bike.Move(h, accel, -brake, 0f, _reverseInput);
 
-            bool vr = m_TiltSteering != null && m_TiltSteering.enabled && m_TiltSteering.HasController;
+            bool vr = m_TiltSteering != null && m_TiltSteering.IsActive;
             if (vr && !_reverseInput)
             {
                 // VR comfort: very fast (~100ms) ramp to max cruise or a stop,
