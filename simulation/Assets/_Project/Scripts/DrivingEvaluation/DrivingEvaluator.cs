@@ -84,9 +84,6 @@ public class DrivingEvaluator : MonoBehaviour
     [Range(0.5f, 1.5f)]
     [SerializeField] private float voicePitchMax = 1.02f;
 
-    [Tooltip("Optional voice prompt played after speeding warnings.")]
-    [SerializeField] private AudioClip speedingVoiceClip;
-
     [Tooltip("Optional voice prompt played after red-light or stop-line violations.")]
     [SerializeField] private AudioClip stopLineVoiceClip;
 
@@ -96,7 +93,7 @@ public class DrivingEvaluator : MonoBehaviour
     [Tooltip("Optional voice prompt played after a non-curb vehicle collision. Plays through the voice queue after the crash sound.")]
     [SerializeField] private AudioClip collisionVoiceClip;
 
-    [Tooltip("Optional clip played for evaluator warning events such as speeding, red lights, or missing signals.")]
+    [Tooltip("Optional clip played for evaluator warning events such as red lights or missing signals.")]
     [SerializeField] private AudioClip warningClip;
 
     [Tooltip("Optional clips played for non-curb collisions. A random clip is chosen, then falls back to the warning clip if none are assigned.")]
@@ -290,13 +287,11 @@ public class DrivingEvaluator : MonoBehaviour
                 _speedingEventCount++;
                 _lastSpeedingLogTime = Time.time;
                 LogEvent("", "Speeding", $"speed={currentSpeedKmh:F1};limit={speedLimitKmh:F0}");
-                QueueWarning(speedingVoiceClip);
-                Debug.LogWarning($"[DrivingEvaluator] SPEEDING: {currentSpeedKmh:F1} km/h (limit {speedLimitKmh:F0})");
             }
         }
         else
         {
-            // Reset the cooldown timer so the warning fires promptly if they speed again
+            // Reset the cooldown so the next event logs promptly if they speed again
             _lastSpeedingLogTime = -10f;
         }
     }
