@@ -56,6 +56,11 @@ namespace UnityStandardAssets.Vehicles.Car
 
         // Gear change audio is routed through CarAudio.PlayGearChange() for consistency.
 
+        // Instant mode latches the throttle: one press keeps the car cruising until the brake.
+        private bool _cruising;
+        private const float ThrottleDeadzone = 0.05f;
+        private const float BrakeDeadzone = 0.01f;
+
         // Cached input values (read in Update, used in FixedUpdate)
         private float _steerInput;
         private float _accelInput;
@@ -116,6 +121,7 @@ namespace UnityStandardAssets.Vehicles.Car
             _gearChangeAction?.Enable();
             _gearDriveAction?.Enable();
             _gearReverseAction?.Enable();
+            _cruising = false;
         }
 
         private void OnDisable()
@@ -185,10 +191,25 @@ namespace UnityStandardAssets.Vehicles.Car
 
         private void FixedUpdate()
         {
+            m_Car.SetTopSpeedKmh(MaxSpeedSetting.Kmh);
+
             float h = _steerInput;
             float accel = _accelInput;
             float brake = _brakeInput;
             float handbrake = _handbrakeInput;
+
+            // The ramp is short enough that holding accelerate does nothing, so one tap latches.
+            bool instant = AccelerationSetting.Mode == AccelerationMode.Instant;
+            if (instant)
+            {
+                if (brake > BrakeDeadzone) _cruising = false;
+                else if (accel > ThrottleDeadzone) _cruising = true;
+                accel = _cruising ? 1f : 0f;
+            }
+            else
+            {
+                _cruising = false;
+            }
 
             // ── Steering Influence Blending ──
             // If FollowCurve is attached and enabled, blend the player's raw
@@ -225,15 +246,10 @@ namespace UnityStandardAssets.Vehicles.Car
             // CarController.Move clamps accel to [0,1] and footbrake to [-1,0]
             m_Car.Move(steeringInput, accel, -brake, handbrake, _isReverse);
 
-            // VR comfort: replace gradual acceleration with a very fast (~100ms) ramp
-            // to cruise speed or a stop, removing most of the changing-velocity cue
-            // that causes sim sickness. Keyboard keeps normal physics.
-            if (m_TiltSteering != null && m_TiltSteering.IsActive)
+            if (instant)
             {
-                bool throttle = accel > 0.05f && brake <= 0.01f;
-                float targetSpeed = throttle ? m_Car.MaxSpeedMs : 0f;
                 Vector3 forward = _isReverse ? -transform.forward : transform.forward;
-                VrFastSpeed.Apply(_rb, targetSpeed, m_Car.MaxSpeedMs, forward);
+                VrFastSpeed.Apply(_rb, _cruising ? m_Car.MaxSpeedMs : 0f, m_Car.MaxSpeedMs, forward);
             }
         }
 
