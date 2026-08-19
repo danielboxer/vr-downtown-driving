@@ -42,6 +42,9 @@ public class DrivingEvaluator : MonoBehaviour
     [Range(0f, 2f)]
     [SerializeField] private float warningVolume = 1f;
 
+    /// <summary>Scales the warning tone and voice prompt together. Set from the options menu.</summary>
+    public float WarningVolume { get; set; } = 1f;
+
     [Tooltip("Base volume for non-curb collision sounds before impact scaling.")]
     [Range(0f, 2f)]
     [SerializeField] private float collisionVolume = 1f;
@@ -485,22 +488,22 @@ public class DrivingEvaluator : MonoBehaviour
             _warningQueue.RemoveAt(0);
 
             // Play the warning tone and wait for it to finish.
-            if (playWarningSounds && warningVolume > 0f && pending.warnClip != null)
+            if (playWarningSounds && warningVolume * WarningVolume > 0f && pending.warnClip != null)
             {
                 EnsureWarningAudioSource();
                 _warningAudioSource.pitch = 1f;
-                _warningAudioSource.PlayOneShot(pending.warnClip, warningVolume);
+                _warningAudioSource.PlayOneShot(pending.warnClip, warningVolume * WarningVolume);
 
                 float warnDuration = pending.warnClip.length + warningToVoiceDelay;
                 yield return new WaitForSeconds(warnDuration);
             }
 
             // Play the voice clip and wait for it to finish before the next item.
-            if (playVoicePrompts && voiceVolume > 0f && pending.voiceClip != null)
+            if (playVoicePrompts && voiceVolume * WarningVolume > 0f && pending.voiceClip != null)
             {
                 EnsureVoiceAudioSource();
                 _voiceAudioSource.pitch = GetRandomPitch(voicePitchMin, voicePitchMax);
-                _voiceAudioSource.PlayOneShot(pending.voiceClip, voiceVolume);
+                _voiceAudioSource.PlayOneShot(pending.voiceClip, voiceVolume * WarningVolume);
 
                 float voiceDuration = pending.voiceClip.length / Mathf.Max(_voiceAudioSource.pitch, 0.01f);
                 yield return new WaitForSeconds(voiceDuration);
