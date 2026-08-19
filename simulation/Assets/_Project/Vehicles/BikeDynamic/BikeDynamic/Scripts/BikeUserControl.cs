@@ -163,6 +163,8 @@ namespace UnityStandardAssets.Bike
 
         private void FixedUpdate()
         {
+            m_Bike.SetTopSpeedKmh(MaxSpeedSetting.Kmh);
+
             float h = _steerInput;
             float accel = _accelInput;
             float brake = _brakeInput;
@@ -193,15 +195,15 @@ namespace UnityStandardAssets.Bike
             // Pass the input to the bike controller
             m_Bike.Move(h, accel, -brake, 0f, _reverseInput);
 
-            bool vr = m_TiltSteering != null && m_TiltSteering.IsActive;
-            if (vr && !_reverseInput)
+            bool instant = AccelerationSetting.Mode == AccelerationMode.Instant;
+            if (instant && !_reverseInput)
             {
-                // VR comfort: very fast (~100ms) ramp to max cruise or a stop,
-                // removing most of the acceleration cue that causes sim sickness.
+                // Very fast (~100ms) ramp to max cruise or a stop, removing most of
+                // the acceleration cue that causes sim sickness.
                 bool throttle = accel > 0f && brake <= 0f;
                 VrFastSpeed.Apply(_rb, throttle ? m_Bike.MaxSpeedMs : 0f, m_Bike.MaxSpeedMs, transform.forward);
             }
-            else if (!vr && _autoAccelActive && _speedRamp < 0.99f)
+            else if (!instant && _autoAccelActive && _speedRamp < 0.99f)
             {
                 // Cap velocity to the speed ramp fraction of top speed for linear speed control
                 float capMs = _speedRamp * (m_Bike.MaxSpeed / 2.23693629f); // top speed in m/s
