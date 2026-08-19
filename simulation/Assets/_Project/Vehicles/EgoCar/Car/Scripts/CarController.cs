@@ -53,6 +53,13 @@ namespace UnityStandardAssets.Vehicles.Car
         public float Revs { get; private set; }
         public float AccelInput { get; private set; }
 
+        /// <summary>Sets the top speed from the options menu, which always works in km/h.</summary>
+        public void SetTopSpeedKmh(float kmh)
+        {
+            m_SpeedType = SpeedType.KPH;
+            m_Topspeed = kmh;
+        }
+
 
 
         // Cache Rigidbody in Awake so it's available before any FixedUpdate
