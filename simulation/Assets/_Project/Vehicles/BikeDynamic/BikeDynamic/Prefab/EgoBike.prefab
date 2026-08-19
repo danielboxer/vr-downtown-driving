@@ -842,7 +842,6 @@ MonoBehaviour:
   m_TractionControl: 0.53
   m_FullTorqueOverAllWheels: 2500
   m_ReverseTorque: 500
-  m_MaxHandbrakeTorque: 100000000
   m_Downforce: 100
   m_SpeedType: 1
   m_Topspeed: 20
@@ -919,6 +918,8 @@ MonoBehaviour:
   actionMapName: Driving
   requireHeadset: 1
   calibrateOnEnable: 0
+  rotationSmoothingTime: 0.05
+  steeringDeadZone: 0
   drawProjectedControllerLine: 0
   projectedControllerLineRenderer: {fileID: 0}
   drawDebugLine: 0
@@ -1049,7 +1050,8 @@ Transform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 2473386294234554580}
   m_Father: {fileID: 3286640790324234950}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!20 &8709239900724034316
@@ -2372,4 +2374,66 @@ PrefabInstance:
 Transform:
   m_CorrespondingSourceObject: {fileID: 8270855663187062767, guid: 1392f805216c47742996d4742c80721c, type: 3}
   m_PrefabInstance: {fileID: 5294420784362634155}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1001 &7721860901567403286
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 8458651617043225924}
+    m_Modifications:
+    - target: {fileID: 5294742400362395074, guid: 34d51f0752ac6664989a2631dcc0914b, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5294742400362395074, guid: 34d51f0752ac6664989a2631dcc0914b, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5294742400362395074, guid: 34d51f0752ac6664989a2631dcc0914b, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5294742400362395074, guid: 34d51f0752ac6664989a2631dcc0914b, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5294742400362395074, guid: 34d51f0752ac6664989a2631dcc0914b, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5294742400362395074, guid: 34d51f0752ac6664989a2631dcc0914b, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5294742400362395074, guid: 34d51f0752ac6664989a2631dcc0914b, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5294742400362395074, guid: 34d51f0752ac6664989a2631dcc0914b, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5294742400362395074, guid: 34d51f0752ac6664989a2631dcc0914b, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5294742400362395074, guid: 34d51f0752ac6664989a2631dcc0914b, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5537381991452822912, guid: 34d51f0752ac6664989a2631dcc0914b, type: 3}
+      propertyPath: m_Name
+      value: VrComfortVignette
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 34d51f0752ac6664989a2631dcc0914b, type: 3}
+--- !u!4 &2473386294234554580 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 5294742400362395074, guid: 34d51f0752ac6664989a2631dcc0914b, type: 3}
+  m_PrefabInstance: {fileID: 7721860901567403286}
   m_PrefabAsset: {fileID: 0}
