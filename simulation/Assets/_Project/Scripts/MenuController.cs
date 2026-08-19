@@ -11,7 +11,6 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.UI;
 using UnityEngine.UI;
-using UnityEngine.XR;
 using Unity.XR.CoreUtils;
 using UnityEngine.XR.Interaction.Toolkit.Inputs.Simulation;
 using Debug = UnityEngine.Debug;
@@ -52,6 +51,24 @@ public class MenuController : MonoBehaviour
     public TextMeshProUGUI controllerButtonLabel;
     [Tooltip("TMP label on the XR Simulator toggle button; set automatically to show current state.")]
     public TextMeshProUGUI simulatorButtonLabel;
+    [Tooltip("TMP label on the Acceleration toggle button; set automatically to show current mode.")]
+    public TextMeshProUGUI accelerationButtonLabel;
+    [Tooltip("TMP label on the Vignette toggle button; set automatically to show the current level.")]
+    public TextMeshProUGUI vignetteButtonLabel;
+    [Tooltip("TMP label on the Max Speed row; set automatically to show the current value.")]
+    public TextMeshProUGUI maxSpeedLabel;
+    [Tooltip("TMP label on the Master Volume row; set automatically to show the current value.")]
+    public TextMeshProUGUI masterVolumeLabel;
+    [Tooltip("TMP label on the Warning Volume row; set automatically to show the current value.")]
+    public TextMeshProUGUI warningVolumeLabel;
+
+    [Header("Sliders")]
+    [Tooltip("Sets the top speed for both vehicles. Counts whole 5 km/h steps, so its range is min/max divided by 5.")]
+    public Slider maxSpeedSlider;
+    [Tooltip("Sets the volume of everything. Counts whole percent.")]
+    public Slider masterVolumeSlider;
+    [Tooltip("Sets the volume of the evaluator's warning tone and voice prompts. Counts whole percent.")]
+    public Slider warningVolumeSlider;
 
     [Header("Feedback")]
     [Tooltip("TMP text element inside the menu panel that shows brief action feedback.")]
@@ -66,9 +83,13 @@ public class MenuController : MonoBehaviour
     /// <summary>Fired when the menu panel opens (true) or closes (false). The main menu uses this to return after Options.</summary>
     public event Action<bool> MenuOpenChanged;
 
+    /// <summary>When false, the ToggleMenu keybind is ignored. The main menu clears this while it is showing.</summary>
+    public bool ToggleMenuKeyEnabled { get; set; } = true;
+
     private InputAction _toggleMenuAction;
     private Coroutine _feedbackCoroutine;
     private ScenarioManager _scenarioManager;
+    private DrivingEvaluator _drivingEvaluator;
     private TiltSteeringProvider _tiltSteering;
     private Fps _fpsDisplay;
     private ScenarioLabel _scenarioLabel;
@@ -108,10 +129,7 @@ public class MenuController : MonoBehaviour
         SetControllerRenderersVisible(_controllersVisible);
 
         // The menu is a screen-space canvas, so only the mouse can click it.
-        // Default to a mouse-owned pointer so clicks work with no headset
-        // (simulator/web); AutoConfigureSimulator upgrades to a unified pointer
-        // when a real headset is running so the operator's mouse still works.
-        SetMenuPointerForHeadset(false);
+        SetMouseOwnedMenuPointer();
 
         // Auto-enable the interaction simulator when no real XR device is running.
         // Use a coroutine so we can wait for the XR display subsystem to finish
@@ -129,6 +147,7 @@ public class MenuController : MonoBehaviour
         // end of AutoConfigureSimulator() once its state is resolved.
         SetToggleLabel(displayButtonLabel, "Display", _displayVisible);
         SetToggleLabel(controllerButtonLabel, "Controllers", _controllersVisible);
+        SyncSettingControls();
     }
 
     private void OnEnable()
@@ -171,6 +190,7 @@ public class MenuController : MonoBehaviour
 
     private void OnToggleMenuPerformed(InputAction.CallbackContext ctx)
     {
+        if (!ToggleMenuKeyEnabled) return;
         OnToggleMenu();
     }
 
@@ -342,15 +362,7 @@ public class MenuController : MonoBehaviour
             // simulator removes the real HMD from the Input System on enable, which
             // breaks TrackedPoseDriver head tracking for the rest of the play session
             // even after the simulator is turned off again.
-            bool hasActiveDisplay = false;
-            var displays = new List<XRDisplaySubsystem>();
-            SubsystemManager.GetSubsystems(displays);
-            foreach (var d in displays)
-            {
-                if (d.running) { hasActiveDisplay = true; break; }
-            }
-
-            if (hasActiveDisplay && !xrInteractionSimulator.activeSelf)
+            if (VrActive.IsActive && !xrInteractionSimulator.activeSelf)
             {
                 ShowFeedback("Headset connected, simulator unavailable");
                 return;
@@ -409,6 +421,102 @@ public class MenuController : MonoBehaviour
         _controllerVisibilitySyncCoroutine = null;
     }
 
+    /// <summary>Switches between instant acceleration (press once, keep going) and the vehicle's own gradual physics.</summary>
+    public void OnToggleAccelerationMode()
+    {
+        AccelerationSetting.Mode = AccelerationSetting.Mode == AccelerationMode.Instant
+            ? AccelerationMode.Gradual
+            : AccelerationMode.Instant;
+        ShowFeedback($"Acceleration: {AccelerationSetting.Mode}");
+        RefreshAccelerationLabel();
+    }
+
+    private void RefreshAccelerationLabel()
+    {
+        if (accelerationButtonLabel != null)
+            accelerationButtonLabel.text = $"Acceleration: {AccelerationSetting.Mode}";
+    }
+
+    /// <summary>Slider callback. The slider counts 5 km/h steps so it can only land on multiples of 5.</summary>
+    public void OnMaxSpeedChanged(float steps)
+    {
+        MaxSpeedSetting.Kmh = steps * MaxSpeedSetting.StepKmh;
+        RefreshMaxSpeedLabel();
+    }
+
+    private void RefreshMaxSpeedLabel()
+    {
+        if (maxSpeedLabel != null)
+            maxSpeedLabel.text = $"Max Speed: {MaxSpeedSetting.Kmh:F0} km/h";
+    }
+
+    /// <summary>Steps the vignette through off, low and high.</summary>
+    public void OnCycleVignette()
+    {
+        int levelCount = Enum.GetValues(typeof(VignetteLevel)).Length;
+        VignetteSetting.Level = (VignetteLevel)(((int)VignetteSetting.Level + 1) % levelCount);
+        ShowFeedback($"Vignette: {VignetteSetting.Level}");
+        RefreshVignetteLabel();
+    }
+
+    private void RefreshVignetteLabel()
+    {
+        if (vignetteButtonLabel != null)
+            vignetteButtonLabel.text = $"Vignette: {VignetteSetting.Level}";
+    }
+
+    /// <summary>Slider callback for overall volume. The slider counts whole percent.</summary>
+    public void OnMasterVolumeChanged(float percent)
+    {
+        AudioListener.volume = percent / 100f;
+        SetPercentLabel(masterVolumeLabel, "Master Volume", percent);
+    }
+
+    /// <summary>Slider callback for the warning tone and voice prompts. The slider counts whole percent.</summary>
+    public void OnWarningVolumeChanged(float percent)
+    {
+        var evaluator = ResolveDrivingEvaluator();
+        if (evaluator != null)
+            evaluator.WarningVolume = percent / 100f;
+        SetPercentLabel(warningVolumeLabel, "Warning Volume", percent);
+    }
+
+    // Re-finds a destroyed evaluator so the slider still reaches it after a scenario restart.
+    private DrivingEvaluator ResolveDrivingEvaluator()
+    {
+        if (_drivingEvaluator == null)
+            _drivingEvaluator = FindFirstObjectByType<DrivingEvaluator>(FindObjectsInactive.Include);
+        return _drivingEvaluator;
+    }
+
+    private static void SetPercentLabel(TextMeshProUGUI label, string name, float percent)
+    {
+        if (label != null)
+            label.text = $"{name}: {percent:F0}%";
+    }
+
+    // Set without notify, or the sliders would push their own values straight back out.
+    private void SyncSettingControls()
+    {
+        RefreshAccelerationLabel();
+        RefreshVignetteLabel();
+
+        if (maxSpeedSlider != null)
+            maxSpeedSlider.SetValueWithoutNotify(MaxSpeedSetting.Kmh / MaxSpeedSetting.StepKmh);
+        RefreshMaxSpeedLabel();
+
+        float masterPercent = AudioListener.volume * 100f;
+        if (masterVolumeSlider != null)
+            masterVolumeSlider.SetValueWithoutNotify(masterPercent);
+        SetPercentLabel(masterVolumeLabel, "Master Volume", masterPercent);
+
+        var evaluator = ResolveDrivingEvaluator();
+        float warningPercent = (evaluator != null ? evaluator.WarningVolume : 1f) * 100f;
+        if (warningVolumeSlider != null)
+            warningVolumeSlider.SetValueWithoutNotify(warningPercent);
+        SetPercentLabel(warningVolumeLabel, "Warning Volume", warningPercent);
+    }
+
     /// <summary>Hides or shows the XR Interaction Simulator HUD overlay without disabling the simulator input.</summary>
     public void OnToggleSimulatorHUD()
     {
@@ -441,20 +549,12 @@ public class MenuController : MonoBehaviour
     // the time Start() executes.
     private IEnumerator AutoConfigureSimulator()
     {
-        var displays = new List<XRDisplaySubsystem>();
         float timeout = 3f;
         float elapsed = 0f;
 
         while (elapsed < timeout)
         {
-            SubsystemManager.GetSubsystems(displays);
-            bool hasRunningDisplay = false;
-            foreach (var d in displays)
-            {
-                if (d.running) { hasRunningDisplay = true; break; }
-            }
-
-            if (hasRunningDisplay)
+            if (VrActive.IsActive)
             {
                 // Real headset confirmed active: keep simulator disabled.
                 xrInteractionSimulator.SetActive(false);
@@ -467,16 +567,7 @@ public class MenuController : MonoBehaviour
 
         // If we timed out with no running display, enable the simulator.
         if (!xrInteractionSimulator.activeSelf)
-        {
-            var displays2 = new List<XRDisplaySubsystem>();
-            SubsystemManager.GetSubsystems(displays2);
-            bool hasRunningDisplay = false;
-            foreach (var d in displays2)
-            {
-                if (d.running) { hasRunningDisplay = true; break; }
-            }
-            xrInteractionSimulator.SetActive(!hasRunningDisplay);
-        }
+            xrInteractionSimulator.SetActive(!VrActive.IsActive);
 
         // Auto-find the simulator HUD now that the prefab Awake has run.
         if (xrSimulatorHUD == null)
@@ -497,23 +588,17 @@ public class MenuController : MonoBehaviour
 
         // Update simulator button label now that auto-configure has settled.
         SetToggleLabel(simulatorButtonLabel, "XR Sim", xrInteractionSimulator.activeSelf);
-
-        // Simulator active means no real headset; flip the menu pointer mode to
-        // match so the mouse drives the menu in both cases.
-        SetMenuPointerForHeadset(!xrInteractionSimulator.activeSelf);
     }
 
-    // A real headset feeds tracked-device input into the UI module. With a unified
-    // pointer that lets the operator's mouse share one pointer with the headset
-    // (needed when the headset is on). Without a headset, the simulator's tracked
-    // input would steal that single pointer, so the mouse needs its own.
-    private void SetMenuPointerForHeadset(bool headsetRunning)
+    // A unified pointer hands the single UI pointer to whichever tracked device is
+    // live, which locks the operator's mouse out while a headset or the simulator is
+    // running. The menu canvas is screen space and never reaches the headset anyway,
+    // so the mouse always keeps its own pointer.
+    private void SetMouseOwnedMenuPointer()
     {
         var uiModule = FindFirstObjectByType<InputSystemUIInputModule>();
         if (uiModule != null)
-            uiModule.pointerBehavior = headsetRunning
-                ? UIPointerBehavior.SingleUnifiedPointer
-                : UIPointerBehavior.SingleMouseOrPenButMultiTouchAndTrack;
+            uiModule.pointerBehavior = UIPointerBehavior.SingleMouseOrPenButMultiTouchAndTrack;
     }
 
     // Sets a toggle button's label to "<name>: ON" or "<name>: OFF".
@@ -557,17 +642,18 @@ public class MenuController : MonoBehaviour
     {
         feedbackText.text = message;
 
-        // hold for most of the duration, then fade alpha out
+        // hold for most of the duration, then fade alpha out. unscaled throughout: the
+        // main menu holds Time.timeScale at 0, so a scaled wait never ends there.
         float holdTime = feedbackDuration * 0.7f;
         float fadeTime = feedbackDuration * 0.3f;
 
-        yield return new WaitForSeconds(holdTime);
+        yield return new WaitForSecondsRealtime(holdTime);
 
         float elapsed = 0f;
         Color c = feedbackText.color;
         while (elapsed < fadeTime)
         {
-            elapsed += Time.deltaTime;
+            elapsed += Time.unscaledDeltaTime;
             c.a = Mathf.Lerp(1f, 0f, elapsed / fadeTime);
             feedbackText.color = c;
             yield return null;
