@@ -4,5 +4,15 @@ public static class MaxSpeedSetting
 {
     public const float StepKmh = 5f;
 
-    public static float Kmh { get; set; } = 20f;
+    private const float VrDefaultKmh = 20f;
+    private const float DesktopDefaultKmh = 70f;
+
+    // The XR display can take a few seconds to start running
+    private static float? _chosenKmh;
+
+    public static float Kmh
+    {
+        get => _chosenKmh ?? (VrActive.IsActive ? VrDefaultKmh : DesktopDefaultKmh);
+        set => _chosenKmh = value;
+    }
 }

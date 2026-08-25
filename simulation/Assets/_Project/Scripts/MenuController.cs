@@ -220,6 +220,7 @@ public class MenuController : MonoBehaviour
     public void SetMenuOpen(bool open)
     {
         _menuOpen = open;
+        if (open) SyncSettingControls();
         RefreshUI();
         MenuOpenChanged?.Invoke(_menuOpen);
     }

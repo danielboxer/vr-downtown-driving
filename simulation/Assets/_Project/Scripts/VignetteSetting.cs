@@ -10,5 +10,12 @@ public enum VignetteLevel
 
 public static class VignetteSetting
 {
-    public static VignetteLevel Level { get; set; } = VignetteLevel.High;
+    // The XR display can take a few seconds to start running
+    private static VignetteLevel? _chosenLevel;
+
+    public static VignetteLevel Level
+    {
+        get => _chosenLevel ?? (VrActive.IsActive ? VignetteLevel.High : VignetteLevel.Off);
+        set => _chosenLevel = value;
+    }
 }
