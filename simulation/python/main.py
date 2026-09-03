@@ -19,9 +19,6 @@ import zmq  # pip install pyzmq
 
 from sim_constants import EGO_ID, LATERAL_RESOLUTION, STEP_LENGTH
 
-# ════════════════════════════════════════════════════════════════
-#  DEFAULTS (shared by GUI & simulation)
-# ════════════════════════════════════════════════════════════════
 DEFAULTS = {
     "IntegrationStartTime": 540,
     "ExperimentEndTime": 0,  # 0 = no time limit; set to a positive value (seconds) to stop after that sim time
@@ -36,14 +33,12 @@ _HIDDEN_DEFAULTS = {
 }
 
 
-# ═════════════════ GUI  SET-UP ══════════════════════════════════
 root = tk.Tk()
 root.title("Scenario Manager")
 root.resizable(True, True)
 root.minsize(420, 0)
 
-# Set window icon. When frozen by PyInstaller (--onefile), bundled data is
-# extracted to sys._MEIPASS; otherwise look next to the source file.
+# PyInstaller --onefile extracts bundled data to sys._MEIPASS
 if getattr(sys, "frozen", False):
     _icon_path = os.path.join(sys._MEIPASS, "icon.png")
 else:
@@ -64,10 +59,7 @@ ttk.Label(root, text="Scenario Manager", font=("Segoe UI", 12, "bold")).grid(
 
 root.columnconfigure(1, weight=1)
 
-# ── Scenario folder picker ─────────────────────────────────────
-# When running as a PyInstaller bundle, __file__ points inside a temp extraction
-# dir, so we derive the path from sys.executable instead. In dev mode (plain
-# script), __file__ is simulation/python/main.py so ../Scenarios is correct.
+# in a PyInstaller bundle __file__ points inside a temp extraction dir, so derive from sys.executable
 if getattr(sys, "frozen", False):
     _SCENARIOS_ROOT = os.path.join(os.path.dirname(sys.executable), "Scenarios")
 else:
@@ -77,7 +69,6 @@ else:
 
 
 def _collect_scenario_names(root: str) -> list:
-    """Scan *root* for subfolders that contain a .rou.xml file."""
     if not os.path.isdir(root):
         return []
     return sorted(
@@ -100,7 +91,6 @@ def _collect_scenario_names(root: str) -> list:
     )
 
 
-# Collect all scenario subfolders that contain a .rou.xml file
 _scenario_names = _collect_scenario_names(_SCENARIOS_ROOT)
 # Tracks the scenarios root currently active (may differ from _SCENARIOS_ROOT after browsing)
 _current_scenarios_root = _SCENARIOS_ROOT
@@ -128,7 +118,6 @@ _combo.bind("<<ComboboxSelected>>", _on_combo_select)
 
 def browse_scenario():
     global _current_scenarios_root
-    # Open from the current scenarios root (shows all scenarios in the dialog).
     if os.path.isdir(_current_scenarios_root):
         start_dir = _current_scenarios_root
     elif getattr(sys, "frozen", False):
@@ -157,16 +146,12 @@ def _get_scenario_dir() -> str:
     return scenario_dir_var.get().strip()
 
 
-# Resolve SUMO home: prefer the env var, fall back to the default MSI install path.
-# This lets the exe work even when launched from Explorer right after install (before
-# the user logs out to propagate the new SUMO_HOME env var to Explorer).
+# the exe can be launched from Explorer right after install, before SUMO_HOME propagates
 _DEFAULT_SUMO_HOME = "C:\\Program Files (x86)\\Eclipse\\Sumo"
 _sumo_home = os.environ.get("SUMO_HOME") or _DEFAULT_SUMO_HOME
 
 _sumo_installed = (
-    # Check sumo binary is reachable via PATH
     shutil.which("sumo") is not None
-    # Or the resolved SUMO_HOME directory contains the binary
     or os.path.isfile(os.path.join(_sumo_home, "bin", "sumo.exe"))
 )
 
@@ -210,24 +195,18 @@ ttk.Checkbutton(root, text="Free camera", variable=free_cam_var).grid(
 row += 1
 
 
-# ═════════════════ SIMULATION (run_sim) ═════════════════════════
-# ---------- threading state ----------
 _sim_thread = None
 # set by restart_clicked() or a RESTART_SIMULATION ZMQ command
 _restart_event = threading.Event()
 
 
 def run_sim(cfg: dict):
-    # ---------- logging ----------
     logging.basicConfig(
         level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
     )
     logger = logging.getLogger(__name__)
 
-    # ---------- SUMO paths ----------
-    # sys.path must be updated before importing traci, which lives in the SUMO tools
-    # directory (not a pip package). Use SUMO_HOME from environment if set, otherwise
-    # fall back to the default MSI install path.
+    # traci lives in the SUMO tools directory, not a pip package
     sumo_home = os.environ.get("SUMO_HOME") or _DEFAULT_SUMO_HOME
     sumo_tools = os.path.join(sumo_home, "tools")
     if not os.path.isdir(sumo_tools):
@@ -251,7 +230,6 @@ def run_sim(cfg: dict):
         root.after(0, _on_sim_finished)
         return
 
-    # ---------- apply GUI parameters ----------
     IntegrationStartTime = cfg["IntegrationStartTime"]
     ExperimentStartTime = cfg["ExperimentStartTime"]
     ExperimentEndTime = cfg["ExperimentEndTime"]
@@ -265,7 +243,6 @@ def run_sim(cfg: dict):
     scenario_dir = cfg["scenario_dir"]
     parent_dir = os.path.abspath(os.path.join(scenario_dir, os.pardir))
 
-    # Discover shared files in the Scenarios root (any matching name)
     def _glob_one(directory, pattern):
         import glob
 
@@ -275,16 +252,14 @@ def run_sim(cfg: dict):
     sumocfg_file = _glob_one(scenario_dir, "*.sumocfg")
 
     sumo_bin = "sumo-gui" if use_gui else "sumo"
-    # Build a full path to the binary so it works even when %SUMO_HOME%\bin is not in PATH
-    # (e.g., when the exe is launched from Explorer right after a SUMO install).
+    # full path so it works when the SUMO bin directory is not in PATH
     sumo_bin_path = os.path.join(sumo_home, "bin", sumo_bin + ".exe")
     if not os.path.isfile(sumo_bin_path):
         # Fall back to PATH lookup (handles non-standard SUMO installs)
         sumo_bin_path = sumo_bin
 
     if sumocfg_file:
-        # Use the scenario sumocfg so net/route/additional files are resolved
-        # from the config rather than a fragile glob on the parent directory.
+        # the sumocfg resolves net/route/additional files, unlike a glob on the parent directory
         sumo_cmd = [
             sumo_bin_path,
             "-c",
@@ -328,7 +303,6 @@ def run_sim(cfg: dict):
     if use_gui:
         sumo_cmd += ["--delay", "0"]  # keep 0-delay only when GUI present
 
-    # ---------- connect TraCI ----------
     try:
         try:
             traci.start(sumo_cmd)
@@ -353,15 +327,12 @@ def run_sim(cfg: dict):
             pass
         return
     except Exception as e:
-        # unresolvable SUMO binary (FileNotFoundError) or a failed retry: report in the
-        # GUI instead of letting the exception escape this daemon thread and leave it
-        # stuck on "Running..." with nothing calling _on_sim_finished.
+        # an escaped exception would leave this daemon thread stuck on "Running..." with nothing calling _on_sim_finished
         msg = str(e)
         root.after(0, lambda m=msg: status_var.set(f"Error: SUMO failed to start: {m}"))
         root.after(0, _on_sim_finished)
         return
 
-    # ---------- gui camera helper ----------
     ego = EGO_ID
 
     if use_gui and not free_cam:
@@ -370,8 +341,7 @@ def run_sim(cfg: dict):
             traci.gui.trackVehicle(view_id, ego)
             traci.gui.setSchema(view_id, "real world")
         except traci.exceptions.TraCIException as e:
-            # a gui view error here must not escape this daemon thread and leave it
-            # stuck on "Running..." with traci still open
+            # an escaped gui view error would leave this daemon thread stuck on "Running..." with traci still open
             try:
                 traci.close()
             except Exception:
@@ -381,7 +351,6 @@ def run_sim(cfg: dict):
             root.after(0, _on_sim_finished)
             return
 
-    # helper respects free_cam flag
     def cam_follow(view_id, veh_id):
         if free_cam:
             return
@@ -391,9 +360,7 @@ def run_sim(cfg: dict):
         except traci.TraCIException:
             pass
 
-    # ------------------------------------------------------------
 
-    # ---------- ZMQ sockets ----------
     ctx = zmq.Context()
     pub = ctx.socket(zmq.PUB)
     rout = ctx.socket(zmq.ROUTER)
@@ -422,7 +389,6 @@ def run_sim(cfg: dict):
         {"type": "config", "scenario": scenario_name}, separators=(",", ":")
     )
 
-    # ---------- background Unity RX ----------
     u_q = queue.Queue()
 
     def rx_unity():
@@ -437,7 +403,6 @@ def run_sim(cfg: dict):
 
     threading.Thread(target=rx_unity, daemon=True).start()
 
-    # ---------- helpers ----------
     last_pos_z = {}
 
     def sleep_precise(d):
@@ -446,22 +411,18 @@ def run_sim(cfg: dict):
             if rem > 0.002:
                 time.sleep(0.001)
 
-    # ---------- constants ----------
     STEP = steplength
     TL_INT = 1.0
 
     try:
-        # outer restart loop: traci.load() reloads SUMO in-place without closing
-        # the process or tearing down ZMQ, so Unity stays connected across restarts
+        # traci.load() reloads SUMO in-place without tearing down ZMQ, so Unity stays connected across restarts
         while True:
             _restart_event.clear()
 
-            # drain stale messages that arrived during the previous run or the
-            # restart window so they don't affect the new run
+            # drain stale messages from the previous run or the restart window
             while not u_q.empty():
                 u_q.get()
 
-            # ---------- per-run containers ----------
             start_rec_sent = False
             last_pos_z.clear()
             next_step = time.perf_counter() + STEP
@@ -473,7 +434,6 @@ def run_sim(cfg: dict):
                 None  # captured on first ego appearance; used to loop route
             )
 
-            # ---------- warm-up ----------
             while (
                 traci.simulation.getTime() < IntegrationStartTime
                 and not _restart_event.is_set()
@@ -488,9 +448,7 @@ def run_sim(cfg: dict):
                 traci.load(sumo_cmd[1:])
                 continue
 
-            # The ego trip departs at IntegrationStartTime, but SUMO only makes it
-            # visible after the next simulation step (for 540.0, usually 540.1).
-            # Do not enter the live Unity loop until f_0.0 is actually inserted.
+            # SUMO only makes the ego trip visible after the step following IntegrationStartTime
             while (
                 ego not in traci.vehicle.getIDList()
                 and traci.simulation.getMinExpectedNumber() > 0
@@ -514,13 +472,10 @@ def run_sim(cfg: dict):
                 root.after(0, lambda m=msg: status_var.set(f"Error: {m}"))
                 break
 
-            # Reset pacing after the fast warm-up/handoff so live streaming starts
-            # from a fresh wall-clock target instead of a stale pre-warm-up time.
+            # reset pacing so live streaming starts from a fresh wall-clock target
             next_step = time.perf_counter() + STEP
 
-            # Subscribe to ego context now that f_0.0 has been inserted.
-            # Calling subscribeContext before any simulation steps fails when SUMO uses incremental
-            # route loading (large route files), because the vehicle isn't known yet at t=0.
+            # subscribeContext before any steps fails with incremental route loading, f_0.0 is not known at t=0
             traci.vehicle.subscribeContext(
                 ego,
                 traci.constants.CMD_GET_VEHICLE_VARIABLE,
@@ -550,10 +505,8 @@ def run_sim(cfg: dict):
             ):
                 sim_t = traci.simulation.getTime()
 
-                # ❶ Unity → SUMO positions
                 while not u_q.empty():
                     msg = u_q.get()
-                    # Handle RESTART_SIMULATION command sent from Unity
                     if (
                         msg.get("type") == "command"
                         and msg.get("command") == "RESTART_SIMULATION"
@@ -575,20 +528,14 @@ def run_sim(cfg: dict):
                             except traci.exceptions.TraCIException:
                                 pass  # ego not yet inserted in SUMO; skip until it appears
 
-                # Pre-step: reset ego route before SUMO removes the vehicle at route end.
-                # ego trips are intentionally short (few edges); without this SUMO would
-                # remove f_0.0 after it traverses its route, breaking context subscriptions.
-                # changeTarget re-routes from the vehicle's current position to a new
-                # destination using SUMO's internal router, avoiding invalid edge sequences.
+                # ego trips are short, and SUMO removes f_0.0 at route end, breaking context subscriptions
                 if ego_initial_route is not None and len(ego_initial_route) > 1:
                     try:
                         if ego in traci.vehicle.getIDList():
                             _ego_route = traci.vehicle.getRoute(ego)
                             _ego_idx = traci.vehicle.getRouteIndex(ego)
                             if _ego_idx >= len(_ego_route) - 1:
-                                # Pick the opposite end of the initial route as the new target
-                                # so SUMO computes a route away from the current position.
-                                # Requires len > 1 (from != to) to avoid changeTarget(x, x).
+                                # opposite end of the initial route, and len > 1 avoids changeTarget(x, x)
                                 _ego_current = traci.vehicle.getRoadID(ego)
                                 _ego_dest = (
                                     ego_initial_route[0]
@@ -600,12 +547,10 @@ def run_sim(cfg: dict):
                     except traci.exceptions.TraCIException:
                         pass  # ego not yet inserted; ignore
 
-                # ❷ SUMO step
                 traci.simulationStep()
                 if use_gui:
                     cam_follow("View #0", ego)
 
-                # ❸ send START_RECORDING after warm-up
                 if sim_t >= ExperimentStartTime and not start_rec_sent:
                     pub.send_string(
                         json.dumps(
@@ -615,7 +560,6 @@ def run_sim(cfg: dict):
                     )
                     start_rec_sent = True
 
-                # ❺ collect ego + context vehicles
 
                 vlist = traci.vehicle.getIDList()
                 vdata = []
@@ -666,7 +610,7 @@ def run_sim(cfg: dict):
                     {"type": "vehicles", "vehicles": vdata}, separators=(",", ":")
                 )
 
-                # ❻ traffic lights once per second
+                # traffic lights once per second
                 if sim_t - last_tl_t >= TL_INT:
                     tls = [
                         {
@@ -683,19 +627,16 @@ def run_sim(cfg: dict):
                     )
                     last_tl_t = sim_t
 
-                # ❼ re-broadcast scenario config every 5 s so Unity can rejoin mid-run
+                # re-broadcast scenario config every 5 s so Unity can rejoin mid-run
                 if sim_t - last_config_t >= 5.0:
                     pub.send_string(config_msg)
                     last_config_t = sim_t
 
-                # ❽ publish vehicles
                 pub.send_string(vjson)
 
-                # ❾ step pacing
                 sleep_precise(max(0.0, next_step - time.perf_counter()))
                 next_step += STEP
 
-            # end of main loop (inner)
 
             if _restart_event.is_set():
                 # restart requested mid-run: send STOP_RECORDING, then reload SUMO
@@ -733,7 +674,6 @@ def run_sim(cfg: dict):
         except Exception:
             pass
     except Exception as e:
-        # Catch unexpected errors (e.g. FileNotFoundError when SUMO binary is missing)
         msg = str(e)
         try:
             root.after(0, lambda m=msg: status_var.set(f"Error: {m}"))
@@ -761,16 +701,12 @@ def run_sim(cfg: dict):
         except Exception:
             pass
         logger.info("Finished, connections closed.")
-        # notify GUI we're done (thread-safe)
         try:
             root.after(0, _on_sim_finished)
         except Exception:
             pass
 
 
-# ═════════════════════ GUI → START BTN ═════════════════════════
-
-# --- status label ---
 status_var = tk.StringVar(value="Ready")
 status_lbl = ttk.Label(root, textvariable=status_var, foreground="#333")
 status_lbl.grid(row=row, column=0, columnspan=3, sticky="w", padx=6)
@@ -778,7 +714,6 @@ row += 1
 
 
 def _on_sim_finished():
-    """Called on the main thread when run_sim exits."""
     restart_btn.config(state="disabled")
     # Don't overwrite an error message that was set by an error path in run_sim
     if not status_var.get().startswith("Error:"):
@@ -787,11 +722,6 @@ def _on_sim_finished():
 
 
 def _send_scenario_to_unity(scenario_name: str):
-    """Send config message to Unity via ZMQ without starting SUMO.
-
-    Runs on a background thread. Binds port 5556 briefly, sends the config
-    message repeatedly for slow-joiner mitigation, then releases the socket.
-    """
     config_msg = json.dumps(
         {"type": "config", "scenario": scenario_name}, separators=(",", ":")
     )
@@ -825,8 +755,7 @@ def _send_scenario_to_unity(scenario_name: str):
 def start_clicked():
     global _sim_thread
     if not _sumo_installed:
-        # SUMO absent: send the scenario config to Unity so it can switch
-        # vehicles/splines, but warn the user there will be no NPC traffic.
+        # no SUMO, so Unity still gets the config but there will be no NPC traffic
         scenario_dir = _get_scenario_dir()
         if not scenario_dir or not os.path.isdir(scenario_dir):
             messagebox.showerror(
@@ -867,8 +796,7 @@ def start_clicked():
 
 def restart_clicked():
     if _sim_thread and _sim_thread.is_alive():
-        # signal the sim thread to call traci.load() and restart from t=0;
-        # the thread stays alive so ZMQ and Unity stay connected
+        # the thread stays alive so ZMQ and Unity stay connected across the reload
         _restart_event.set()
         status_var.set("Restarting...")
         restart_btn.config(state="disabled")
@@ -877,7 +805,6 @@ def restart_clicked():
         start_clicked()
 
 
-# buttons: Start (left) and Restart (right) on the same row
 start_btn = ttk.Button(root, text="Start simulation", command=start_clicked)
 start_btn.grid(
     row=row, column=0, columnspan=2, pady=(12, 4), padx=6, sticky="ew", ipady=12

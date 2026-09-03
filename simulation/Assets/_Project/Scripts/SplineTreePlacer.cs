@@ -52,7 +52,6 @@ public class SplineTreePlacer : MonoBehaviour
 
         ClearTrees();
 
-        // 1. Build cumulative arc-length table by sampling the spline
         float[] cumLengths = new float[arcSamples + 1];
         float[] tValues = new float[arcSamples + 1];
         BuildArcLengthTable(spline, arcSamples, cumLengths, tValues);
@@ -64,7 +63,6 @@ public class SplineTreePlacer : MonoBehaviour
             return;
         }
 
-        // 2. Build cumulative weight table for weighted random prefab selection
         float[] cumWeights = new float[treePrefabs.Length];
         float weightSum = 0f;
         for (int i = 0; i < treePrefabs.Length; i++)
@@ -75,18 +73,14 @@ public class SplineTreePlacer : MonoBehaviour
         }
         if (weightSum <= 0f)
         {
-            // All weights zero or not set: fall back to uniform
             for (int i = 0; i < treePrefabs.Length; i++)
                 cumWeights[i] = i + 1f;
             weightSum = treePrefabs.Length;
         }
 
-        // 3. Walk along the arc and place trees
         Random.InitState(randomSeed);
 
-        // Parent the container one level outside the spline so the generated trees are not
-        // picked up as spline control points by GetComponentsInChildren on the Spline component.
-        // Name the container after the spline GameObject so its origin is easy to identify.
+        // parented outside the spline so GetComponentsInChildren on Spline does not treat the trees as control points
         string containerName = $"{gameObject.name} GeneratedTrees";
         Transform containerParent = transform.parent; // sibling of this GameObject
         GameObject container = new GameObject(containerName);
@@ -101,19 +95,16 @@ public class SplineTreePlacer : MonoBehaviour
             float t = ArcLengthToT(dist, cumLengths, tValues);
             Vector3 pos = spline.GetPoint(t);
 
-            // Apply random XZ jitter
             if (positionJitter > 0f)
             {
                 pos.x += Random.Range(-positionJitter, positionJitter);
                 pos.z += Random.Range(-positionJitter, positionJitter);
             }
 
-            // Apply height offset (e.g., sink into ground slightly)
             pos.y += heightOffset;
 
             Quaternion rot = Quaternion.Euler(0f, Random.Range(-rotationJitter, rotationJitter), 0f);
 
-            // Pick a prefab using weighted random selection (skip null entries)
             float rnd = Random.value * weightSum;
             int prefabIdx = treePrefabs.Length - 1;
             for (int i = 0; i < cumWeights.Length; i++)
@@ -131,8 +122,7 @@ public class SplineTreePlacer : MonoBehaviour
             GameObject tree = (GameObject)PrefabUtility.InstantiatePrefab(prefabToUse);
             tree.transform.SetParent(container.transform);
             tree.transform.position = pos;
-            // Compose jitter with the prefab's baked rotation so the prefab's
-            // native orientation (e.g. a 90-degree X offset) is preserved.
+            // compose with the prefab's baked rotation so its native orientation survives
             tree.transform.rotation = rot * prefabToUse.transform.rotation;
 
             if (markStatic)
@@ -166,7 +156,6 @@ public class SplineTreePlacer : MonoBehaviour
     [ContextMenu("Clear Trees")]
     public void ClearTrees()
     {
-        // The container is a sibling of this GameObject (one level up), named after it
         string containerName = $"{gameObject.name} GeneratedTrees";
         Transform searchRoot = transform.parent;
         GameObject existing = null;
@@ -177,7 +166,6 @@ public class SplineTreePlacer : MonoBehaviour
         }
         else
         {
-            // Scene root: search top-level objects
             existing = GameObject.Find(containerName);
         }
 
@@ -190,13 +178,11 @@ public class SplineTreePlacer : MonoBehaviour
 #endif
     }
 
-    // Draws green dots at would-be tree positions for a quick scene-view preview
     private void OnDrawGizmos()
     {
         Spline spline = targetSpline != null ? targetSpline : GetComponent<Spline>();
         if (spline == null || treePrefabs == null || treePrefabs.Length == 0 || spacing <= 0f) return;
 
-        // Use fewer samples for the gizmo to stay lightweight
         const int gizmoSamples = 60;
         float[] cumLengths = new float[gizmoSamples + 1];
         float[] tValues = new float[gizmoSamples + 1];
@@ -216,7 +202,6 @@ public class SplineTreePlacer : MonoBehaviour
         }
     }
 
-    // Samples the spline at equal t intervals and fills cumulative arc-length + t arrays
     private static void BuildArcLengthTable(Spline spline, int samples, float[] cumLengths, float[] tValues)
     {
         cumLengths[0] = 0f;
@@ -232,7 +217,6 @@ public class SplineTreePlacer : MonoBehaviour
         }
     }
 
-    // Binary-search the arc-length table to find the spline t for a given arc distance
     private static float ArcLengthToT(float arcDist, float[] cumLengths, float[] tValues)
     {
         int lo = 0, hi = cumLengths.Length - 1;

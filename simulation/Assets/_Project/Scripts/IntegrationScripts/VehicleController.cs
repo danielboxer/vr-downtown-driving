@@ -15,19 +15,15 @@ public class VehicleController : MonoBehaviour
 
     private float curLong, curVert, curLat;
 
-    /// <summary>True after a collision detaches this vehicle from SUMO control.</summary>
     public bool IsDetached { get; private set; }
 
-    /// <summary>Estimated world-space velocity used by wheel animation and crash handoff.</summary>
     public Vector3 EstimatedVelocity { get; private set; }
 
-    /// <summary>SUMO-reported forward speed for this vehicle.</summary>
     public float CurrentLongitudinalSpeed => curLong;
 
-    /// <summary>Whether this vehicle is currently close enough for high-detail behaviours.</summary>
     public bool IsHighDetail { get; private set; } = true;
 
-    // ── Horn / bell audio (values set via SetConfig from NpcVehicleConfig) ──
+    // set via SetConfig from NpcVehicleConfig
     [HideInInspector] public List<AudioClip> hornClips = new List<AudioClip>();
     [HideInInspector] public float hornVolume = 1f;
     [HideInInspector] public List<AudioClip> bellClips = new List<AudioClip>();
@@ -46,7 +42,6 @@ public class VehicleController : MonoBehaviour
     [SerializeField] private float movementSharpness = 14f;
     [SerializeField] private float rotationSharpness = 14f;
 
-    // Despawn delay is configured via NpcVehicleConfig and applied through SetConfig.
     private float detachedDespawnDelay = 90f;
 
     private float highDetailDistanceSqr = 45f * 45f;
@@ -76,16 +71,11 @@ public class VehicleController : MonoBehaviour
 
     private void Start()
     {
-        // Re-apply once Start runs so inspector-modified Rigidbody values do not
-        // leave NPC traffic as expensive dynamic bodies.
+        // re-applied in Start so inspector-modified Rigidbody values do not leave NPC traffic as dynamic bodies
         if (!IsDetached)
             ConfigureAsSumoControlled();
     }
 
-    /// <summary>
-    /// Assigns a shared ScriptableObject config. VehicleController reads values
-    /// from the config at runtime instead of per-instance field copies.
-    /// </summary>
     public void SetConfig(NpcVehicleConfig config)
     {
         if (config == null) return;
@@ -108,10 +98,6 @@ public class VehicleController : MonoBehaviour
         detachedDespawnDelay = config.detachedDespawnDelay;
     }
 
-    /// <summary>
-    /// Allows SimulationController to push one central set of performance settings
-    /// to pooled/spawned NPCs without requiring every prefab to be edited.
-    /// </summary>
     public void ConfigurePerformance(
         float npcHighDetailDistance,
         float npcHornCheckInterval,
@@ -125,9 +111,6 @@ public class VehicleController : MonoBehaviour
         rotationSharpness = Mathf.Max(1f, npcRotationSharpness);
     }
 
-    /// <summary>
-    /// Resets this instance when it is borrowed from the pool or first spawned.
-    /// </summary>
     public void ResetForSumoControl(Vector3 pos, Quaternion rot,
                                     float longSpd, float vertSpd, float latSpd)
     {
@@ -163,10 +146,6 @@ public class VehicleController : MonoBehaviour
     private const float PostCollisionDamping = 0.5f;
     private const float MaxPostCollisionSpeed = 8f;
 
-    /// <summary>
-    /// Detach this NPC from SUMO control and apply a collision impulse.
-    /// After this call the vehicle becomes a normal physics object.
-    /// </summary>
     public void Detach(Vector3 impactImpulse, Vector3 contactPoint)
     {
         if (IsDetached) return;
@@ -182,8 +161,7 @@ public class VehicleController : MonoBehaviour
         rb.collisionDetectionMode = CollisionDetectionMode.Discrete;
         rb.linearVelocity = EstimatedVelocity;
 
-        // Cap by resulting velocity (not impulse magnitude) to handle
-        // low-mass Rigidbodies that would otherwise reach extreme speeds.
+        // capped by resulting velocity, low-mass Rigidbodies would otherwise reach extreme speeds
         float resultingSpeed = impactImpulse.magnitude / Mathf.Max(rb.mass, 0.01f);
         if (resultingSpeed > MaxPostCollisionSpeed)
             impactImpulse = impactImpulse.normalized * MaxPostCollisionSpeed * rb.mass;
@@ -316,7 +294,6 @@ public class VehicleController : MonoBehaviour
             return;
         }
 
-        // Track consecutive stopped time from SUMO commanded speed.
         const float stoppedThreshold = 0.5f;
         if (curLong < stoppedThreshold)
             _stoppedTimer += hornCheckInterval;
@@ -338,8 +315,7 @@ public class VehicleController : MonoBehaviour
             }
         }
 
-        // Filter before the expensive red-light query. Ambient horns remain possible,
-        // but only a small fraction of far stopped cars perform the stop-line check.
+        // filter before the expensive red-light query
         float roll = Random.value;
         if (egoInFront)
         {
@@ -373,8 +349,7 @@ public class VehicleController : MonoBehaviour
     {
         if (_hornSource != null) return;
 
-        // Use explicit if-check instead of ?? so Unity's custom == operator
-        // handles fake-null (invalid/destroyed) components correctly.
+        // Unity's custom == operator handles fake-null components, ?? does not
         _hornSource = GetComponent<AudioSource>();
         if (_hornSource == null)
             _hornSource = gameObject.AddComponent<AudioSource>();

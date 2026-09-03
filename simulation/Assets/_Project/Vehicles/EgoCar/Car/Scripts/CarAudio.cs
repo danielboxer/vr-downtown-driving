@@ -167,25 +167,21 @@ namespace UnityStandardAssets.Vehicles.Car
 
         private void Start()
         {
-            // Dedicated one-shot source for the player horn
             m_HornSource = gameObject.AddComponent<AudioSource>();
             m_HornSource.playOnAwake = false;
             m_HornSource.loop = false;
             m_HornSource.spatialBlend = 1f;
 
-            // Dedicated one-shot source for gear change
             m_GearChangeSource = gameObject.AddComponent<AudioSource>();
             m_GearChangeSource.playOnAwake = false;
             m_GearChangeSource.loop = false;
             m_GearChangeSource.spatialBlend = 1f;
 
-            // Dedicated one-shot source for the toggle click (activate/deactivate)
             m_TurnSignalToggleSource = gameObject.AddComponent<AudioSource>();
             m_TurnSignalToggleSource.playOnAwake = false;
             m_TurnSignalToggleSource.loop = false;
             m_TurnSignalToggleSource.spatialBlend = 1f;
 
-            // Dedicated looping source for the blinker tick while active
             m_TurnSignalLoopSource = gameObject.AddComponent<AudioSource>();
             m_TurnSignalLoopSource.playOnAwake = false;
             m_TurnSignalLoopSource.loop = true;

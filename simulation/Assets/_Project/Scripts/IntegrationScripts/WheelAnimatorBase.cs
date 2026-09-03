@@ -21,8 +21,7 @@ public abstract class WheelAnimatorBase : MonoBehaviour
 
     void Update()
     {
-        // Some vehicle prefabs receive VehicleController/Rigidbody at pool creation
-        // time, after child wheel Awake() has already run.
+        // some prefabs get their VehicleController at pool creation, after child wheel Awake has run
         if (vehicleController == null && !vehicleControllerLookupDone)
         {
             vehicleController = GetComponentInParent<VehicleController>();

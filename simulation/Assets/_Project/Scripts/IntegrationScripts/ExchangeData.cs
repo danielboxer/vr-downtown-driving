@@ -28,11 +28,9 @@ public class ExchangeData : MonoBehaviour
     private SimulationController _SimulationController;
 #endif
 
-    // Queue of JSON command strings to send to Python on the next background-thread iteration.
-    // Enqueue via SendCommand(); the background thread drains this each loop.
+    // drained each loop by the background thread, enqueue via SendCommand
     private static readonly ConcurrentQueue<string> _commandQueue = new ConcurrentQueue<string>();
 
-    /// <summary>Enqueues a JSON command string to be sent to Python via the DEALER socket.</summary>
     public static void SendCommand(string commandJson)
     {
         _commandQueue.Enqueue(commandJson);
@@ -43,8 +41,7 @@ public class ExchangeData : MonoBehaviour
     private Thread _communicationThread;
     private bool _isRunning = false;
 
-    // Sending ego data every 1 ms is unnecessary for a 0.1 s SUMO step and can
-    // waste CPU/queue bandwidth. Keep it comfortably above the SUMO step rate.
+    // sending ego data every 1 ms is wasted work against a 0.1 s SUMO step
     private double _nextVehicleSendTime;
     private double _sendInterval;
     private static readonly double StopwatchToSeconds = 1.0 / Stopwatch.Frequency;
@@ -56,7 +53,6 @@ public class ExchangeData : MonoBehaviour
 #if !UNITY_WEBGL
         _SimulationController = GetComponent<SimulationController>();
 
-        // Pre-compute the send interval (unityStepLength doesn't change at runtime)
         float step = Mathf.Max(0.02f, _SimulationController.unityStepLength * 0.5f);
         _sendInterval = Mathf.Min(step, 0.1f);
 
@@ -70,7 +66,7 @@ public class ExchangeData : MonoBehaviour
 #if !UNITY_WEBGL
     void OnDestroy()
     {
-        // Stop the communication thread; NetMQConfig.Cleanup() runs in the thread's finally block
+        // NetMQConfig.Cleanup() runs in the thread's finally block
         _isRunning = false;
         if (_communicationThread != null && _communicationThread.IsAlive)
         {
@@ -107,14 +103,13 @@ public class ExchangeData : MonoBehaviour
                         {
                             string vehicleDataJson = _SimulationController.GetVehicleDataJson();
 
-                            // TrySendFrame may fail if SUMO is not running yet (HWM full);
-                            // keep the thread alive so we can still receive messages.
+                            // TrySendFrame fails while SUMO is not running yet (HWM full)
                             dealerSocket.TrySendFrame(vehicleDataJson);
 
                             _nextVehicleSendTime = nowSeconds + _sendInterval;
                         }
 
-                        // Send any queued commands immediately (e.g. RESTART_SIMULATION from a keypress)
+                        // queued commands go out immediately, e.g. RESTART_SIMULATION from a keypress
                         while (_commandQueue.TryDequeue(out string commandJson))
                             dealerSocket.TrySendFrame(commandJson);
 

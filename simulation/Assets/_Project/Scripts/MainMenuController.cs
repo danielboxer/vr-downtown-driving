@@ -4,11 +4,6 @@ using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Utilities;
 using UnityEngine.UI;
 
-/// <summary>
-/// Full-screen main menu shown at load. Freezes the sim until Play is pressed, then
-/// starts the scenario. Options reuses the in-game MenuController panel; Controls and
-/// About are sub-panels with a Back button.
-/// </summary>
 // Runs after MenuController so hiding the HUD wins over MenuController.Start showing it.
 [DefaultExecutionOrder(1000)]
 public class MainMenuController : MonoBehaviour
@@ -141,7 +136,6 @@ public class MainMenuController : MonoBehaviour
             menuController.RunSimulatorSetup();
     }
 
-    /// <summary>Returns to the frozen main menu from the in-game menu (works during or before play).</summary>
     public void ReturnToMainMenu()
     {
         _started = false;
@@ -173,8 +167,7 @@ public class MainMenuController : MonoBehaviour
         if (aboutPanel != null) aboutPanel.SetActive(true);
     }
 
-    // Reuse the in-game menu as the options screen. It closes via its own "Back to
-    // Main Menu" button; OnMenuOpenChanged returns here on close.
+    // Reuse the in-game menu as the options screen. OnMenuOpenChanged returns here on close.
     public void OpenOptions()
     {
         if (mainMenuPanel != null) mainMenuPanel.SetActive(false);

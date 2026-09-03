@@ -1,7 +1,6 @@
 ﻿#if UNITY_EDITOR
 // ============================== 
 // RoadNetworkEditorWindow.cs
-// (full version incl. 2-slide banners for windows 1-3)
 // ==============================
 using System;
 using System.Diagnostics;
@@ -33,7 +32,6 @@ internal static class Sumo2UnityGuiConsts
 }
 
 /// <summary>
-/// Simple helper to draw & auto-advance a banner slideshow in EditorWindows.
 /// </summary>
 internal static class BannerSlideHelper
 {
@@ -44,7 +42,6 @@ internal static class BannerSlideHelper
     {
         if (slides == null || slides.Length == 0 || slides[current] == null) return;
 
-        // Auto-advance every intervalSeconds
         double now = EditorApplication.timeSinceStartup;
         if (slides.Length > 1 && now - lastSwap > intervalSeconds)
         {
@@ -80,7 +77,6 @@ internal static class BannerSlideHelper
     }
 }
 
-// ───────────────────────────────────────────────────────────────  Window 1
 public class RoadNetworkEditorWindow : EditorWindow
 {
     private static string sumoXmlFolderPath;
@@ -108,7 +104,7 @@ public class RoadNetworkEditorWindow : EditorWindow
         RoadNetworkEditorWindow w = GetWindow<RoadNetworkEditorWindow>("Sumo2Unity - Road Network");
         w.minSize = new Vector2(Sumo2UnityGuiConsts.WindowWidth, Sumo2UnityGuiConsts.WindowHeight);
         w.maxSize = w.minSize;
-        // Default to the Scenarios root, which is where net.xml and poly.xml live
+        // net.xml and poly.xml live under the Scenarios root
         if (string.IsNullOrEmpty(sumoXmlFolderPath))
             sumoXmlFolderPath = LocateScenariosRoot() ?? sumoXmlFolderPath;
     }
@@ -126,7 +122,7 @@ public class RoadNetworkEditorWindow : EditorWindow
 
     private void OnGUI()
     {
-        // Banner is fixed at the top; scroll view only wraps the controls below
+        // drawn outside the scroll view so the banner stays fixed
         BannerSlideHelper.DrawSlide(demoSlides, ref slideIndex, ref lastSlideSwap, slideInterval);
 
         _scrollPos = EditorGUILayout.BeginScrollView(_scrollPos);
@@ -148,7 +144,6 @@ public class RoadNetworkEditorWindow : EditorWindow
 
         GUILayout.Space(10);
 
-        // Curb settings foldout (reads/writes fields on the RoadNetworkBuilder component)
         DrawCurbSettings();
 
         GUILayout.Space(10);
@@ -254,7 +249,7 @@ public class RoadNetworkEditorWindow : EditorWindow
         EditorUtility.DisplayProgressBar("Generation Progress", "Generating Lane Decals", 0.95f);
         builder.GenerateLaneDecals();
 
-        // Apply picking state last, after all children exist under all roots
+        // picking state must be applied after every root has its children
         builder.ApplyPickingState();
 
         EditorUtility.ClearProgressBar();
@@ -307,7 +302,7 @@ public class RoadNetworkEditorWindow : EditorWindow
             builder.GenerateLaneDecals();
         }
 
-        // Apply picking state last, after all children exist under all roots
+        // picking state must be applied after every root has its children
         builder.ApplyPickingState();
 
         EditorUtility.ClearProgressBar();
@@ -316,7 +311,6 @@ public class RoadNetworkEditorWindow : EditorWindow
     private void OnInspectorUpdate() => Repaint();
 }
 
-// ───────────────────────────────────────────────────────────────  Window 2
 public class Sumo2UnityIntegrationWindow : EditorWindow
 {
     private Texture2D[] demoSlides;
@@ -328,7 +322,6 @@ public class Sumo2UnityIntegrationWindow : EditorWindow
     private GUIStyle headerStyle;
     private GUIStyle helpStyle;
 
-    // subprocess tracking
     private static Process sumoToolProcess;
 
     [MenuItem("Sumo2Unity/2. Run Sumo2Unity Integration")]
@@ -404,7 +397,6 @@ public class Sumo2UnityIntegrationWindow : EditorWindow
         {
             if (GUILayout.Button(running ? "Scenario Manager Already Running" : "Launch Scenario Manager", GUILayout.Height(32)))
             {
-                // Look for ScenarioManager.exe in build/ relative to the project root
                 string projectRoot = Directory.GetParent(Application.dataPath).FullName;
                 string exePath = Path.Combine(projectRoot, "build", "ScenarioManager.exe");
                 if (!File.Exists(exePath))
@@ -436,7 +428,6 @@ public class Sumo2UnityIntegrationWindow : EditorWindow
     private void OnInspectorUpdate() => Repaint();
 }
 
-// ───────────────────────────────────────────────────────────────  Window 3
 public class PerformanceFunctionsWindow : EditorWindow
 {
     private Texture2D[] demoSlides;

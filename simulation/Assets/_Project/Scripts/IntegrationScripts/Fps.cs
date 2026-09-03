@@ -2,7 +2,6 @@
 using UnityEngine;
 
 /// <summary>
-///   FPS on-screen display.
 /// </summary>
 public class Fps : MonoBehaviour
 {
@@ -20,7 +19,6 @@ public class Fps : MonoBehaviour
     [Tooltip("TMP Text element that displays the FPS counter.")]
     [SerializeField] private TextMeshProUGUI fpsText;
 
-    // ────────────────────────────────────────────────────────────────────────────
     private void OnEnable()
     {
         if (fpsText != null)

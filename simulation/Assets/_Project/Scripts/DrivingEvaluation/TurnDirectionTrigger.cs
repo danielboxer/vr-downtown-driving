@@ -1,11 +1,5 @@
 using UnityEngine;
 
-/// <summary>
-/// Placed on an exit road after a traffic light junction.
-/// When the ego vehicle enters, raises an event so DrivingEvaluator can
-/// check whether the appropriate turn signal was active.
-/// Generated automatically by RoadNetworkBuilder for left and right exits.
-/// </summary>
 [RequireComponent(typeof(BoxCollider))]
 public class TurnDirectionTrigger : MonoBehaviour
 {
@@ -15,7 +9,6 @@ public class TurnDirectionTrigger : MonoBehaviour
     [Tooltip("Road approach direction used by DrivingEvaluator for turn-signal checks.")]
     public Vector3 approachDir;
 
-    /// <summary>Raised when the ego vehicle enters the trigger.</summary>
     public static event System.Action<TurnDirectionTrigger, Collider> OnEgoCrossedTurnTrigger;
 
     private void OnTriggerEnter(Collider other)

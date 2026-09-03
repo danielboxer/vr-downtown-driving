@@ -3,16 +3,6 @@ using UnityEngine;
 using UnityEngine.InputSystem.XR;
 using Unity.Cinemachine;
 
-/// <summary>
-/// Looping menu showreel: cycles a set of CinemachineCameras, driving each along its spline
-/// and letting the brain blend to the next. Runs on unscaled time because the main menu holds
-/// Time.timeScale at 0, so CinemachineCore.UniformDeltaTimeOverride is fed the unscaled delta
-/// to keep dolly motion and blends advancing while everything else is frozen. Each camera aims
-/// at its own LookAt target (assigned in the scene) for the whole shot.
-/// In VR the brain is switched off and the rig is parented
-/// to vrViewpoint instead, with the TrackedPoseDriver enabled so the headset can still look
-/// around from that fixed spot.
-/// </summary>
 public class MenuShowreel : MonoBehaviour
 {
     [System.Serializable]
@@ -68,8 +58,7 @@ public class MenuShowreel : MonoBehaviour
 
     private void Update()
     {
-        // The headset can take a second or two to start running, so keep checking
-        // instead of trusting the state at OnEnable (same reason MenuController polls).
+        // the headset can take a second or two to start running, so keep polling
         bool vr = VrActive.IsActive;
         if (vr != _vrView)
         {
@@ -94,8 +83,7 @@ public class MenuShowreel : MonoBehaviour
             Activate((_current + 1) % shots.Count);
     }
 
-    // Switches between the flythrough and the still VR shot. The brain writes the rig
-    // transform in LateUpdate, so it has to be off for the still shot to hold.
+    // the brain writes the rig transform in LateUpdate, so it has to be off for the still shot to hold
     private void ApplyMode()
     {
         if (_brain != null)
@@ -109,8 +97,7 @@ public class MenuShowreel : MonoBehaviour
             if (_poseDriver == null)
                 Debug.LogWarning("[MenuShowreel] No TrackedPoseDriver on the rig; the VR menu view is head locked.");
 
-            // The driver writes the head pose into the local transform, so the rig has to hang
-            // off the viewpoint for that pose to be relative to it instead of the world origin.
+            // the driver writes the head pose into the local transform, so the rig hangs off the viewpoint
             if (vrViewpoint != null)
             {
                 transform.SetParent(vrViewpoint, false);

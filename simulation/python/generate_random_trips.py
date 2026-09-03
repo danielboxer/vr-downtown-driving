@@ -39,8 +39,7 @@ DEFAULT_SEED = 42
 CAR_VTYPES = ["301", "302", "303", "304", "305", "306"]
 BIKE_VTYPE = "bike"
 
-# The ego car's starting edge, kept clear of random traffic to prevent congestion
-# at t=540 that would block ego vehicle insertion.
+# kept clear of random traffic so congestion at t=540 cannot block ego insertion
 EGO_RESERVED_EDGES: set[str] = {"62"}
 
 VTYPES = [
@@ -83,7 +82,6 @@ VTYPES = [
 
 
 def resolve_scenario(scenario: str) -> tuple[str, str]:
-    """Return (scenario_dir, net_file) for the given scenario name or path."""
     if os.path.isabs(scenario) or os.sep in scenario:
         scenario_dir = os.path.normpath(scenario)
     else:
@@ -111,7 +109,6 @@ def run_random_trips(
     vehicle_class: str | None = None,
     num_flows: int = 0,
 ) -> None:
-    """Call SUMO randomTrips.py and write the result to output_file."""
     cmd = [
         sys.executable,
         RANDOM_TRIPS_PY,
@@ -150,11 +147,6 @@ def run_random_trips(
 
 
 def validate_bike_trips(net_file: str, trips_file: str, routes_file: str) -> set[str]:
-    """Run duarouter on bike trips and return the IDs of successfully routed vehicles.
-
-    Only used for individual trips (not flows); flows don't need pre-validation because
-    SUMO's online router handles unroutable departures at runtime without aborting.
-    """
     cmd = [
         DUAROUTER,
         "-n",
@@ -180,7 +172,6 @@ def validate_bike_trips(net_file: str, trips_file: str, routes_file: str) -> set
 
 
 def parse_entries(file_path: str) -> list[dict]:
-    """Parse <trip> and <flow> elements from a randomTrips output file."""
     tree = ET.parse(file_path)
     return [
         {"_tag": elem.tag, **dict(elem.attrib)}
@@ -190,7 +181,6 @@ def parse_entries(file_path: str) -> list[dict]:
 
 
 def read_base_file(base_path: str) -> list[dict]:
-    """Read existing trips/flows from a route file (excludes vType definitions)."""
     if not os.path.exists(base_path):
         return []
     tree = ET.parse(base_path)
@@ -207,7 +197,6 @@ def build_route_xml(
     bike_entries: list[dict],
     rng: random.Random,
 ) -> ET.Element:
-    """Assemble the final <routes> element with vTypes, base entries, and random entries."""
     root = ET.Element("routes")
     root.set("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance")
     root.set("xsi:noNamespaceSchemaLocation", "http://sumo.dlr.de/xsd/routes_file.xsd")
@@ -218,15 +207,12 @@ def build_route_xml(
         for k, v in attrs.items():
             vtype_elem.set(k, v)
 
-    # Assign a random car vType to each car entry, bike vType to each bike entry
     for entry in car_entries:
         entry["type"] = rng.choice(CAR_VTYPES)
     for entry in bike_entries:
         entry["type"] = BIKE_VTYPE
 
-    # Merge base and random entries into one list sorted by departure/begin time.
-    # SUMO requires the whole route file sorted, so base entries can't be written
-    # separately ahead of the sorted random ones.
+    # SUMO requires the whole route file sorted, so base entries cannot be written separately
     all_entries = base_entries + car_entries + bike_entries
     all_entries.sort(key=lambda e: float(e.get("depart") or e.get("begin") or 0))
 
@@ -381,9 +367,7 @@ def main() -> None:
             ]
 
             if args.flows == 0:
-                # Validate individual bike trips with duarouter.
-                # Flows are skipped: SUMO's online router handles unroutable departures
-                # at runtime without aborting, so pre-validation isn't needed.
+                # flows are skipped, SUMO's online router handles unroutable departures at runtime
                 print("Validating bike routes with duarouter...")
                 valid_ids = validate_bike_trips(net_file, bike_file, bike_routes_file)
                 bike_entries = [e for e in all_bike if e.get("id") in valid_ids]

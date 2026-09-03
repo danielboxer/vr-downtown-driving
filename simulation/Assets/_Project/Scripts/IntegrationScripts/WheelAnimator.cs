@@ -4,7 +4,7 @@ public class WheelAnimator : WheelAnimatorBase
 {
     protected override float ComputeSpeed(Vector3 velocity)
     {
-        // Project velocity along the vehicle's right axis (wheel spin direction for cars)
+        // right axis is the wheel spin direction for cars
         Quaternion rotation;
         if (vehicleController != null && !vehicleController.IsDetached)
             rotation = vehicleController.transform.rotation;

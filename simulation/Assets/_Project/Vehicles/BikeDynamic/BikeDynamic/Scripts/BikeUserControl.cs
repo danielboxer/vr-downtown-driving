@@ -19,21 +19,18 @@ namespace UnityStandardAssets.Bike
         [Tooltip("Name of the action map containing driving actions.")]
         public string actionMapName = "Driving";
 
-        // Resolved actions (looked up by name from the asset)
         private InputAction _steerAction;
         private InputAction _accelAction;
         private InputAction _brakeAction;
         private InputAction _reverseAction;
 
-        // Cached input values (read in Update, used in FixedUpdate)
         private float _steerInput;
         private float _accelInput;  // throttle sent to BikeController (0-1)
         private float _brakeInput;
         private bool _reverseInput;
         private float _smoothedSteer; // Smoothed keyboard steering value
 
-        // Linear speed ramp: velocity is capped to _speedRamp * MaxSpeed.
-        // This produces a constant rate of speed increase (truly linear).
+        // velocity is capped to _speedRamp * MaxSpeed, giving a constant rate of increase
         private float _speedRamp;
         private Rigidbody _rb;
 
@@ -66,14 +63,12 @@ namespace UnityStandardAssets.Bike
 
         private void Awake()
         {
-            // get the bike controller
             m_Bike = GetComponent<BikeController>();
             m_TiltSteering = GetComponent<TiltSteeringProvider>();
             m_FollowCurve = GetComponent<FollowCurve>();
             _rb = GetComponent<Rigidbody>();
 
 
-            // Resolve actions from the asset by name
             if (inputActions != null)
             {
                 var map = inputActions.FindActionMap(actionMapName, false);
@@ -169,16 +164,13 @@ namespace UnityStandardAssets.Bike
             float accel = _accelInput;
             float brake = _brakeInput;
 
-            // If FollowCurve is attached and enabled, blend the player's raw
-            // steering input with the spline-following autopilot value.
+            // blend raw steering with the spline-following autopilot when FollowCurve is enabled
             if (m_FollowCurve != null && m_FollowCurve.enabled)
                 h = m_FollowCurve.GetBlendedSteering(h, m_Bike.m_MaximumSteerAngle);
 
-            // Determine the road-wheel steering angle based on input.
             float targetAngle = h * m_Bike.m_MaximumSteerAngle;
 
-            // With the physical bike handlebar cradle active, keep the visible handlebar
-            // matched to the user's cradle angle instead of the smaller road-wheel angle.
+            // with the physical cradle active, the visible handlebar matches the cradle, not the road-wheel angle
             float visualAngle = targetAngle;
             if (m_TiltSteering != null && m_TiltSteering.IsActive)
             {
@@ -189,23 +181,19 @@ namespace UnityStandardAssets.Bike
                 );
             }
 
-            // Apply the rotation to the wheel around the Y-axis
             m_Wheel.transform.localRotation = Quaternion.Euler(0f, visualAngle, 0f);
 
-            // Pass the input to the bike controller
             m_Bike.Move(h, accel, -brake, 0f, _reverseInput);
 
             bool instant = AccelerationSetting.Mode == AccelerationMode.Instant;
             if (instant && !_reverseInput)
             {
-                // Very fast (~100ms) ramp to max cruise or a stop, removing most of
-                // the acceleration cue that causes sim sickness.
+                // ~100ms ramp, removing most of the acceleration cue that causes sim sickness
                 bool throttle = accel > 0f && brake <= 0f;
                 VrFastSpeed.Apply(_rb, throttle ? m_Bike.MaxSpeedMs : 0f, m_Bike.MaxSpeedMs, transform.forward);
             }
             else if (!instant && _autoAccelActive && _speedRamp < 0.99f)
             {
-                // Cap velocity to the speed ramp fraction of top speed for linear speed control
                 float capMs = _speedRamp * (m_Bike.MaxSpeed / 2.23693629f); // top speed in m/s
                 if (_rb.linearVelocity.magnitude > capMs)
                     _rb.linearVelocity = _rb.linearVelocity.normalized * capMs;

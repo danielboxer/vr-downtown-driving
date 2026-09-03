@@ -1,11 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-/// <summary>
-/// Spawns floating arrow indicators along the active scenario's spline
-/// to guide the driver along the intended route. Arrows bob up and down
-/// with a wave-like phase offset for a polished look.
-/// </summary>
 public class RouteArrowSpawner : MonoBehaviour
 {
     [Header("Spacing")]
@@ -41,10 +36,6 @@ public class RouteArrowSpawner : MonoBehaviour
     private Material _arrowMaterial;
     private Transform _egoTransform;
 
-    /// <summary>
-    /// Clears existing arrows and spawns new ones along the given spline.
-    /// Pass null to just clear.
-    /// </summary>
     public void SpawnArrows(Spline spline)
     {
         ClearArrows();
@@ -52,11 +43,10 @@ public class RouteArrowSpawner : MonoBehaviour
 
         EnsureMeshAndMaterial();
 
-        // Cache the ego vehicle transform for billboard rotation in Update
         if (arrowTexture != null)
             _egoTransform = GameObject.Find("f_0.0")?.transform;
 
-        // Build a lookup table of (t → cumulative distance) to place arrows at even metre intervals
+        // (t -> cumulative distance) so arrows land at even metre intervals
         const int samples = 500;
         float[] tValues = new float[samples + 1];
         float[] cumDist = new float[samples + 1];
@@ -80,11 +70,9 @@ public class RouteArrowSpawner : MonoBehaviour
         {
             float targetDist = a * spacing;
 
-            // Find the t value for this distance via the lookup table
             float t = LookUpT(tValues, cumDist, targetDist, samples);
             Vector3 pos = spline.GetPoint(t);
 
-            // Tangent via finite difference
             float tNext = Mathf.Clamp01(t + 0.005f);
             Vector3 tangent = spline.GetPoint(tNext) - pos;
             tangent.y = 0f;
@@ -96,8 +84,7 @@ public class RouteArrowSpawner : MonoBehaviour
             GameObject go = new GameObject($"RouteArrow_{a}");
             go.transform.SetParent(transform);
             go.transform.position = pos;
-            // Point the arrow's forward along the route, then tilt it to
-            // face downward so the driver can see the shape from below.
+            // tilted downward so the driver sees the shape from below
             Quaternion faceForward = Quaternion.LookRotation(tangent, Vector3.up);
             go.transform.rotation = faceForward * Quaternion.Euler(90f, 0f, 0f);
             go.transform.localScale = Vector3.one * arrowScale;
@@ -112,7 +99,6 @@ public class RouteArrowSpawner : MonoBehaviour
         Debug.Log($"[RouteArrowSpawner] Spawned {_arrows.Count} arrows (length ≈ {totalLength:F0}m, spacing {spacing}m)");
     }
 
-    /// <summary>Destroys all spawned arrow GameObjects.</summary>
     public void ClearArrows()
     {
         foreach (var a in _arrows)
@@ -128,7 +114,7 @@ public class RouteArrowSpawner : MonoBehaviour
     {
         if (_arrows.Count == 0) return;
 
-        // Billboard viewer: prefer the main camera (VR headset), fall back to the cached ego transform
+        // prefer the main camera (VR headset), fall back to the cached ego transform
         Transform viewer = arrowTexture != null
             ? (Camera.main != null ? Camera.main.transform : _egoTransform)
             : null;
@@ -142,8 +128,7 @@ public class RouteArrowSpawner : MonoBehaviour
             pos.y = _baseY[i] + bob;
             _arrows[i].position = pos;
 
-            // Rotate the textured arrow on Y to always face the ego vehicle,
-            // preserving the 90-degree downward tilt so it reads from below.
+            // Y-only rotation preserves the 90-degree downward tilt
             if (viewer != null)
             {
                 Vector3 toViewer = viewer.position - _arrows[i].position;
@@ -154,11 +139,7 @@ public class RouteArrowSpawner : MonoBehaviour
         }
     }
 
-    // ── Helpers ──
 
-    /// <summary>
-    /// Binary-search the lookup table to convert a cumulative distance to a t value.
-    /// </summary>
     private static float LookUpT(float[] tValues, float[] cumDist, float distance, int samples)
     {
         int lo = 0, hi = samples;
@@ -171,7 +152,6 @@ public class RouteArrowSpawner : MonoBehaviour
 
         if (lo == 0) return tValues[0];
 
-        // Lerp between the two bracketing samples for precision
         float segLen = cumDist[lo] - cumDist[lo - 1];
         float frac = (segLen > 0.0001f)
             ? (distance - cumDist[lo - 1]) / segLen
@@ -215,17 +195,12 @@ public class RouteArrowSpawner : MonoBehaviour
 
             if (_arrowMaterial == null)
             {
-                // Unlit material so arrows are visible in any lighting
                 _arrowMaterial = new Material(Shader.Find("Unlit/Color"));
                 _arrowMaterial.color = Color.white;
             }
         }
     }
 
-    /// <summary>
-    /// Creates a flat double-sided 1x1 quad on the XZ plane with UV coordinates.
-    /// Used when arrowTexture is assigned; the image alpha defines the arrow shape.
-    /// </summary>
     private static Mesh CreateQuadMesh()
     {
         var mesh = new Mesh { name = "RouteArrowQuad" };
@@ -246,7 +221,7 @@ public class RouteArrowSpawner : MonoBehaviour
             new Vector2(0f, 1f),
         };
 
-        // Double-sided: top face (+Y) and bottom face (-Y, reversed winding)
+        // double-sided: +Y top face and -Y bottom face with reversed winding
         mesh.triangles = new[]
         {
             0, 3, 1,  1, 3, 2,
@@ -258,10 +233,6 @@ public class RouteArrowSpawner : MonoBehaviour
         return mesh;
     }
 
-    /// <summary>
-    /// Creates a flat double-sided arrow mesh on the XZ plane (pointing +Z).
-    /// Both faces are rendered so it is visible from above and below.
-    /// </summary>
     private static Mesh CreateArrowMesh()
     {
         var mesh = new Mesh { name = "RouteArrow" };
@@ -287,12 +258,10 @@ public class RouteArrowSpawner : MonoBehaviour
 
         mesh.triangles = new[]
         {
-            // Top face (visible from +Y)
             0, 6, 1,
             1, 6, 2,
             5, 4, 3,
 
-            // Bottom face (visible from -Y) — reversed winding
             1, 6, 0,
             2, 6, 1,
             3, 4, 5,

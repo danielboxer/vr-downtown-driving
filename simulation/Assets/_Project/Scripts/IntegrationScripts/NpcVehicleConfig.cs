@@ -1,11 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-/// <summary>
-/// Shared configuration for SUMO-controlled NPC vehicles.
-/// Assign a single asset in SimulationController; VehicleControllers read from it
-/// at runtime instead of storing per-instance copies.
-/// </summary>
 [CreateAssetMenu(fileName = "NpcVehicleConfig", menuName = "Simulation/NPC Vehicle Config")]
 public class NpcVehicleConfig : ScriptableObject
 {
@@ -51,7 +46,7 @@ public class NpcVehicleConfig : ScriptableObject
     [Tooltip("Seconds after a collision before the detached NPC debris is destroyed. Set 0 to never despawn.")]
     public float detachedDespawnDelay = 90f;
 
-    // Pre-computed squared distance for fast comparison (set in OnValidate/OnEnable)
+    // kept in sync in OnValidate and OnEnable
     [System.NonSerialized] public float highDetailDistanceSqr;
 
     private void OnEnable()

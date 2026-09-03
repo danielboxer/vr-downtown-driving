@@ -1,17 +1,8 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-/// <summary>
-/// Lightweight SUMO replacement for testing.
-/// Continuously spawns vehicles at the attached GameObject's position.
-/// Each vehicle drives in a random direction using the same VehicleController
-/// pipeline that the real simulation uses.
-/// </summary>
 public class TestSimulation : MonoBehaviour
 {
-    // ──────────────────────────────────────────────────────────────
-    //  Inspector
-    // ──────────────────────────────────────────────────────────────
 
     [Header("Step timing (match your SimulationController setting)")]
     [Tooltip("Seconds between position updates, mirrors SUMO step length.")]
@@ -30,9 +21,6 @@ public class TestSimulation : MonoBehaviour
     [Tooltip("Seconds before each vehicle is destroyed (0 = never).")]
     public float lifetime = 15f;
 
-    // ──────────────────────────────────────────────────────────────
-    //  Runtime
-    // ──────────────────────────────────────────────────────────────
 
     struct LiveVehicle
     {
@@ -51,7 +39,6 @@ public class TestSimulation : MonoBehaviour
 
     void FixedUpdate()
     {
-        // ── Spawn new vehicles on interval ──
         spawnTimer += Time.fixedDeltaTime;
         if (spawnTimer >= spawnInterval && prefabs.Count > 0)
         {
@@ -59,7 +46,6 @@ public class TestSimulation : MonoBehaviour
             SpawnVehicle();
         }
 
-        // ── Update existing vehicles ──
         stepTimer += Time.fixedDeltaTime;
         if (stepTimer < stepLength) return;
         stepTimer -= stepLength;
@@ -71,7 +57,6 @@ public class TestSimulation : MonoBehaviour
             // Skip vehicles detached by collision
             if (v.vc.IsDetached) continue;
 
-            // Destroy after lifetime expires
             if (lifetime > 0f && Time.time - v.spawnTime >= lifetime)
             {
                 Destroy(v.go);
@@ -81,7 +66,6 @@ public class TestSimulation : MonoBehaviour
 
             float dt = stepLength;
 
-            // Drive straight in the random heading direction
             float rad = v.heading * Mathf.Deg2Rad;
             Vector3 fwd = new Vector3(Mathf.Cos(rad), 0, Mathf.Sin(rad));
             v.pos += fwd * v.speed * dt;

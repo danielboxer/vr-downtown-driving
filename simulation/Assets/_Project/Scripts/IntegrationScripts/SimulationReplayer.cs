@@ -7,15 +7,6 @@ using System.Text;
 using UnityEngine;
 using UnityEngine.Networking;
 
-/// <summary>
-/// Plays a baked SUMO recording instead of a live SUMO/ZMQ link. The WebGL build
-/// can't run SUMO, so traffic is pre-recorded by python/record_scenario.py and
-/// replayed here by feeding each record into SimulationController.HandleMessage,
-/// the same consumer the live build uses. Auto-added on WebGL by SimulationController.
-///
-/// Recordings live in StreamingAssets/Recordings/&lt;scenario&gt;.jsonl.gz, one JSON
-/// message per line with a leading "t" (seconds from 0).
-/// </summary>
 [RequireComponent(typeof(SimulationController))]
 public class SimulationReplayer : MonoBehaviour
 {
@@ -51,8 +42,7 @@ public class SimulationReplayer : MonoBehaviour
             _scenarioManager.OnScenarioChanged += OnScenarioChanged;
 
 #if UNITY_EDITOR
-        // The scene boots the desktop default scenario; switch to the one under test
-        // so its ego and recording load. Fires OnScenarioChanged, handled below.
+        // the scene boots the desktop default scenario, so switch to the one under test
         if (_scenarioManager != null && _scenarioManager.ActiveScenario != editorScenario)
             _scenarioManager.ApplyScenario(editorScenario.ToString());
 #endif
@@ -159,8 +149,6 @@ public class SimulationReplayer : MonoBehaviour
         HideWebLoadingOverlay();
     }
 
-    // Fades out the WebGL template's scene-load overlay once the recording is
-    // loaded (or failed) and the scene is up. No-op off the web build.
 #if UNITY_WEBGL && !UNITY_EDITOR
     [System.Runtime.InteropServices.DllImport("__Internal")]
     private static extern void HideLoadingOverlay();
@@ -177,10 +165,7 @@ public class SimulationReplayer : MonoBehaviour
     {
         _records.Clear();
 
-        // The recording is gzip on disk, but some servers send the .gz with
-        // Content-Encoding: gzip, so the browser inflates it before it reaches us
-        // (UnityWebRequest goes through fetch). Inflate only when the gzip magic
-        // bytes are present; otherwise the data is already plain JSON.
+        // some servers send the .gz with Content-Encoding: gzip and the browser inflates it first, so check the magic bytes
         bool gzipped = data.Length >= 2 && data[0] == 0x1f && data[1] == 0x8b;
 
         Stream input = new MemoryStream(data);
@@ -194,8 +179,7 @@ public class SimulationReplayer : MonoBehaviour
             {
                 if (line.Length == 0)
                     continue;
-                // Skip the config record: this component already owns scenario selection,
-                // and feeding it back through HandleMessage would re-enter ApplyScenario.
+                // feeding the config record back through HandleMessage would re-enter ApplyScenario
                 if (line.IndexOf("\"type\":\"config\"", System.StringComparison.Ordinal) >= 0)
                     continue;
                 _records.Add(new Record { t = ExtractT(line), json = line });
@@ -203,7 +187,6 @@ public class SimulationReplayer : MonoBehaviour
         }
     }
 
-    // Reads the number in the leading {"t":<number>, ... without a full JSON parse.
     private static float ExtractT(string line)
     {
         int colon = line.IndexOf(':');
@@ -217,8 +200,7 @@ public class SimulationReplayer : MonoBehaviour
             NumberStyles.Float, CultureInfo.InvariantCulture, out float t) ? t : 0f;
     }
 
-    // Fade to black, clear traffic, rewind, fade back in. The fade hides the seam
-    // where every vehicle would otherwise jump back to its start position.
+    // the fade hides the seam where every vehicle jumps back to its start position
     private IEnumerator LoopRestart()
     {
         _looping = true;

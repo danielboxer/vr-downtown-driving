@@ -3,10 +3,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 
-/// <summary>
-/// Receives the scenario name from the Python/SUMO config message and
-/// activates the correct ego vehicle and spline already placed in the scene.
-/// </summary>
 public class ScenarioManager : MonoBehaviour
 {
     [Header("Ego Vehicles (disabled in scene)")]
@@ -35,20 +31,17 @@ public class ScenarioManager : MonoBehaviour
     [ReadOnly, SerializeField] private ScenarioId _activeScenario;
     [ReadOnly, SerializeField] private bool _scenarioActive;
 
-    /// <summary>Fired whenever the active scenario changes.</summary>
     public event Action<ScenarioId> OnScenarioChanged;
-    /// <summary>The scenario that is currently active.</summary>
     public ScenarioId ActiveScenario => _activeScenario;
 
     private SimulationController _simController;
     private DrivingEvaluator drivingEvaluator;
     private RouteArrowSpawner _arrowSpawner;
     private Coroutine _fadeCoroutine;
-    // the fade quad created by the running FadeTransition, so an interrupted transition can destroy it
+    // the running FadeTransition's quad, so an interrupted transition can destroy it
     private GameObject _activeFadeQuad;
-    // tracks the scenario currently being transitioned to (set before the coroutine starts)
     private ScenarioId? _pendingScenario;
-    // scene-defined spawn transforms captured in Awake before any physics runs
+    // captured in Awake before any physics runs
     private Vector3 _egoCarSpawnPos;
     private Quaternion _egoCarSpawnRot;
     private Vector3 _egoBikeSpawnPos;
@@ -60,7 +53,7 @@ public class ScenarioManager : MonoBehaviour
         drivingEvaluator = GetComponent<DrivingEvaluator>();
         _arrowSpawner = GetComponent<RouteArrowSpawner>();
 
-        // Capture scene-defined spawn transforms before any scenario enables the ego vehicles.
+        // captured before any scenario enables the ego vehicles
         if (egoCar != null) { _egoCarSpawnPos = egoCar.transform.position; _egoCarSpawnRot = egoCar.transform.rotation; }
         if (egoBike != null) { _egoBikeSpawnPos = egoBike.transform.position; _egoBikeSpawnRot = egoBike.transform.rotation; }
     }
@@ -71,11 +64,6 @@ public class ScenarioManager : MonoBehaviour
             StartScenario();
     }
 
-    /// <summary>
-    /// Applies the default scenario (no fade). The WebGL build has no Scenario Manager
-    /// to switch scenarios, so it boots straight into downtown. Called at Start unless
-    /// deferStart is set, in which case the main menu Play button calls it.
-    /// </summary>
     public void StartScenario()
     {
 #if UNITY_WEBGL
@@ -87,16 +75,10 @@ public class ScenarioManager : MonoBehaviour
 
     private void OnDestroy()
     {
-        // Export any remaining evaluation data when the application quits
         if (drivingEvaluator != null)
             drivingEvaluator.EndEvaluation();
     }
 
-    /// <summary>
-    /// Called by SimulationController when a "config" message arrives from Python.
-    /// Parses the scenario name string into a ScenarioId.
-    /// If a fadeOverlay is assigned, fades to black before switching, then fades back in.
-    /// </summary>
     public void ApplyScenario(string scenarioName)
     {
         if (!Enum.TryParse(scenarioName, out ScenarioId id))
@@ -105,11 +87,11 @@ public class ScenarioManager : MonoBehaviour
             return;
         }
 
-        // skip if this scenario is already active (avoids work on repeated config messages)
+        // repeated config messages would otherwise redo the work
         if (_scenarioActive && id == _activeScenario)
             return;
 
-        // skip if a fade to this same scenario is already running (repeated warm-up messages)
+        // repeated warm-up messages would otherwise restart the fade
         if (_fadeCoroutine != null && _pendingScenario == id)
             return;
 
@@ -130,10 +112,6 @@ public class ScenarioManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Tears the scenario down to the pre-Play state: ends evaluation, clears NPC
-    /// vehicles and disables the ego vehicles. Used when returning to the main menu.
-    /// </summary>
     public void StopScenario()
     {
         if (drivingEvaluator != null && _scenarioActive)
@@ -145,10 +123,6 @@ public class ScenarioManager : MonoBehaviour
         _scenarioActive = false;
     }
 
-    /// <summary>
-    /// Restarts the currently active scenario from the spawn position.
-    /// Unlike ApplyScenario, this always runs even if the scenario is already active.
-    /// </summary>
     public void RestartScenario()
     {
         if (!_scenarioActive) return;
@@ -162,8 +136,7 @@ public class ScenarioManager : MonoBehaviour
 
     private IEnumerator FadeTransition(ScenarioId scenario)
     {
-        // Create a fade quad on the current active camera.
-        // Using Camera.main at transition time handles camera changes between car and bike scenarios.
+        // Camera.main at transition time handles the camera changing between car and bike scenarios
         GameObject vrQuadGO = null;
         Renderer vrQuadRenderer = null;
         Camera cam = Camera.main;
@@ -175,12 +148,10 @@ public class ScenarioManager : MonoBehaviour
             _activeFadeQuad = vrQuadGO;
         }
 
-        // fade to black
         yield return FadeOverlay(vrQuadRenderer, 0f, 1f);
 
         ApplyScenarioImmediate(scenario);
 
-        // fade back in
         yield return FadeOverlay(vrQuadRenderer, 1f, 0f);
 
         if (vrQuadGO != null) Destroy(vrQuadGO);
@@ -189,11 +160,6 @@ public class ScenarioManager : MonoBehaviour
         _pendingScenario = null;
     }
 
-    /// <summary>
-    /// Fades to black, runs <paramref name="atBlack"/>, then fades back in. Used by the
-    /// replay loop to hide the traffic reset seam. Kept independent of the scenario-change
-    /// fade so it doesn't disturb _fadeCoroutine / _pendingScenario state.
-    /// </summary>
     public Coroutine FadeThrough(Action atBlack)
     {
         return StartCoroutine(FadeThroughRoutine(atBlack));
@@ -234,12 +200,11 @@ public class ScenarioManager : MonoBehaviour
         }
         else
         {
-            // No camera available — just wait out the duration so timing stays consistent.
+            // no camera, so just wait out the duration to keep timing consistent
             yield return new WaitForSeconds(fadeDuration);
         }
     }
 
-    // Creates a quad parented to the camera, sized to fill its FOV.
     private GameObject CreateFadeQuad(Camera cam)
     {
         var quadGO = GameObject.CreatePrimitive(PrimitiveType.Quad);
@@ -259,7 +224,6 @@ public class ScenarioManager : MonoBehaviour
         return quadGO;
     }
 
-    // Sets material alpha on the _BaseColor property used by URP Unlit.
     private static void SetMaterialAlpha(Material mat, float alpha)
     {
         Color c = mat.GetColor("_BaseColor");
@@ -269,7 +233,6 @@ public class ScenarioManager : MonoBehaviour
 
     private void ApplyScenarioImmediate(ScenarioId scenario)
     {
-        // Export evaluation data from the previous scenario before switching
         if (drivingEvaluator != null && _scenarioActive)
             drivingEvaluator.EndEvaluation();
 
@@ -278,16 +241,13 @@ public class ScenarioManager : MonoBehaviour
         Debug.Log($"ScenarioManager: Applying scenario '{scenario}'");
         OnScenarioChanged?.Invoke(scenario);
 
-        // Remove all active NPC vehicles before switching scenario.
         if (_simController != null)
             _simController.ClearAllNpcVehicles();
 
-        // Disable everything first
         if (egoCar != null) egoCar.SetActive(false);
         if (egoBike != null) egoBike.SetActive(false);
 
-        // Disable only the known route splines so they don't interfere with the new scenario.
-        // Tree placement splines and other non-route splines are left untouched.
+            // only the known route splines, tree placement splines must stay enabled
         if (carRightTurnSpline != null) carRightTurnSpline.SetActive(false);
         if (bikeRightTurnSpline != null) bikeRightTurnSpline.SetActive(false);
 
@@ -337,7 +297,6 @@ public class ScenarioManager : MonoBehaviour
 
         if (activeEgo != null)
         {
-            // Reset to the scene-defined spawn position before enabling.
             Vector3 spawnPos = (activeEgo == egoCar) ? _egoCarSpawnPos : _egoBikeSpawnPos;
             Quaternion spawnRot = (activeEgo == egoCar) ? _egoCarSpawnRot : _egoBikeSpawnRot;
             var rb = activeEgo.GetComponent<Rigidbody>();
@@ -347,16 +306,13 @@ public class ScenarioManager : MonoBehaviour
             activeEgo.SetActive(true);
             _simController.RegisterEgoVehicle(activeEgo);
 
-            // Pass the active scenario spline directly — no FindFirstObjectByType needed
             var followCurve = activeEgo.GetComponent<FollowCurve>();
             if (followCurve != null)
                 followCurve.RefreshSpline(activeSpline);
 
-            // Spawn route arrows along the active spline (if any)
             if (_arrowSpawner != null)
                 _arrowSpawner.SpawnArrows(activeSpline);
 
-            // Start driving evaluation for this scenario
             if (drivingEvaluator != null)
                 drivingEvaluator.BeginEvaluation(activeEgo, scenario);
         }

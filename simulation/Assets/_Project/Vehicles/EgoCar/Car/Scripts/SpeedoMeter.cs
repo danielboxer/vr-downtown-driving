@@ -21,7 +21,6 @@ public class Speedometer : MonoBehaviour
     [Tooltip("Seconds per flash half-cycle for the turn signal arrow. Lower = faster. Match to your blinker sound interval.")]
     public float signalFlashInterval = 0.5f;
 
-    // Flash state for turn signal display
     private float _signalFlashTimer = 0f;
     private bool _signalFlashVisible = false;
 
@@ -41,7 +40,6 @@ public class Speedometer : MonoBehaviour
         // Accumulate time
         timeSinceLastUpdate += Time.deltaTime;
 
-        // Advance the turn-signal flash timer every frame for accurate timing
         _signalFlashTimer += Time.deltaTime;
         if (_signalFlashTimer >= signalFlashInterval)
         {
@@ -49,7 +47,6 @@ public class Speedometer : MonoBehaviour
             _signalFlashTimer -= signalFlashInterval;
         }
 
-        // Check if it's time to update the speed
         if (timeSinceLastUpdate >= updateInterval)
         {
             // Calculate speed in km/h (example: velocity.magnitude is m/s, multiply by 3.6 to get km/h)

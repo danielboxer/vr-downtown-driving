@@ -61,7 +61,7 @@ namespace UnityStandardAssets.Bike
 
             m_EngineSource = CreateEngineAudioSource(engineClip);
 
-            // slight randomisation for natural feel, derived from the stable base so it doesn't drift each start
+            // derived from the stable base so the randomisation doesn't drift each start
             m_PitchWithOffset = pitchMultiplier * (1f + Random.Range(-randomPitchOffset, randomPitchOffset));
 
             m_EngineSource.volume = 0f;
@@ -83,7 +83,7 @@ namespace UnityStandardAssets.Bike
 
             if (isStopped)
             {
-                // silence but keep the source alive; only destroy on true out-of-range in StopSound
+                // keep the source alive, StopSound destroys it on true out-of-range
                 m_EngineSource.volume = 0f;
                 return;
             }
@@ -96,7 +96,6 @@ namespace UnityStandardAssets.Bike
             m_EngineSource.pitch = pitch;
             m_EngineSource.dopplerLevel = useDoppler ? dopplerLevel : 0f;
 
-            // base volume 0.3-1.0, then scaled by masterVolume
             float baseVol = Mathf.Lerp(0.3f, 1f, speedFactor);
             m_EngineSource.volume = baseVol * masterVolume;   // <<< scaled
         }

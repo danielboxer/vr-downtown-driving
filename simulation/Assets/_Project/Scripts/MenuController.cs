@@ -15,9 +15,6 @@ using Unity.XR.CoreUtils;
 using UnityEngine.XR.Interaction.Toolkit.Inputs.Simulation;
 using Debug = UnityEngine.Debug;
 
-/// <summary>
-/// Handles the in-game overlay menu.
-/// </summary>
 public class MenuController : MonoBehaviour
 {
     [Header("References")]
@@ -80,10 +77,8 @@ public class MenuController : MonoBehaviour
     [Tooltip("Assign InputSystem_Actions asset. The ToggleMenu action is resolved from the Driving map.")]
     public InputActionAsset inputActions;
 
-    /// <summary>Fired when the menu panel opens (true) or closes (false). The main menu uses this to return after Options.</summary>
     public event Action<bool> MenuOpenChanged;
 
-    /// <summary>When false, the ToggleMenu keybind is ignored. The main menu clears this while it is showing.</summary>
     public bool ToggleMenuKeyEnabled { get; set; } = true;
 
     private InputAction _toggleMenuAction;
@@ -98,13 +93,9 @@ public class MenuController : MonoBehaviour
 #endif
     private Coroutine _controllerVisibilitySyncCoroutine;
 
-    // whether the HUD elements (FPS counter + toggle button) are shown
     private bool _displayVisible = true;
-    // whether the menu panel is currently open
     private bool _menuOpen = false;
-    // whether the physical XR controller visuals are shown
     private bool _controllersVisible = false;
-    // cached renderers on the Left Hand and Right Hand XR controller visual prefabs
     private Renderer[] _controllerRenderers = System.Array.Empty<Renderer>();
     private float _nextControllerVisibilitySyncTime;
     private const float ControllerVisibilitySyncInterval = 0.25f;
@@ -123,28 +114,22 @@ public class MenuController : MonoBehaviour
         if (_scenarioManager != null)
             _scenarioManager.OnScenarioChanged += OnScenarioChanged;
 
-        // Cache renderers on the XR controller visual prefabs so they can be
-        // toggled without disabling the TrackedPoseDrivers.
+        // cached so the visuals can be toggled without disabling the TrackedPoseDrivers
         CacheControllerRenderers();
         SetControllerRenderersVisible(_controllersVisible);
 
         // The menu is a screen-space canvas, so only the mouse can click it.
         SetMouseOwnedMenuPointer();
 
-        // Auto-enable the interaction simulator when no real XR device is running.
-        // Use a coroutine so we can wait for the XR display subsystem to finish
-        // initializing (some headsets, e.g. Quest 3 via SteamVR, are not yet active
-        // when Start() runs, which would incorrectly enable the simulator).
+        // wait for the XR display subsystem, Quest 3 via SteamVR is not active yet when Start runs
         if (xrInteractionSimulator != null && !deferSimulatorSetup)
             StartCoroutine(AutoConfigureSimulator());
 
-        // Panel starts hidden; FPS and toggle button start visible.
         _displayVisible = true;
         _menuOpen = false;
         RefreshUI();
 
-        // Set initial button label states. The simulator label is set at the
-        // end of AutoConfigureSimulator() once its state is resolved.
+        // the simulator label is set at the end of AutoConfigureSimulator once its state resolves
         SetToggleLabel(displayButtonLabel, "Display", _displayVisible);
         SetToggleLabel(controllerButtonLabel, "Controllers", _controllersVisible);
         SyncSettingControls();
@@ -197,26 +182,21 @@ public class MenuController : MonoBehaviour
     private void RefreshUI()
     {
         if (menuPanel != null) menuPanel.SetActive(_menuOpen);
-        // Button is visible whenever the HUD is on; the icon switches between gear (closed) and X (open).
+        // the icon switches between gear (closed) and X (open)
         if (menuToggleButton != null) menuToggleButton.SetActive(_displayVisible);
         if (_fpsDisplay != null) _fpsDisplay.enabled = _displayVisible;
         if (_scenarioLabel != null) _scenarioLabel.enabled = _displayVisible;
-        // Swap the button icon based on whether the menu is currently open.
         if (menuToggleButtonIcon != null)
             menuToggleButtonIcon.sprite = _menuOpen ? closeMenuSprite : openMenuSprite;
-        // Simulator HUD follows the same visibility as the rest of the display.
         if (xrSimulatorHUD != null) xrSimulatorHUD.SetActive(_displayVisible);
     }
 
-    // ── Button handlers ────────────────────────────────────────────────────────
 
-    /// <summary>Opens or closes the menu panel. Wire to the HUD toggle button and the panel's close button.</summary>
     public void OnToggleMenu()
     {
         SetMenuOpen(!_menuOpen);
     }
 
-    /// <summary>Opens or closes the menu panel explicitly.</summary>
     public void SetMenuOpen(bool open)
     {
         _menuOpen = open;
@@ -225,14 +205,12 @@ public class MenuController : MonoBehaviour
         MenuOpenChanged?.Invoke(_menuOpen);
     }
 
-    /// <summary>Runs the deferred XR simulator auto-configuration (called from the main menu Play button).</summary>
     public void RunSimulatorSetup()
     {
         if (xrInteractionSimulator != null)
             StartCoroutine(AutoConfigureSimulator());
     }
 
-    /// <summary>Hides or shows the FPS counter and HUD toggle button.</summary>
     public void OnToggleDisplay()
     {
         _displayVisible = !_displayVisible;
@@ -241,15 +219,12 @@ public class MenuController : MonoBehaviour
         SetToggleLabel(displayButtonLabel, "Display", _displayVisible);
     }
 
-    /// <summary>Launches the ScenarioManager PyInstaller binary in a separate process.</summary>
     public void OnOpenScenarioManager()
     {
 #if UNITY_WEBGL
         ShowFeedback("Scenario Manager unavailable in web build");
 #else
-        // Absolute Inspector override takes priority.
-        // In the Editor, default to simulation/build/ScenarioManager.exe.
-        // In a standalone build, default to ScenarioManager.exe beside the game .exe.
+        // rooted scenarioManagerExePath wins, otherwise simulation/build in the Editor and beside the game .exe standalone
         bool hasAbsoluteOverride = !string.IsNullOrEmpty(scenarioManagerExePath)
             && System.IO.Path.IsPathRooted(scenarioManagerExePath);
         string exePath;
@@ -268,9 +243,7 @@ public class MenuController : MonoBehaviour
                 System.IO.Path.Combine(Application.dataPath, "..", "ScenarioManager.exe"));
         }
 
-        // Don't open a second instance if one is already running.
-        // Uses WaitForSingleObject on the stored handle — Process.GetProcessesByName is
-        // also unreliable in Mono Unity standalone builds.
+        // WaitForSingleObject on the stored handle, Process.GetProcessesByName is unreliable in Mono standalone builds
         bool alreadyRunning = IsScenarioManagerRunning();
         if (alreadyRunning)
         {
@@ -281,16 +254,14 @@ public class MenuController : MonoBehaviour
         if (!System.IO.File.Exists(exePath))
         {
             Debug.LogWarning($"[MenuController] Scenario Manager executable not found at: {exePath}");
-            // Escape backslashes before passing to TMP: \t and \v in Windows paths
-            // are interpreted as tab/vertical-tab escape sequences by TMP's text parser.
+            // TMP treats the escape sequences in Windows paths as tab and vertical tab
             ShowFeedback($"Not found: {exePath.Replace("\\", "\\\\")}");
             return;
         }
 
         try
         {
-            // Use P/Invoke CreateProcess directly — Mono's Process.Start is broken on
-            // Windows in Unity builds and silently fails even for simple executables.
+            // Mono's Process.Start silently fails on Windows in Unity builds
             bool launched = WinLaunchDetached(exePath, System.IO.Path.GetDirectoryName(exePath));
             if (launched)
                 ShowFeedback("Scenario Manager launching...");
@@ -305,7 +276,6 @@ public class MenuController : MonoBehaviour
 #endif
     }
 
-    /// <summary>Triggers calibrate-steering (same as the Calibrate keybind).</summary>
     public void OnCalibrateSteering()
     {
         _tiltSteering = ResolveActiveTiltSteering();
@@ -342,7 +312,6 @@ public class MenuController : MonoBehaviour
         return null;
     }
 
-    /// <summary>Restarts the scenario and sends the SUMO restart command</summary>
     public void OnRestartScenario()
     {
         ExchangeData.SendCommand("{\"type\":\"command\",\"command\":\"RESTART_SIMULATION\"}");
@@ -354,15 +323,11 @@ public class MenuController : MonoBehaviour
             Debug.LogWarning("[MenuController] No ScenarioManager found in scene.");
     }
 
-    /// <summary>Toggles the XR Interaction Simulator on or off.</summary>
     public void OnToggleInteractionSimulator()
     {
         if (xrInteractionSimulator != null)
         {
-            // Block enabling the simulator while a real XR headset is active. The
-            // simulator removes the real HMD from the Input System on enable, which
-            // breaks TrackedPoseDriver head tracking for the rest of the play session
-            // even after the simulator is turned off again.
+            // enabling the simulator removes the real HMD from the Input System and breaks TrackedPoseDriver for the rest of the session
             if (VrActive.IsActive && !xrInteractionSimulator.activeSelf)
             {
                 ShowFeedback("Headset connected, simulator unavailable");
@@ -380,7 +345,6 @@ public class MenuController : MonoBehaviour
         }
     }
 
-    /// <summary>Hides or shows the XR controller visual models (Left Hand / Right Hand renderers) without affecting tracking.</summary>
     public void OnToggleControllerVisuals()
     {
         // Always re-cache so the correct vehicle's renderers are used after a switch.
@@ -392,9 +356,7 @@ public class MenuController : MonoBehaviour
             return;
         }
 
-        // Derive the new state from the actual renderers rather than the tracked flag:
-        // if any are currently visible, hide all; if all are hidden, show all.
-        // This avoids sync issues when switching vehicles.
+        // derive from the actual renderers, not the flag, so a vehicle switch cannot desync
         bool anyVisible = false;
         foreach (var r in _controllerRenderers)
         {
@@ -422,7 +384,6 @@ public class MenuController : MonoBehaviour
         _controllerVisibilitySyncCoroutine = null;
     }
 
-    /// <summary>Switches between instant acceleration (press once, keep going) and the vehicle's own gradual physics.</summary>
     public void OnToggleAccelerationMode()
     {
         AccelerationSetting.Mode = AccelerationSetting.Mode == AccelerationMode.Instant
@@ -438,7 +399,6 @@ public class MenuController : MonoBehaviour
             accelerationButtonLabel.text = $"Acceleration: {AccelerationSetting.Mode}";
     }
 
-    /// <summary>Slider callback. The slider counts 5 km/h steps so it can only land on multiples of 5.</summary>
     public void OnMaxSpeedChanged(float steps)
     {
         MaxSpeedSetting.Kmh = steps * MaxSpeedSetting.StepKmh;
@@ -451,7 +411,6 @@ public class MenuController : MonoBehaviour
             maxSpeedLabel.text = $"Max Speed: {MaxSpeedSetting.Kmh:F0} km/h";
     }
 
-    /// <summary>Steps the vignette through off, low and high.</summary>
     public void OnCycleVignette()
     {
         int levelCount = Enum.GetValues(typeof(VignetteLevel)).Length;
@@ -466,14 +425,12 @@ public class MenuController : MonoBehaviour
             vignetteButtonLabel.text = $"Vignette: {VignetteSetting.Level}";
     }
 
-    /// <summary>Slider callback for overall volume. The slider counts whole percent.</summary>
     public void OnMasterVolumeChanged(float percent)
     {
         AudioListener.volume = percent / 100f;
         SetPercentLabel(masterVolumeLabel, "Master Volume", percent);
     }
 
-    /// <summary>Slider callback for the warning tone and voice prompts. The slider counts whole percent.</summary>
     public void OnWarningVolumeChanged(float percent)
     {
         var evaluator = ResolveDrivingEvaluator();
@@ -518,7 +475,6 @@ public class MenuController : MonoBehaviour
         SetPercentLabel(warningVolumeLabel, "Warning Volume", warningPercent);
     }
 
-    /// <summary>Hides or shows the XR Interaction Simulator HUD overlay without disabling the simulator input.</summary>
     public void OnToggleSimulatorHUD()
     {
         if (xrSimulatorHUD != null)
@@ -533,7 +489,6 @@ public class MenuController : MonoBehaviour
         }
     }
 
-    /// <summary>Shows a brief feedback message in the menu panel, then fades it out.</summary>
     public void ShowFeedback(string message)
     {
         if (feedbackText == null) return;
@@ -543,11 +498,7 @@ public class MenuController : MonoBehaviour
         _feedbackCoroutine = StartCoroutine(FeedbackRoutine(message));
     }
 
-    // Waits up to 3 seconds for the XR display subsystem to start running, then
-    // enables the simulator only if no real XR display is active. Using
-    // XRDisplaySubsystem.running is more reliable than XRSettings.isDeviceActive
-    // because some headsets (e.g. Quest 3 via SteamVR) are not yet active at
-    // the time Start() executes.
+    // XRDisplaySubsystem.running beats XRSettings.isDeviceActive, Quest 3 via SteamVR is not active when Start runs
     private IEnumerator AutoConfigureSimulator()
     {
         float timeout = 3f;
@@ -557,7 +508,6 @@ public class MenuController : MonoBehaviour
         {
             if (VrActive.IsActive)
             {
-                // Real headset confirmed active: keep simulator disabled.
                 xrInteractionSimulator.SetActive(false);
                 break;
             }
@@ -566,11 +516,9 @@ public class MenuController : MonoBehaviour
             yield return null;
         }
 
-        // If we timed out with no running display, enable the simulator.
         if (!xrInteractionSimulator.activeSelf)
             xrInteractionSimulator.SetActive(!VrActive.IsActive);
 
-        // Auto-find the simulator HUD now that the prefab Awake has run.
         if (xrSimulatorHUD == null)
         {
             foreach (Transform child in xrInteractionSimulator.transform)
@@ -583,18 +531,13 @@ public class MenuController : MonoBehaviour
             }
         }
 
-        // Sync HUD visibility with the current display state.
         if (xrSimulatorHUD != null)
             xrSimulatorHUD.SetActive(xrInteractionSimulator.activeSelf && _displayVisible);
 
-        // Update simulator button label now that auto-configure has settled.
         SetToggleLabel(simulatorButtonLabel, "XR Sim", xrInteractionSimulator.activeSelf);
     }
 
-    // A unified pointer hands the single UI pointer to whichever tracked device is
-    // live, which locks the operator's mouse out while a headset or the simulator is
-    // running. The menu canvas is screen space and never reaches the headset anyway,
-    // so the mouse always keeps its own pointer.
+    // a unified pointer would lock the operator's mouse out, and the screen-space canvas never reaches the headset anyway
     private void SetMouseOwnedMenuPointer()
     {
         var uiModule = FindFirstObjectByType<InputSystemUIInputModule>();
@@ -602,20 +545,15 @@ public class MenuController : MonoBehaviour
             uiModule.pointerBehavior = UIPointerBehavior.SingleMouseOrPenButMultiTouchAndTrack;
     }
 
-    // Sets a toggle button's label to "<name>: ON" or "<name>: OFF".
     private static void SetToggleLabel(TextMeshProUGUI label, string name, bool on)
     {
         if (label != null)
             label.text = $"{name}: {(on ? "ON" : "OFF")}";
     }
 
-    // Finds the Left Hand and Right Hand Renderer components under the XR Origin
-    // and caches them in _controllerRenderers. Safe to call multiple times;
-    // searches all active XROrigins so it works for any active vehicle.
     private void CacheControllerRenderers()
     {
-        // Search all active XR Origins so the correct vehicle is found regardless
-        // of scene order (handles both EgoCar and EgoBike being in the same scene).
+        // all active XR Origins, so EgoCar and EgoBike in the same scene both work
         var origins = FindObjectsByType<XROrigin>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
         var renderers = new List<Renderer>();
         foreach (var origin in origins)
@@ -643,8 +581,7 @@ public class MenuController : MonoBehaviour
     {
         feedbackText.text = message;
 
-        // hold for most of the duration, then fade alpha out. unscaled throughout: the
-        // main menu holds Time.timeScale at 0, so a scaled wait never ends there.
+        // unscaled throughout, the main menu holds Time.timeScale at 0
         float holdTime = feedbackDuration * 0.7f;
         float fadeTime = feedbackDuration * 0.3f;
 
@@ -666,7 +603,6 @@ public class MenuController : MonoBehaviour
         _feedbackCoroutine = null;
     }
 
-    /// <summary>Quits the application (also stops Play mode in the Editor).</summary>
     public void OnExit()
     {
         Application.Quit();
@@ -677,7 +613,6 @@ public class MenuController : MonoBehaviour
     }
 
 #if !UNITY_WEBGL
-    // ── Win32 P/Invoke — bypasses Mono's broken Process.Start on Windows builds ──
 
     [StructLayout(LayoutKind.Sequential)]
     private struct STARTUPINFO
@@ -711,11 +646,9 @@ public class MenuController : MonoBehaviour
     [DllImport("kernel32.dll")]
     private static extern uint WaitForSingleObject(IntPtr hHandle, uint dwMilliseconds);
 
-    // Keep hProcess open so IsScenarioManagerRunning can poll it without using
-    // Mono's Process.GetProcessesByName (also unreliable in Unity standalone builds).
+    // kept open so IsScenarioManagerRunning can poll it
     private static IntPtr _scenarioManagerHandle = IntPtr.Zero;
 
-    /// <summary>Launches <paramref name="exePath"/> as a detached process via Win32 CreateProcess.</summary>
     private static bool WinLaunchDetached(string exePath, string workingDir)
     {
         var si = new STARTUPINFO { cb = Marshal.SizeOf<STARTUPINFO>() };
@@ -724,18 +657,15 @@ public class MenuController : MonoBehaviour
             false, 0, IntPtr.Zero, workingDir, ref si, out var pi);
         if (ok)
         {
-            // Close the previous process handle before overwriting so a relaunch
-            // does not leak the old (signaled) handle.
+            // close the previous handle so a relaunch does not leak it
             if (_scenarioManagerHandle != IntPtr.Zero)
                 CloseHandle(_scenarioManagerHandle);
-            // Keep hProcess open so we can check if it's still running.
             _scenarioManagerHandle = pi.hProcess;
             CloseHandle(pi.hThread);
         }
         return ok;
     }
 
-    /// <summary>Returns true if the last launched ScenarioManager process is still running.</summary>
     private static bool IsScenarioManagerRunning()
     {
         if (_scenarioManagerHandle == IntPtr.Zero) return false;
@@ -743,7 +673,6 @@ public class MenuController : MonoBehaviour
         if (WaitForSingleObject(_scenarioManagerHandle, 0) == WAIT_TIMEOUT)
             return true;
 
-        // Process exited: close and clear the handle so it does not leak.
         CloseHandle(_scenarioManagerHandle);
         _scenarioManagerHandle = IntPtr.Zero;
         return false;

@@ -1,10 +1,6 @@
 using UnityEditor;
 using UnityEngine;
 
-/// <summary>
-/// Custom property drawer that renders a field as disabled (grayed out)
-/// in the Inspector when tagged with [ReadOnly].
-/// </summary>
 [CustomPropertyDrawer(typeof(ReadOnlyAttribute))]
 public class ReadOnlyDrawer : PropertyDrawer
 {

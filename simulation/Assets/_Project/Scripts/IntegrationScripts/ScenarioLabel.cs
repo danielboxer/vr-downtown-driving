@@ -2,10 +2,6 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-/// <summary>
-/// Displays the currently active scenario name on a TextMeshProUGUI element.
-/// Attach to the same GameObject as the label, or assign via Inspector.
-/// </summary>
 public class ScenarioLabel : MonoBehaviour
 {
     [Tooltip("ScenarioManager to observe.")]

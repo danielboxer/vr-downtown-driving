@@ -53,7 +53,6 @@ namespace UnityStandardAssets.Vehicles.Car
         public float Revs { get; private set; }
         public float AccelInput { get; private set; }
 
-        /// <summary>Sets the top speed from the options menu, which always works in km/h.</summary>
         public void SetTopSpeedKmh(float kmh)
         {
             m_SpeedType = SpeedType.KPH;
@@ -71,7 +70,6 @@ namespace UnityStandardAssets.Vehicles.Car
         // Use this for initialization
         private void Start()
         {
-            // Interpolate Rigidbody so the car's transform is smoothed between physics steps.
             m_Rigidbody.interpolation = RigidbodyInterpolation.Interpolate;
 
             m_WheelColliders[0].attachedRigidbody.centerOfMass = m_CentreOfMassOffset;
@@ -256,9 +254,7 @@ namespace UnityStandardAssets.Vehicles.Car
 
             }
 
-            // Braking: apply proportional brake torque, or release if not braking.
-            // The old auto-reverse behavior (applying reverse torque at low speed)
-            // is removed; reversing is now handled by the dedicated GearChange toggle.
+            // reversing is handled by the GearChange toggle, not by reverse torque at low speed
             for (int i = 0; i < 4; i++)
             {
                 if (footbrake > 0)

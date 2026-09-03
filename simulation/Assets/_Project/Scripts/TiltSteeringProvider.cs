@@ -5,15 +5,6 @@ using UnityEngine.InputSystem.XR;
 using UnityEngine.XR;
 using UnityEngine.XR.Interaction.Toolkit.Inputs.Simulation;
 
-/// <summary>
-/// Maps XR controller steering to a -1…+1 steering value. By default it reads
-/// the position vector between the left and right controllers (used by car mode).
-/// Rotation-only mode reads controller rotations instead, which avoids relying on
-/// controller position tracking (used by bike mode).
-/// Attach to each ego vehicle alongside the UserControl script.
-/// CarUserControl / BikeUserControl will use <see cref="SteerValue"/> when
-/// this component is present, enabled, and both controllers provide data.
-/// </summary>
 public class TiltSteeringProvider : MonoBehaviour
 {
     public enum ControllerTrackingMode { PositionVector, RotationOnly }
@@ -93,20 +84,15 @@ public class TiltSteeringProvider : MonoBehaviour
     [Tooltip("Also draw the raw and projected vectors using Debug.DrawLine for Scene view debugging.")]
     public bool drawDebugLine = true;
 
-    // Visual style constants for the debug lines (not exposed in Inspector).
     private static readonly Color ProjectedLineColor = Color.black;
     private const float ProjectedLineWidth = 0.004f;
 
-    /// <summary>Current steering value from -1 (full left) to +1 (full right).</summary>
     public float SteerValue { get; private set; }
 
-    /// <summary>True when both XR controllers are detected and the configured steering input is usable.</summary>
     public bool HasController { get; private set; }
 
-    /// <summary>True when this provider is enabled and currently steering from a controller. Vehicle controls gate the VR steering/comfort paths on this.</summary>
     public bool IsActive => enabled && HasController;
 
-    /// <summary>Blend smoothed keyboard/action steering with tilt steering; whichever has more authority wins. Returns actionSteer when no provider is active.</summary>
     public static float CombineSteer(TiltSteeringProvider provider, float actionSteer)
     {
         if (provider != null && provider.IsActive)
@@ -117,13 +103,10 @@ public class TiltSteeringProvider : MonoBehaviour
         return actionSteer;
     }
 
-    /// <summary>Clamped physical controller/cradle angle in degrees relative to the active center, before invertSteering is applied.</summary>
     public float ControllerWheelAngle { get; private set; }
 
-    /// <summary>Clamped physical controller/cradle angle in degrees after invertSteering is applied. This is the angle used to calculate SteerValue.</summary>
     public float SteeringWheelAngle { get; private set; }
 
-    /// <summary>Current unwrapped controller-wheel steering angle in degrees after inversion.</summary>
     public float SteeringAngle => SteeringWheelAngle;
 
     private const float MinProjectedVectorSqrMagnitude = 0.0001f;
@@ -131,7 +114,7 @@ public class TiltSteeringProvider : MonoBehaviour
     private InputAction _keyboardSteerAction;
     private bool _headsetConnected;
     private bool _simulatorActive;
-    // Reused buffer to avoid GC allocations during headset state refresh.
+    // reused to avoid a GC allocation on every headset state refresh
     private static readonly List<UnityEngine.XR.InputDevice> _headsetCheckBuffer = new List<UnityEngine.XR.InputDevice>();
 
     private float _centerAngle;
@@ -146,7 +129,6 @@ public class TiltSteeringProvider : MonoBehaviour
 
     private void Awake()
     {
-        // Auto-detect the input asset from a sibling vehicle control script if not assigned.
         if (inputActions == null)
         {
             foreach (var mb in GetComponents<MonoBehaviour>())
@@ -171,7 +153,6 @@ public class TiltSteeringProvider : MonoBehaviour
 
     private void OnEnable()
     {
-        // Capture headset/simulator state immediately and subscribe for future changes.
         RefreshHeadsetState();
         InputDevices.deviceConnected += OnXRDeviceChanged;
         InputDevices.deviceDisconnected += OnXRDeviceChanged;
@@ -208,11 +189,7 @@ public class TiltSteeringProvider : MonoBehaviour
 
     private void Update()
     {
-        // Tilt steering is only valid when a real headset is present and the
-        // XR Interaction Simulator is not running. The simulator repositions
-        // virtual controllers whenever you look around, corrupting the tilt
-        // center. When either condition fails, CarUserControl falls back to
-        // keyboard steering.
+        // the simulator repositions virtual controllers when you look around, which corrupts the tilt center
         if (requireHeadset && (_simulatorActive || !_headsetConnected))
         {
             ClearSteeringState(false);
@@ -231,7 +208,7 @@ public class TiltSteeringProvider : MonoBehaviour
             !TryCalculateWrappedAngle(leftPosition, rightPosition, out float wrappedAngle))
         {
             ClearSteeringState(true);
-            // Keyboard fallback: no controller vector, but keyboard may still steer.
+            // no controller vector, but the keyboard may still steer
             TryApplyKeyboardSteering();
             return;
         }
@@ -239,14 +216,10 @@ public class TiltSteeringProvider : MonoBehaviour
         HasController = true;
         DrawControllerVector(leftPosition, rightPosition);
 
-        // Keyboard override: intercept before angle accumulation runs.
-        // When keyboard is active, output the direct value without accumulating
-        // the unwrapped angle. _lastWrappedAngle is still updated so that
-        // returning to tilt mode is seamless (no sudden jump in angle).
+        // output the keyboard value directly, but keep _lastWrappedAngle updated so returning to tilt has no jump
         if (TryApplyKeyboardSteering())
         {
-            // First-time calibration: anchor the tilt center even while keyboard
-            // is held so tilt steering starts centered when keyboard is released.
+            // anchor the tilt center even while keyboard is held so tilt starts centered on release
             if (!_calibrated && calibrateOnEnable)
             {
                 float initAngle = UpdateUnwrappedAngle(wrappedAngle);
@@ -262,7 +235,6 @@ public class TiltSteeringProvider : MonoBehaviour
 
         float currentAngle = UpdateUnwrappedAngle(wrappedAngle);
 
-        // Auto-calibrate on first valid two-controller vector after enable.
         if (!_calibrated && calibrateOnEnable)
             SetCenter(currentAngle);
 
@@ -274,7 +246,7 @@ public class TiltSteeringProvider : MonoBehaviour
         if (!TryReadControllerRotations(out Quaternion leftRotation, out Quaternion rightRotation))
         {
             ClearSteeringState(true);
-            // Keyboard fallback: no controller rotations, but keyboard may still steer.
+            // no controller rotations, but the keyboard may still steer
             TryApplyKeyboardSteering();
             return;
         }
@@ -290,9 +262,7 @@ public class TiltSteeringProvider : MonoBehaviour
             return;
         }
 
-        // Rotation-only steering has no meaningful absolute neutral angle; the
-        // first valid rotation pair seeds the neutral pose. Manual calibration
-        // can recenter this at any time.
+        // rotation-only steering has no absolute neutral, so the first valid rotation pair seeds it
         if (!_calibrated)
             SetRotationCenter(leftRotation, rightRotation);
 
@@ -307,7 +277,6 @@ public class TiltSteeringProvider : MonoBehaviour
         ApplySmoothingAndDeadZone();
     }
 
-    /// <summary>Set the current controller steering input as the steering center.</summary>
     public bool Calibrate()
     {
         if (controllerTrackingMode == ControllerTrackingMode.RotationOnly)
@@ -330,10 +299,6 @@ public class TiltSteeringProvider : MonoBehaviour
         return true;
     }
 
-    /// <summary>
-    /// Keyboard shortcut path: maps the steer action value directly to SteerValue without
-    /// angle accumulation. Returns true and sets all steer properties when keyboard is active.
-    /// </summary>
     private bool TryApplyKeyboardSteering()
     {
         float keyboardSteer = _keyboardSteerAction?.ReadValue<float>() ?? 0f;
@@ -358,18 +323,13 @@ public class TiltSteeringProvider : MonoBehaviour
         float rawControllerWheelAngle = currentAngle - _centerAngle;
         float rawSteeringWheelAngle = invertSteering ? -rawControllerWheelAngle : rawControllerWheelAngle;
 
-        // These are the angles used by vehicle input and wheel/handlebar visuals.
-        // They stop at the software steering lock even if the physical cradle keeps rotating.
+        // these stop at the software steering lock even if the physical cradle keeps rotating
         ControllerWheelAngle = Mathf.Clamp(rawControllerWheelAngle, -lockAngle, lockAngle);
         SteeringWheelAngle = Mathf.Clamp(rawSteeringWheelAngle, -lockAngle, lockAngle);
 
         SteerValue = SteeringWheelAngle / lockAngle;
     }
 
-    /// <summary>
-    /// Applies low-pass smoothing and dead zone to the current <see cref="SteerValue"/>.
-    /// Only called in rotation-only mode after angle tracking is applied.
-    /// </summary>
     private void ApplySmoothingAndDeadZone()
     {
         // Frame-rate independent EMA: alpha approaches 1 as deltaTime grows.
@@ -387,17 +347,12 @@ public class TiltSteeringProvider : MonoBehaviour
         if (steeringDeadZone > 0f)
             SteerValue = ApplyDeadZone(SteerValue, steeringDeadZone);
 
-        // Keep angle properties in sync with the post-processed steer value so
-        // handlebar/wheel visuals reflect the smoothed output.
+        // keep the angle properties in sync so handlebar and wheel visuals match the smoothed output
         float lockAngle = Mathf.Max(1f, maxSteerAngle);
         SteeringWheelAngle = SteerValue * lockAngle;
         ControllerWheelAngle = invertSteering ? -SteeringWheelAngle : SteeringWheelAngle;
     }
 
-    /// <summary>
-    /// Rescales <paramref name="value"/> so the band [-deadZone, +deadZone] maps to zero
-    /// and the outer range is stretched to keep ±1 reachable.
-    /// </summary>
     private static float ApplyDeadZone(float value, float deadZone)
     {
         float absValue = Mathf.Abs(value);
@@ -522,8 +477,7 @@ public class TiltSteeringProvider : MonoBehaviour
 
     private void ConvertControllerRotationsToSteeringReferenceSpace(ref Quaternion leftRotation, ref Quaternion rightRotation)
     {
-        // Compare rotations in the vehicle/steering-reference frame so simply
-        // turning the bike or car in world space does not look like steering.
+        // compared in the steering-reference frame so turning the vehicle in world space is not read as steering
         Transform reference = steeringReference != null ? steeringReference : transform;
         Quaternion inverseReferenceRotation = Quaternion.Inverse(reference.rotation);
         leftRotation = inverseReferenceRotation * leftRotation;
@@ -649,8 +603,7 @@ public class TiltSteeringProvider : MonoBehaviour
             return zeroDirection;
         }
 
-        // Fallback for unusual reference transforms where the preferred zero
-        // direction is parallel to the steering axis.
+        // fallback for reference transforms whose preferred zero direction is parallel to the steering axis
         zeroDirection = Vector3.Cross(axis, Vector3.up);
         if (zeroDirection.sqrMagnitude >= Mathf.Epsilon)
         {
@@ -666,8 +619,7 @@ public class TiltSteeringProvider : MonoBehaviour
         Vector3 midpoint = (leftPosition + rightPosition) * 0.5f;
         bool hasProjectedVector = TryGetProjectedVector(rawVector, out Vector3 projectedVector);
 
-        // The black line is drawn along the raw controller direction, scaled by the
-        // projection magnitude, so its length reflects how well the vector is in the steering plane.
+        // the black line's length reflects how well the raw controller vector lies in the steering plane
         Vector3 projectedStart = midpoint;
         Vector3 projectedEnd = midpoint;
         if (hasProjectedVector)
