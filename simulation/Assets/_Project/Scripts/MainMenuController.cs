@@ -44,12 +44,17 @@ public class MainMenuController : MonoBehaviour
 
     private bool _started;
 
-    // The menu canvas is screen space, so a headset user has no pointer to click Play with.
+    // a headset user has no pointer for the screen space menu canvas
     private IDisposable _anyButtonPress;
+
+    // isTracked and the capacitive touch controls also report as button presses
+    private static readonly string[] StartControlNames =
+    {
+        "triggerPressed", "gripPressed", "primaryButton", "secondaryButton", "thumbstickClicked", "menu",
+    };
 
     private void Awake()
     {
-        // Freeze from the first frame so nothing moves behind the menu.
         Time.timeScale = 0f;
         if (scenarioManager != null)
             scenarioManager.deferStart = true;
@@ -85,13 +90,14 @@ public class MainMenuController : MonoBehaviour
         }
     }
 
-    // Main menu only, so a trigger pull aimed at Options or Controls does not skip past it.
+    // without the panel check, a trigger pull aimed at Options would start the drive
     private void OnAnyButtonPressed(UnityEngine.InputSystem.InputControl control)
     {
         if (_started) return;
         if (mainMenuPanel == null || !mainMenuPanel.activeSelf) return;
         if (!VrActive.IsActive) return;
         if (!(control.device is UnityEngine.InputSystem.XR.XRController)) return;
+        if (Array.IndexOf(StartControlNames, control.name) < 0) return;
         Play();
     }
 
@@ -103,7 +109,7 @@ public class MainMenuController : MonoBehaviour
 
     private void ShowMainMenu()
     {
-        // Esc must not pull up the options panel from here, only the Options button.
+        // Esc must not open the options panel from the main menu
         if (menuController != null) menuController.ToggleMenuKeyEnabled = false;
         if (mainMenuPanel != null) mainMenuPanel.SetActive(true);
         if (controlsPanel != null) controlsPanel.SetActive(false);
@@ -173,7 +179,7 @@ public class MainMenuController : MonoBehaviour
         if (mainMenuPanel != null) mainMenuPanel.SetActive(false);
         if (menuController != null)
         {
-            // Esc closes the panel again and lands back on the main menu.
+            // Esc closes the panel and lands back on the main menu
             menuController.ToggleMenuKeyEnabled = true;
             menuController.SetMenuOpen(true);
         }
