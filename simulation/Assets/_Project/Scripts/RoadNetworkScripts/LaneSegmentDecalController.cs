@@ -1,6 +1,3 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// LaneSegmentDecalController  (LEFT/RIGHT names swapped logic)
-// ─────────────────────────────────────────────────────────────────────────────
 using System;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;

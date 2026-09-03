@@ -6,13 +6,6 @@ using System.Text;
 using UnityEngine;
 using UnityStandardAssets.Vehicles.Car;
 
-/// <summary>
-/// Checklist evaluator for the novice driver training scenario.
-/// Listens for stop-line crossings and checks traffic light state
-/// and turn signal usage based on per-scenario rules configured in the Inspector.
-/// Logs every evaluation event and exports a CSV report to Results/ when the scenario ends.
-/// Place on the manager GameObject.
-/// </summary>
 public class DrivingEvaluator : MonoBehaviour
 {
     public enum VehicleMode { Car, Bike }
@@ -42,7 +35,6 @@ public class DrivingEvaluator : MonoBehaviour
     [Range(0f, 2f)]
     [SerializeField] private float warningVolume = 1f;
 
-    /// <summary>Scales the warning tone and voice prompt together. Set from the options menu.</summary>
     public float WarningVolume { get; set; } = 1f;
 
     [Tooltip("Base volume for non-curb collision sounds before impact scaling.")]
@@ -108,7 +100,6 @@ public class DrivingEvaluator : MonoBehaviour
     [Tooltip("Optional clip played when colliding with generated curb meshes. Falls back to the warning clip if empty.")]
     [SerializeField] private AudioClip curbWarningClip;
 
-    // Auto-resolved references (no Inspector assignment needed)
     private SimulationController simController;
     private CarUserControl carUserControl;
     private Rigidbody _egoRb;
@@ -121,7 +112,6 @@ public class DrivingEvaluator : MonoBehaviour
     [ReadOnly, SerializeField] private VehicleMode _vehicleMode = VehicleMode.Car;
     [ReadOnly, SerializeField] private bool _evaluationEnabled;
 
-    // ── Checklist state ──
     [Header("Checklist")]
     [ReadOnly, SerializeField] private bool _ranRedLight;
     // cumulative: set once a turn is taken without the correct signal, never reset within a scenario
@@ -132,25 +122,18 @@ public class DrivingEvaluator : MonoBehaviour
     [ReadOnly, SerializeField] private int _speedingEventCount;
     [ReadOnly, SerializeField] private float _topSpeedKmh;
 
-    /// <summary>True if the driver crossed a stop line while the light was red.</summary>
     public bool RanRedLight => _ranRedLight;
 
-    /// <summary>True only if the driver signalled correctly at every turn in this scenario.</summary>
     public bool UsedTurnSignal => !_missedTurnSignal;
 
-    /// <summary>True if the driver collided with anything during this scenario.</summary>
     public bool HadCollision => _hadCollision;
 
-    /// <summary>Number of collisions during this scenario.</summary>
     public int CollisionCount => _collisionCount;
 
-    /// <summary>True if the driver exceeded the speed limit during this scenario.</summary>
     public bool ExceededSpeedLimit => _exceededSpeedLimit;
 
-    /// <summary>Highest speed recorded during this scenario (km/h).</summary>
     public float TopSpeedKmh => _topSpeedKmh;
 
-    // ── Event log for CSV export ──
 
     private struct EvalEvent
     {
@@ -161,7 +144,7 @@ public class DrivingEvaluator : MonoBehaviour
     }
 
     private readonly List<EvalEvent> _eventLog = new();
-    // Each entry is a (warning beep, voice clip) pair; processed sequentially by the coroutine.
+    // (warning beep, voice clip) pairs, processed sequentially by the coroutine
     private readonly List<PendingWarning> _warningQueue = new();
     private float _evalStartTime;
     private float _lastSpeedingLogTime = -10f;
@@ -171,7 +154,6 @@ public class DrivingEvaluator : MonoBehaviour
     private string _lastStopLineJunctionId;
     private Vector3 _lastStopLineApproachDir;
 
-    // Warning tone + optional voice prompt.
     private struct PendingWarning
     {
         public AudioClip warnClip;
@@ -189,10 +171,6 @@ public class DrivingEvaluator : MonoBehaviour
         EnsureVoiceAudioSource();
     }
 
-    /// <summary>
-    /// Called when a new scenario starts. Resets the checklist, looks up
-    /// matching scenario rules, and updates references.
-    /// </summary>
     public void BeginEvaluation(GameObject egoVehicle, ScenarioId scenario)
     {
         _activeScenario = scenario;
@@ -223,10 +201,6 @@ public class DrivingEvaluator : MonoBehaviour
         _egoRb = egoVehicle.GetComponent<Rigidbody>();
     }
 
-    /// <summary>
-    /// Call when the scenario ends or before switching scenarios.
-    /// Exports the evaluation log to a CSV file in the Results/ folder.
-    /// </summary>
     public void EndEvaluation()
     {
         if (!_evaluationEnabled || _eventLog.Count == 0)
@@ -275,7 +249,6 @@ public class DrivingEvaluator : MonoBehaviour
 
     private void FixedUpdate()
     {
-        // Speed monitoring
         if (_egoRb == null || speedLimitKmh <= 0f) return;
         if (!_evaluationEnabled) return;
 
@@ -410,7 +383,6 @@ public class DrivingEvaluator : MonoBehaviour
         }
     }
 
-    // ── Logging helpers ──
 
     private void HandleCollision(CollisionDetector detector, Collision collision)
     {
@@ -426,8 +398,7 @@ public class DrivingEvaluator : MonoBehaviour
         LogEvent("", "Collision",
             $"other={otherName};tag={otherTag};impact_speed={impactSpeed:F1}");
 
-        // Play crash sound for all collisions except curbs.
-        // Voice warning is reserved for vehicle collisions only.
+        // voice warning is reserved for vehicle collisions, curbs get the crash sound only
         if (!IsCurbCollision(collision))
             PlayCollisionCue(collision);
         if (IsVehicleCollision(collision))
@@ -492,7 +463,6 @@ public class DrivingEvaluator : MonoBehaviour
             PendingWarning pending = _warningQueue[0];
             _warningQueue.RemoveAt(0);
 
-            // Play the warning tone and wait for it to finish.
             if (playWarningSounds && warningVolume * WarningVolume > 0f && pending.warnClip != null)
             {
                 EnsureWarningAudioSource();
@@ -503,7 +473,7 @@ public class DrivingEvaluator : MonoBehaviour
                 yield return new WaitForSeconds(warnDuration);
             }
 
-            // Play the voice clip and wait for it to finish before the next item.
+            // wait for the voice clip to finish before the next item
             if (playVoicePrompts && voiceVolume * WarningVolume > 0f && pending.voiceClip != null)
             {
                 EnsureVoiceAudioSource();
@@ -552,7 +522,6 @@ public class DrivingEvaluator : MonoBehaviour
         if (baseVolume <= 0f)
             return 0f;
 
-        // Convert km/h threshold to m/s to match relativeVelocity units
         float maxImpactSpeed = Mathf.Max(impactSpeedForMaxVolume / 3.6f, 0.01f);
         float normalizedImpact = Mathf.Clamp01(collision.relativeVelocity.magnitude / maxImpactSpeed);
         float impactMultiplier = Mathf.Lerp(minImpactVolumeMultiplier, 1f, normalizedImpact);
@@ -603,7 +572,6 @@ public class DrivingEvaluator : MonoBehaviour
         return false;
     }
 
-    // Returns true when the collided object is an NPC vehicle (has VehicleController).
     private static bool IsVehicleCollision(Collision collision)
     {
         return collision.gameObject.GetComponentInParent<VehicleController>() != null;
@@ -620,7 +588,6 @@ public class DrivingEvaluator : MonoBehaviour
         });
     }
 
-    // ── CSV export ──
 
     private void ExportCsv()
     {
@@ -634,10 +601,8 @@ public class DrivingEvaluator : MonoBehaviour
 
         var sb = new StringBuilder();
 
-        // Header
         sb.AppendLine("time;scenario;vehicle_mode;junction_id;event_type;detail");
 
-        // Event rows
         foreach (var e in _eventLog)
         {
             sb.Append($"{e.time:F3};");
@@ -649,7 +614,6 @@ public class DrivingEvaluator : MonoBehaviour
             sb.AppendLine(e.detail.Replace(';', '|'));
         }
 
-        // Summary row
         sb.AppendLine();
         sb.AppendLine("# Summary");
         sb.AppendLine($"# Scenario: {_activeScenario}");
@@ -668,11 +632,9 @@ public class DrivingEvaluator : MonoBehaviour
     }
 
 #if !UNITY_WEBGL
-    /// <summary>Finds (or creates) Results folder, matching the project convention.</summary>
     private static string LocateOrCreateResultsFolder()
     {
-        // Always write to Documents so the folder is user-writable even when the game
-        // is installed to Program Files (where writing without admin rights would throw).
+        // Documents stays user-writable when the game is installed to Program Files
         string dir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
             "VR Downtown Driving",

@@ -1,12 +1,5 @@
 using UnityEngine;
 
-// VR comfort locomotion: ramp horizontal speed to a target over a short fixed
-// window (RampSeconds) instead of snapping, so the rider spends almost no time in
-// the changing-velocity state that drives sim sickness while avoiding the jarring
-// jolt of an instantaneous change. The full 0..max range is covered in RampSeconds
-// regardless of direction, so accelerating and braking feel equally quick. Vertical
-// velocity is kept so gravity and ground contact still work; the existing horizontal
-// heading is reused so steering keeps curving the motion.
 public static class VrFastSpeed
 {
     private const float MinHeadingSqr = 0.01f;

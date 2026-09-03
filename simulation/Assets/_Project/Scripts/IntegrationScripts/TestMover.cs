@@ -1,10 +1,5 @@
 using UnityEngine;
 
-/// <summary>
-/// Moves the attached GameObject forward at a constant speed using a Rigidbody.
-/// Useful for testing visual elements (wheel animation, etc.) without running SUMO.
-/// Attach to the bike prefab root and remove/disable when done testing.
-/// </summary>
 public class TestMover : MonoBehaviour
 {
     [Tooltip("Speed in m/s")]

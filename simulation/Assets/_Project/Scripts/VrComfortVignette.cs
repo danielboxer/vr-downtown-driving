@@ -1,11 +1,5 @@
 using UnityEngine;
 
-// comfort vignette for VR. holds a fixed soft black tunnel that cuts the peripheral
-// optical flow driving sim sickness downtown. drives the XRIT TunnelingVignette
-// material directly (aperture 1 = open, lower = tighter) instead of XRIT's on/off
-// locomotion easing. VR only: the mesh is disabled whenever a headset isn't
-// rendering, so keyboard and web are untouched. the level comes from VignetteSetting,
-// the per-participant knob for the study (#6): off / low / high.
 [RequireComponent(typeof(Renderer))]
 public class VrComfortVignette : MonoBehaviour
 {

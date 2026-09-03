@@ -225,7 +225,7 @@ public class RoadNetworkBuilder : MonoBehaviour
     // ★ NEW: Ground-layer support --------------------------------------------
     private const string groundLayerName = "Ground";
     private int groundLayer = -1;
-    // EnvDetail layer: assigned to props hidden from mirror cameras (curbs, lamps, signs, TL heads)
+    // props on this layer are hidden from mirror cameras
     private const string envDetailLayerName = "EnvDetail";
     private int envDetailLayer = -1;
     // ------------------------------------------------------------------------
@@ -265,7 +265,6 @@ public class RoadNetworkBuilder : MonoBehaviour
     private readonly List<Vector2[]> _junctionPolys2D = new();
 
 
-    // Parsed net file, kept for traffic light generation
     private NetType _netFile;
 
     public void LoadSumoXmlFiles(string sumoFilesFolder)
@@ -278,19 +277,15 @@ public class RoadNetworkBuilder : MonoBehaviour
             roadNetworkRoot = null;
         }
 
-        // Also destroy any orphaned root left from a previous builder instance
         var oldRoot = GameObject.Find("RoadNetwork");
         if (oldRoot != null)
             DestroyImmediate(oldRoot);
 
-        // Destroy orphaned Junctions root (not parented to roadNetworkRoot)
         var oldJunctions = GameObject.Find("Junctions");
         if (oldJunctions != null)
             DestroyImmediate(oldJunctions);
 
-        // Destroy orphaned road signs and lane decals from an older generation
-        // (new layout nests these under Junctions/RoadSigns and RoadNetwork/LaneDecals,
-        //  so they are cleaned up automatically when those parents are destroyed above)
+        // legacy roots from an older layout
         var oldSigns = GameObject.Find("RoadSignsRoot");
         if (oldSigns != null)
             DestroyImmediate(oldSigns);
@@ -302,10 +297,6 @@ public class RoadNetworkBuilder : MonoBehaviour
         ParseSumoXmlFiles(sumoFilesFolder);
     }
 
-    /// <summary>
-    /// Parses SUMO XML files into in-memory records without destroying existing GameObjects.
-    /// Creates roadNetworkRoot if it doesn't exist.
-    /// </summary>
     public void ParseSumoXmlFiles(string sumoFilesFolder)
     {
         EnsureDefaultReferences();
@@ -329,7 +320,6 @@ public class RoadNetworkBuilder : MonoBehaviour
 
         if (roadNetworkRoot == null)
         {
-            // Try to find an existing root in the scene before creating a new one
             FindExistingRoot();
         }
         if (roadNetworkRoot == null)
@@ -338,7 +328,6 @@ public class RoadNetworkBuilder : MonoBehaviour
             if (groundLayer >= 0) roadNetworkRoot.layer = groundLayer;
         }
 
-        // Auto-detect the net and poly files by extension so the filenames are not hardcoded
         var netFilePath = Directory.GetFiles(sumoXmlFolderPath, "*.net.xml").FirstOrDefault();
         var polyFilePath = Directory.GetFiles(sumoXmlFolderPath, "*.poly.xml").FirstOrDefault();
 
@@ -410,8 +399,7 @@ public class RoadNetworkBuilder : MonoBehaviour
         {
             if (string.IsNullOrEmpty(et.From))
             {
-                // Internal junction edges (id starts with ':') have no 'from' by design — skip silently.
-                // Only warn for regular edges where a missing 'from' is unexpected.
+                // internal junction edges (id starts with ':') have no 'from' by design
                 if (!et.Id.StartsWith(":"))
                     Debug.LogWarning($"Edge {et.Id} has no 'from'. Skipping.");
                 continue;
@@ -473,10 +461,6 @@ public class RoadNetworkBuilder : MonoBehaviour
         SetLayerRecursively(roadNetworkRoot, groundLayer);
     }
 
-    /// <summary>
-    /// Attempts to find an existing RoadNetwork in the scene and assign it.
-    /// Returns true if one was found.
-    /// </summary>
     public bool FindExistingRoot()
     {
         if (roadNetworkRoot != null) return true;
@@ -517,7 +501,6 @@ public class RoadNetworkBuilder : MonoBehaviour
                 mf.sharedMesh = laneMesh;
                 mr.sharedMaterial = roadSurfaceMaterial ?? GetFallbackMaterial();
 
-                // Physics collider so vehicles don't fall through the road
                 var laneCol = laneObj.AddComponent<MeshCollider>();
                 laneCol.sharedMesh = laneMesh;
                 laneCol.convex = false;
@@ -526,8 +509,7 @@ public class RoadNetworkBuilder : MonoBehaviour
                 bool isLeftmost = laneData.laneIndex == maxLaneIndex;
                 bool isRightmost = laneData.laneIndex == 0;
 
-                // Left side marking: skip only if this is the leftmost lane AND there's no
-                // opposite-direction edge (i.e., it's the actual road boundary, not a median)
+                // an opposite-direction edge means the left side is a median, not the road boundary
                 bool skipLeft = skipOuterEdgeMarkings && isLeftmost && !HasOppositeEdge(edgeData);
                 bool skipRight = skipOuterEdgeMarkings && isRightmost;
 
@@ -556,7 +538,6 @@ public class RoadNetworkBuilder : MonoBehaviour
                 verts2D[i] = new Vector2((float)(xy[0] - originX), (float)(xy[1] - originY));
             }
 
-            // Cache for decal clipping
             _junctionPolys2D.Add((Vector2[])verts2D.Clone());
 
             MeshTriangulator triangulator = new MeshTriangulator(verts2D);
@@ -595,15 +576,12 @@ public class RoadNetworkBuilder : MonoBehaviour
         // ★ NEW: make sure every child built above is on the Ground layer
         SetLayerRecursively(roadNetworkRoot, groundLayer);
 
-        // Mark all road geometry as static for batching, GI, and occlusion culling
         if (markGeneratedAsStatic) SetStaticRecursively(roadNetworkRoot);
 
-        // Generate raised curb strips along road edges
         if (generateCurbs && sidewalkHeight > 0.01f)
             GenerateCurbs();
     }
 
-    // -------------------- helpers --------------------------------------------
     private static void SetLayerRecursively(GameObject obj, int layer)
     {
         if (layer < 0) return;
@@ -612,10 +590,7 @@ public class RoadNetworkBuilder : MonoBehaviour
             SetLayerRecursively(child.gameObject, layer);
     }
 
-    // Road/junction/curb/TL flags: batching + occlusion + navmesh.
-    // ContributeGI intentionally excluded — procedural road meshes are too
-    // numerous to UV-unwrap for lightmaps (causes crash/huge atlas counts).
-    // Polygon buildings/terrain get ContributeGI separately in BuildPolygonGameObject.
+    // ContributeGI excluded, UV-unwrapping this many procedural meshes for lightmaps crashes
 #pragma warning disable CS0618 // NavigationStatic/OffMeshLinkGeneration deprecated but still functional
     private const StaticEditorFlags RoadStaticFlags =
         StaticEditorFlags.OccluderStatic |
@@ -628,24 +603,14 @@ public class RoadNetworkBuilder : MonoBehaviour
 
     private static void SetStaticRecursively(GameObject obj)
     {
-        // Preserve ContributeGI if a prior pass already set it (e.g. polygon buildings);
-        // roads/junctions/curbs should not force-add it.
+        // polygon buildings already set ContributeGI, don't clear it
         var existing = GameObjectUtility.GetStaticEditorFlags(obj);
         GameObjectUtility.SetStaticEditorFlags(obj, RoadStaticFlags | (existing & StaticEditorFlags.ContributeGI));
         foreach (Transform child in obj.transform)
             SetStaticRecursively(child.gameObject);
     }
-    // -------------------------------------------------------------------------
 
-    // ======================================================================
-    //  Curb / Sidewalk Strip Generation
-    // ======================================================================
 
-    /// <summary>
-    /// Generates raised curb strips along the outer edges of every road.
-    /// Skips the median side when an opposite-direction edge exists so
-    /// curbs only appear at road boundaries, not in the middle of the road.
-    /// </summary>
     private void GenerateCurbs()
     {
         GameObject curbRoot = new GameObject("Curbs");
@@ -659,7 +624,6 @@ public class RoadNetworkBuilder : MonoBehaviour
 
             bool hasOpposite = HasOppositeEdge(edgeData);
 
-            // Rightmost lane (index 0) outer edge -- always generate
             var firstLane = lanes[0];
             if (firstLane.shapePoints.Count >= 2)
             {
@@ -669,7 +633,7 @@ public class RoadNetworkBuilder : MonoBehaviour
                     BuildCurbStrip(edgePts, $"Curb_{curbIdx++}", curbRoot.transform, -1);
             }
 
-            // Leftmost lane outer edge -- skip if opposite edge exists (that side is the median)
+            // skip when an opposite edge exists, that side is the median
             if (!hasOpposite)
             {
                 var lastLane = lanes[lanes.Count - 1];
@@ -682,14 +646,9 @@ public class RoadNetworkBuilder : MonoBehaviour
                 }
             }
         }
-        // Curbs are env detail: hidden from mirror cameras
         SetLayerRecursively(curbRoot, envDetailLayer);
     }
 
-    /// <summary>
-    /// Returns true if an opposite-direction edge exists for the given edge.
-    /// Two edges are opposite when their from/to junctions are swapped.
-    /// </summary>
     private bool HasOppositeEdge(RoadEdgeData edge)
     {
         var from = edge.GetFromJunction();
@@ -709,12 +668,6 @@ public class RoadNetworkBuilder : MonoBehaviour
         return false;
     }
 
-    /// <summary>
-    /// Computes offset points along a lane edge.
-    /// left=true returns the left side, left=false returns the right side.
-    /// extraOffset adds additional outward distance beyond half lane width.
-    /// height overrides the Y component of all returned points when non-zero.
-    /// </summary>
     private Vector3[] ComputeLaneEdge(RoadLaneData lane, float width, bool left, float extraOffset = 0f, float height = 0f)
     {
         int n = lane.shapePoints.Count;
@@ -725,7 +678,6 @@ public class RoadNetworkBuilder : MonoBehaviour
         {
             Vector3 center = ToUnity(lane.shapePoints[i][0], lane.shapePoints[i][1]);
 
-            // Direction to next or previous point
             Vector3 dir;
             if (i < n - 1)
                 dir = (ToUnity(lane.shapePoints[i + 1][0], lane.shapePoints[i + 1][1]) - center).normalized;
@@ -740,10 +692,6 @@ public class RoadNetworkBuilder : MonoBehaviour
         return pts;
     }
 
-    /// <summary>
-    /// Subdivides a polyline so no segment exceeds maxLen.
-    /// Ensures enough vertices for smooth per-vertex effects like height tapering.
-    /// </summary>
     private static Vector3[] SubdividePolyline(Vector3[] pts, float maxLen)
     {
         if (pts.Length < 2) return pts;
@@ -760,18 +708,11 @@ public class RoadNetworkBuilder : MonoBehaviour
         return result.ToArray();
     }
 
-    /// <summary>
-    /// Builds a curb strip with sloped inner and outer faces along a polyline.
-    /// Cross-section: inner slope (road->top), flat top, outer slope (top->ground).
-    /// outwardSign: +1 extends left of travel, -1 extends right of travel.
-    /// </summary>
     private void BuildCurbStrip(Vector3[] edgePts, string name, Transform parent, int outwardSign)
     {
-        // Subdivide to ensure smooth taper at ends
         edgePts = SubdividePolyline(edgePts, CurbSubdivisionMaxLen);
 
         int segCount = edgePts.Length - 1;
-        // Cross-section profile: straight ramps with rounded corners
         Vector2[] profile = BuildCurbProfile();
         int profileCount = profile.Length;
         int strips = profileCount - 1;
@@ -781,7 +722,6 @@ public class RoadNetworkBuilder : MonoBehaviour
         var verts = new Vector3[segCount * vertsPerSeg];
         var tris = new int[segCount * trisPerSeg];
 
-        // Distance-based height and width taper at strip ends
         float[] cumDist = new float[edgePts.Length];
         cumDist[0] = 0f;
         for (int k = 1; k < edgePts.Length; k++)
@@ -793,7 +733,6 @@ public class RoadNetworkBuilder : MonoBehaviour
             Vector3 a = edgePts[i];
             Vector3 b = edgePts[i + 1];
 
-            // Taper height and width near strip endpoints
             float dA = Mathf.Min(cumDist[i], totalLen - cumDist[i]);
             float dB = Mathf.Min(cumDist[i + 1], totalLen - cumDist[i + 1]);
             float hA = Mathf.Clamp01(dA / CurbTaperDistance) * sidewalkHeight;
@@ -801,16 +740,13 @@ public class RoadNetworkBuilder : MonoBehaviour
             float wA = Mathf.Clamp01(dA / CurbTaperDistance);
             float wB = Mathf.Clamp01(dB / CurbTaperDistance);
 
-            // Unit outward perpendicular for this segment
             Vector3 dir = (b - a).normalized;
             Vector3 outDir = new Vector3(-dir.z, 0f, dir.x) * outwardSign;
 
             int vi = i * vertsPerSeg;
             int ti = i * trisPerSeg;
 
-            // Place vertices along cross-section profile.
-            // Width taper is applied only to the road-side (inner slope, offset <= 0);
-            // the outer portion keeps its full offset so the mesh never degenerates.
+            // width taper applies only to the road side so the mesh never degenerates
             for (int p = 0; p < profileCount; p++)
             {
                 float offset = profile[p].x;
@@ -824,7 +760,6 @@ public class RoadNetworkBuilder : MonoBehaviour
                     b.x + outDir.x * scaledOffsetB, hB * hFrac, b.z + outDir.z * scaledOffsetB);
             }
 
-            // Build quads between adjacent profile strips
             for (int s = 0; s < strips; s++)
             {
                 int v0 = vi + s * 2;
@@ -843,7 +778,7 @@ public class RoadNetworkBuilder : MonoBehaviour
 
         Mesh curbMesh = new Mesh { name = name, vertices = verts, triangles = tris };
 
-        // Winding is correct for outwardSign=+1; flip for -1 so normals face outward
+        // winding is correct for outwardSign=+1 only
         if (outwardSign < 0)
             FlipTriangleWinding(curbMesh);
 
@@ -857,17 +792,12 @@ public class RoadNetworkBuilder : MonoBehaviour
         var curbMr = go.AddComponent<MeshRenderer>();
         curbMr.sharedMaterial = sidewalkWallMaterial != null ? sidewalkWallMaterial : GetPolygonMaterial("terrain");
 
-        // MeshCollider for collision (non-convex is fine since curbs are static)
+        // non-convex is fine, curbs never move
         var col = go.AddComponent<MeshCollider>();
         col.sharedMesh = curbMesh;
         col.convex = false;
     }
 
-    /// <summary>
-    /// Builds the cross-section profile for curb geometry.
-    /// Straight inner slope, flat top, straight outer slope, with circular-arc bevels at corners.
-    /// Returns (offset, heightFraction) pairs where offset is meters from the road edge point.
-    /// </summary>
     private Vector2[] BuildCurbProfile()
     {
         const int arcSegments = 4;
@@ -876,10 +806,8 @@ public class RoadNetworkBuilder : MonoBehaviour
 
         var pts = new List<Vector2>();
 
-        // Inner slope bottom (road level)
         pts.Add(new Vector2(-innerSlopeWidth, 0f));
 
-        // Inner corner bevel: circular arc tangent to inner slope and flat top
         {
             float L = Mathf.Sqrt(innerSlopeWidth * innerSlopeWidth + h * h);
             float maxW = h * h / (L + innerSlopeWidth) * 0.9f;
@@ -911,7 +839,6 @@ public class RoadNetworkBuilder : MonoBehaviour
             }
         }
 
-        // Outer corner bevel: circular arc tangent to flat top and outer slope
         {
             float L = Mathf.Sqrt(outerSlopeWidth * outerSlopeWidth + h * h);
             float maxW = h * h / (L + outerSlopeWidth) * 0.9f;
@@ -943,27 +870,14 @@ public class RoadNetworkBuilder : MonoBehaviour
             }
         }
 
-        // Outer slope bottom (ground level)
         pts.Add(new Vector2(curbWidth + outerSlopeWidth, 0f));
 
-        // Normalize height from meters to fraction of sidewalkHeight
         for (int i = 0; i < pts.Count; i++)
             pts[i] = new Vector2(pts[i].x, pts[i].y / h);
 
         return pts.ToArray();
     }
 
-    // ======================================================================
-    //  Traffic Light Generation
-    // ======================================================================
-
-    // ======================================================================
-    //  Selective Deletion
-    // ======================================================================
-
-    /// <summary>
-    /// Destroys children of roadNetworkRoot whose names start with any of the given prefixes.
-    /// </summary>
     private void DestroyChildrenByPrefix(params string[] prefixes)
     {
         if (roadNetworkRoot == null) return;
@@ -983,9 +897,6 @@ public class RoadNetworkBuilder : MonoBehaviour
             DestroyImmediate(go);
     }
 
-    /// <summary>
-    /// Destroys a direct child of roadNetworkRoot with the exact given name.
-    /// </summary>
     private void DestroyChildByName(string exactName)
     {
         if (roadNetworkRoot == null) return;
@@ -993,20 +904,17 @@ public class RoadNetworkBuilder : MonoBehaviour
         if (t != null) DestroyImmediate(t.gameObject);
     }
 
-    /// <summary>Deletes road lane segments, junction meshes, and curbs.</summary>
     public void DeleteRoadObjects()
     {
         DestroyChildrenByPrefix("LaneSegment_", "Junction_");
         DestroyChildByName("Curbs");
     }
 
-    /// <summary>Deletes non-terrain polygon objects (Shape_ prefix).</summary>
     public void DeletePolygonObjects()
     {
         DestroyChildrenByPrefix("Shape_");
     }
 
-    /// <summary>Deletes traffic light hierarchy (Junctions is a scene-root object).</summary>
     public void DeleteTrafficLightObjects()
     {
         var junctions = GameObject.Find("Junctions");
@@ -1038,10 +946,6 @@ public class RoadNetworkBuilder : MonoBehaviour
 
     private static Vector3 RightDirection(Vector3 forward) => new(forward.z, 0f, -forward.x);
 
-    /// <summary>
-    /// Extracts the approach geometry for an edge arriving at a junction: rightmost lane
-    /// endpoint, approach direction, individual lane width, and total road width.
-    /// </summary>
     private bool GetEdgeApproachGeometry(
         RoadEdgeData edge,
         out Vector3 laneEnd, out Vector3 approachDir,
@@ -1070,10 +974,6 @@ public class RoadNetworkBuilder : MonoBehaviour
         return true;
     }
 
-    /// <summary>
-    /// Adds a pole collider to a traffic light GameObject. For mirrored lights (localScale -1 X),
-    /// uses a child object to counter-scale and avoid "negative size BoxCollider" warnings.
-    /// </summary>
     private void AddTrafficLightCollider(GameObject go, bool isMirrored)
     {
         if (!addTrafficLightColliders) return;
@@ -1097,10 +997,6 @@ public class RoadNetworkBuilder : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Computes the primary and mirror traffic light positions for an edge arriving at a junction.
-    /// Used by the T-intersection fix to determine adjacent light positions.
-    /// </summary>
     private bool ComputeEdgeLightPositions(
         RoadEdgeData edge, RoadEdgeData excludeEdge, string junctionId, Vector3 junctionCenter,
         out Vector3 primaryPos, out Vector3 mirrorPos)
@@ -1117,10 +1013,8 @@ public class RoadNetworkBuilder : MonoBehaviour
 
         primaryPos = farSideBase + rightDir * (lw * 0.5f + curbOffset);
 
-        // Default mirror fallback
         mirrorPos = primaryPos - rightDir * (2f * totalWidth + 2f * curbOffset);
 
-        // Search for opposing edge for a better mirror position
         float bestAlignment = 0.5f;
         foreach (var cand in edgeRecords.Values)
         {
@@ -1253,20 +1147,12 @@ public class RoadNetworkBuilder : MonoBehaviour
             source.totalRoadWidth);
     }
 
-    /// <summary>
-    /// Generates traffic light GameObjects for every junction whose type is
-    /// traffic_light (or variant). Creates the hierarchy expected by
-    /// SimulationController: Junctions → {id} → Head0..HeadN → green/yellow/red.
-    /// One visible ThreeLight prefab per incoming edge; invisible stubs for
-    /// remaining link indices so the state string maps 1-to-1.
-    /// </summary>
     public void GenerateTrafficLights()
     {
         EnsureDefaultReferences();
 
         if (_netFile == null) { Debug.LogError("Net file not loaded."); return; }
 
-        // Load ThreeLight prefab from Resources
         GameObject tlPrefab = Resources.Load<GameObject>("TrafficLight/ThreeLight");
         if (tlPrefab == null)
         {
@@ -1274,12 +1160,11 @@ public class RoadNetworkBuilder : MonoBehaviour
             return;
         }
 
-        // Load MiddleTrafficLight prefab used when primary and mirror are too close together
+        // used when primary and mirror end up too close together
         GameObject middlePrefab = Resources.Load<GameObject>("TrafficLight/MiddleTrafficLight");
         if (middlePrefab == null)
             Debug.LogWarning("[RoadNetworkBuilder] TrafficLight/MiddleTrafficLight prefab not found; will fall back to ThreeLight on narrow roads.");
 
-        // Build a lookup: tlId → Dictionary<linkIndex, fromEdgeId>
         var tlConnections = new Dictionary<string, Dictionary<int, string>>();
         foreach (ConnectionType conn in _netFile.Connection)
         {
@@ -1294,12 +1179,11 @@ public class RoadNetworkBuilder : MonoBehaviour
             map[linkIdx] = conn.From;
         }
 
-        // Build a set of traffic-light junction IDs from tlLogic
         var tlJunctionIds = new HashSet<string>();
         foreach (TlLogicType tl in _netFile.TlLogic)
             tlJunctionIds.Add(tl.Id);
 
-        // Create "Junctions" root (separate from road network, for SimulationController)
+        // SimulationController expects a scene-root "Junctions" object
         GameObject junctionsRoot = new GameObject("Junctions");
 
         foreach (string jId in tlJunctionIds)
@@ -1307,14 +1191,12 @@ public class RoadNetworkBuilder : MonoBehaviour
             if (!junctionRecords.TryGetValue(jId, out RoadJunctionData jData)) continue;
             if (!tlConnections.TryGetValue(jId, out var linkToEdge)) continue;
 
-            // Junction center in Unity coords
             Vector3 junctionCenter = ToUnity(jData.xPos, jData.yPos);
 
             GameObject junctionGO = new GameObject(jId);
             junctionGO.transform.SetParent(junctionsRoot.transform);
             junctionGO.transform.position = Vector3.zero;
 
-            // Group linkIndices by fromEdge
             var edgeToLinks = new Dictionary<string, List<int>>();
             foreach (var kvp in linkToEdge)
             {
@@ -1328,14 +1210,12 @@ public class RoadNetworkBuilder : MonoBehaviour
 
             var turnTriggerBuildData = new List<TurnTriggerBuildData>();
 
-            // For each incoming edge, place one visible ThreeLight prefab
             foreach (var edgeEntry in edgeToLinks)
             {
                 string edgeId = edgeEntry.Key;
                 List<int> linkIndices = edgeEntry.Value;
                 linkIndices.Sort();
 
-                // Find lane endpoint to position the traffic light
                 Vector3 laneEndPos = junctionCenter;
                 Vector3 approachDir = Vector3.forward;
                 Vector3 stopLinePos = junctionCenter;
@@ -1352,15 +1232,12 @@ public class RoadNetworkBuilder : MonoBehaviour
                     Vector3 farSideBase = laneEnd + approachDir * (2f * forwardDist);
                     Vector3 rightDir = RightDirection(approachDir);
 
-                    // Primary: right of rightmost lane edge
                     laneEndPos = farSideBase + rightDir * (laneW * 0.5f + trafficLightCurbOffset);
                 }
                 if (totalRoadWidth <= 0f) totalRoadWidth = GetTriggerWidth(0f, laneW);
                 float triggerRoadWidth = GetTriggerWidth(totalRoadWidth, laneW);
 
-                // Left-side mirror position: find the opposing incoming edge (arrives at this junction from
-                // approx. the opposite direction) and use its rightmost lane endpoint directly.
-                // This is more accurate than estimating from totalRoadWidth for asymmetric junctions.
+                // the opposing edge's lane endpoint beats estimating from totalRoadWidth on asymmetric junctions
                 Vector3 mirrorRightDir = RightDirection(approachDir);
                 // Default fallback: assume symmetric road (incoming width == opposing width)
                 Vector3 leftSidePos = laneEndPos - mirrorRightDir * (2f * totalRoadWidth + 2f * trafficLightCurbOffset);
@@ -1376,7 +1253,6 @@ public class RoadNetworkBuilder : MonoBehaviour
                         if (!GetEdgeApproachGeometry(cand, out Vector3 opLaneEnd, out Vector3 opApproachDir, out float opLaneW, out _))
                             continue;
 
-                        // Opposing edge must arrive from approximately the opposite direction
                         float alignment = Vector3.Dot(opApproachDir, -approachDir);
                         if (alignment > bestOpposingAlignment)
                         {
@@ -1388,15 +1264,12 @@ public class RoadNetworkBuilder : MonoBehaviour
                     }
                 }
 
-                // T-intersection fix: when no opposing edge exists, find the adjacent traffic
-                // lights closest to the missing roadway side and position the stem's lights
-                // slightly inward from them to avoid overlap.
+                    // no opposing edge, so place the stem's lights inward from the adjacent ones to avoid overlap
                 if (!foundOpposingEdge)
                 {
                     Vector3 rightDir = RightDirection(approachDir);
                     float curbOffset = trafficLightCurbOffset;
 
-                    // Compute the positions of all adjacent edges' traffic lights (primary + mirror)
                     var adjacentPositions = new List<Vector3>();
                     foreach (var cand in edgeRecords.Values)
                     {
@@ -1411,8 +1284,7 @@ public class RoadNetworkBuilder : MonoBehaviour
                         }
                     }
 
-                    // Among all adjacent light positions, find the right-most and left-most
-                    // that are on the stem's far side (closest to the missing roadway)
+                    // find the right-most and left-most adjacent lights on the stem's far side
                     Vector3? bestRight = null;
                     Vector3? bestLeft = null;
                     float bestRightScore = float.NegativeInfinity;
@@ -1436,22 +1308,19 @@ public class RoadNetworkBuilder : MonoBehaviour
                         }
                     }
 
-                    // Position slightly inward from the adjacent lights
                     if (bestRight.HasValue)
                         laneEndPos = bestRight.Value - rightDir * curbOffset;
                     if (bestLeft.HasValue)
                         leftSidePos = bestLeft.Value + rightDir * curbOffset;
                 }
 
-                // Primary Head: first linkIndex for this edge gets the visible ThreeLight (or Middle variant when narrow)
                 int primaryLink = linkIndices[0];
                 float tlSeparation = Vector3.Distance(laneEndPos, leftSidePos);
-                // T-intersections always use the middle prefab since there's no opposing roadway
+                // T-intersections have no opposing roadway, always use the middle prefab
                 bool useMiddlePrefab = middlePrefab != null && (!foundOpposingEdge || tlSeparation < middleTrafficLightThreshold);
                 GameObject activePrefab = useMiddlePrefab ? middlePrefab : tlPrefab;
                 GameObject head;
 
-                // T-intersection: place a single centered middle light (no mirror needed)
                 if (!foundOpposingEdge && useMiddlePrefab)
                 {
                     Vector3 centerPos = (laneEndPos + leftSidePos) * 0.5f;
@@ -1465,30 +1334,28 @@ public class RoadNetworkBuilder : MonoBehaviour
                 }
                 else
                 {
-                    // When using MiddleTrafficLight, swap head/mirror positions so the sign faces correctly.
+                    // MiddleTrafficLight faces the other way, so swap head and mirror positions
                     Vector3 headPos = useMiddlePrefab ? leftSidePos : laneEndPos;
                     Vector3 mirrorPos = useMiddlePrefab ? laneEndPos : leftSidePos;
                     head = (GameObject)PrefabUtility.InstantiatePrefab(activePrefab);
                     head.name = $"Head{primaryLink}";
                     head.transform.SetParent(junctionGO.transform);
                     head.transform.position = headPos;
-                    // Face toward oncoming traffic (the light faces the driver)
+                    // face toward oncoming traffic
                     head.transform.rotation = Quaternion.LookRotation(-approachDir, Vector3.up);
                     AddTrafficLightCollider(head, isMirrored: false);
                     SetLayerRecursively(head, envDetailLayer);
 
-                    // Mirrored light on the opposite side (child of primary so state syncs)
+                    // child of primary so the state syncs
                     GameObject mirror = (GameObject)PrefabUtility.InstantiatePrefab(activePrefab);
                     mirror.name = "Mirror";
                     mirror.transform.SetParent(head.transform);
                     mirror.transform.position = mirrorPos;
                     mirror.transform.rotation = Quaternion.LookRotation(-approachDir, Vector3.up);
-                    // Flip the mirror along the local X axis
                     mirror.transform.localScale = new Vector3(-1f, 1f, 1f);
                     AddTrafficLightCollider(mirror, isMirrored: true);
                 }
 
-                // ── Stop-line trigger for driving evaluation ──
                 GameObject stopLineGO = new GameObject($"StopLine_{jId}_E{edgeId}");
                 stopLineGO.transform.SetParent(junctionGO.transform);
                 stopLineGO.transform.position = stopLinePos;
@@ -1517,7 +1384,6 @@ public class RoadNetworkBuilder : MonoBehaviour
                     });
                 }
 
-                // Secondary Heads: invisible stubs with green_light/yellow_light/red_light children
                 for (int i = 1; i < linkIndices.Count; i++)
                 {
                     int linkIdx = linkIndices[i];
@@ -1534,21 +1400,14 @@ public class RoadNetworkBuilder : MonoBehaviour
 
             CreateMissingThreeWayTurnTrigger(turnTriggerBuildData, junctionGO.transform, jId, junctionCenter);
         }
-        // Mark junction hierarchy as static for batching, GI, and occlusion culling
         if (markGeneratedAsStatic) SetStaticRecursively(junctionsRoot);
 
-        // Make only the root non-selectable so children remain individually toggleable.
-        // EnablePicking first clears any stale descendant state from previous runs (which would cause the mixed cube icon).
+        // EnablePicking first clears stale descendant state that would show the mixed cube icon
         SceneVisibilityManager.instance.EnablePicking(junctionsRoot, true);
         SceneVisibilityManager.instance.DisablePicking(junctionsRoot, true);
         Debug.Log($"[Sumo2Unity] Generated traffic lights for {tlJunctionIds.Count} junctions under 'Junctions' root.");
     }
 
-    /// <summary>
-    /// Applies non-selectable picking state to RoadNetworkRoot and Junctions.
-    /// Must be called after ALL generation steps are complete so no pickable children
-    /// are added afterward (which would cause the mixed cube icon on the root).
-    /// </summary>
     public void ApplyPickingState()
     {
         if (roadNetworkRoot != null)
@@ -1564,7 +1423,6 @@ public class RoadNetworkBuilder : MonoBehaviour
         }
     }
 
-    /// <summary>Deletes road sign GameObjects (under the RoadSigns child of RoadNetwork).</summary>
     public void DeleteRoadSignObjects()
     {
         if (FindExistingRoot())
@@ -1579,12 +1437,6 @@ public class RoadNetworkBuilder : MonoBehaviour
             DestroyImmediate(legacyRoot);
     }
 
-    /// <summary>
-    /// Places stop sign prefabs at junction approaches based on SUMO junction type:
-    ///   - AllwayStop: signs on every incoming edge.
-    ///   - Priority / PriorityStop: signs only on incoming edges whose edge priority
-    ///     is strictly below the maximum priority found among all incoming edges.
-    /// </summary>
     public void GenerateRoadSigns()
     {
         EnsureDefaultReferences();
@@ -1593,7 +1445,6 @@ public class RoadNetworkBuilder : MonoBehaviour
 
         if (stopSignPrefab == null)
         {
-            // Fall back to Resources lookup if not assigned in Inspector
             stopSignPrefab = Resources.Load<GameObject>("Signs/StopSign");
         }
 
@@ -1603,7 +1454,6 @@ public class RoadNetworkBuilder : MonoBehaviour
             return;
         }
 
-        // Group edges by destination junction for efficient lookup
         var edgesByToJunction = new Dictionary<string, List<RoadEdgeData>>();
         foreach (var edgeData in edgeRecords.Values)
         {
@@ -1618,7 +1468,7 @@ public class RoadNetworkBuilder : MonoBehaviour
             list.Add(edgeData);
         }
 
-        // Signs go in a dedicated child of RoadNetwork so they can be deleted independently of TL heads
+        // own child so signs can be deleted independently of TL heads
         GameObject signsRoot = new GameObject("RoadSigns");
         signsRoot.transform.SetParent(roadNetworkRoot.transform);
         int placedCount = 0;
@@ -1633,8 +1483,7 @@ public class RoadNetworkBuilder : MonoBehaviour
             if (!edgesByToJunction.TryGetValue(jData.junctionId, out var incomingEdges)) continue;
             if (incomingEdges.Count == 0) continue;
 
-            // For priority junctions, determine the maximum incoming edge priority.
-            // Approaches with a lower priority value than the maximum are minor roads (stop sign needed).
+            // approaches below the maximum incoming priority are minor roads
             int maxPriority = int.MinValue;
             if (isPriority)
             {
@@ -1647,7 +1496,6 @@ public class RoadNetworkBuilder : MonoBehaviour
 
             foreach (var edge in incomingEdges)
             {
-                // Skip if this is a major-road approach at a priority junction
                 if (isPriority && edge.GetEdgePriority() >= maxPriority) continue;
 
                 if (!GetEdgeApproachGeometry(edge, out Vector3 laneEnd, out Vector3 approachDir, out float laneW, out _))
@@ -1675,12 +1523,10 @@ public class RoadNetworkBuilder : MonoBehaviour
                 placedCount++;
             }
         }
-        // Road signs are env detail: hidden from mirror cameras
         SetLayerRecursively(signsRoot, envDetailLayer);
         Debug.Log($"[Sumo2Unity] Placed {placedCount} stop signs under 'Junctions/RoadSigns'.");
     }
 
-    /// <summary>Deletes street lamp GameObjects (under the StreetLamps child of RoadNetworkRoot).</summary>
     public void DeleteStreetLampObjects()
     {
         if (!FindExistingRoot()) return;
@@ -1688,12 +1534,6 @@ public class RoadNetworkBuilder : MonoBehaviour
         if (lampsChild != null) DestroyImmediate(lampsChild.gameObject);
     }
 
-    /// <summary>
-    /// Generates street lamps along the sidewalk edges of every road.
-    /// Lamps are loaded from Resources/StreetLamps/Street Lamp 02 and placed
-    /// at regular intervals on the right side of all roads and both sides of
-    /// single-direction roads (no opposite-direction edge).
-    /// </summary>
     public void GenerateStreetLamps()
     {
         EnsureDefaultReferences();
@@ -1704,7 +1544,6 @@ public class RoadNetworkBuilder : MonoBehaviour
             return;
         }
 
-        // Remove any existing lamp root before regenerating
         var existingLamps = roadNetworkRoot.transform.Find("StreetLamps");
         if (existingLamps != null) DestroyImmediate(existingLamps.gameObject);
 
@@ -1715,7 +1554,6 @@ public class RoadNetworkBuilder : MonoBehaviour
             return;
         }
 
-        // Sign lamp prefab: inspector field takes priority, then Resources fallback
         GameObject signLampPrefab = lampWithSignPrefab;
         if (signLampPrefab == null)
             signLampPrefab = Resources.Load<GameObject>("StreetLamps/Sign Street Lamp");
@@ -1726,12 +1564,10 @@ public class RoadNetworkBuilder : MonoBehaviour
         lampsRoot.transform.SetParent(roadNetworkRoot.transform);
 
         int lampCount = 0;
-        // Total outward offset from lane centre: half lane width puts us at the lane edge,
-        // then innerSlopeWidth clears the ramp, then lampCurbOffset positions within the flat top.
+        // half lane width reaches the lane edge, innerSlopeWidth clears the ramp, lampCurbOffset sits on the flat top
         float sidewalkInset = innerSlopeWidth + lampCurbOffset;
 
-        // Shared list of placed lamp positions used to prevent lamps from being placed too
-        // close to each other across opposite sidewalks on narrow roads.
+        // shared so lamps on opposite sidewalks of a narrow road don't land on each other
         var placedLampPositions = new List<Vector3>();
 
         foreach (var edgeData in edgeRecords.Values)
@@ -1741,7 +1577,6 @@ public class RoadNetworkBuilder : MonoBehaviour
 
             bool hasOpposite = HasOppositeEdge(edgeData);
 
-            // Right side: rightmost lane (index 0) outer edge -- always generate
             var firstLane = lanes[0];
             if (firstLane.shapePoints.Count >= 2)
             {
@@ -1750,7 +1585,7 @@ public class RoadNetworkBuilder : MonoBehaviour
                 PlaceLampsAlongEdge(sidewalkPts, lampPrefab, signLampPrefab, lampsRoot.transform, leftSide: false, ref lampCount, placedLampPositions);
             }
 
-            // Left side: leftmost lane outer edge -- only if no opposite edge exists
+            // left side only when there is no opposite edge
             if (!hasOpposite)
             {
                 var lastLane = lanes[lanes.Count - 1];
@@ -1765,25 +1600,15 @@ public class RoadNetworkBuilder : MonoBehaviour
 
         if (markGeneratedAsStatic)
             SetStaticRecursively(lampsRoot);
-        // Street lamps are env detail: hidden from mirror cameras
         SetLayerRecursively(lampsRoot, envDetailLayer);
 
         Debug.Log($"[Sumo2Unity] Placed {lampCount} street lamps.");
     }
 
-    /// <summary>
-    /// Instantiates lamps at regular intervals along a sidewalk polyline.
-    /// Starts half a spacing interval in from the first point so lamps don't
-    /// land right at junction edges.
-    /// leftSide: true if this is the left (median-facing) sidewalk, used to orient lamps inward.
-    /// signPrefab: when non-null, the lamp closest to the block midpoint uses this prefab instead.
-    /// placedPositions: shared list of already-placed lamp world positions used for proximity checks.
-    /// </summary>
     private void PlaceLampsAlongEdge(Vector3[] pts, GameObject prefab, GameObject signPrefab, Transform parent, bool leftSide, ref int count, List<Vector3> placedPositions)
     {
         if (pts.Length < 2) return;
 
-        // Compute total polyline length for junction clearance trimming
         float totalLength = 0f;
         for (int i = 0; i < pts.Length - 1; i++)
             totalLength += Vector3.Distance(pts[i], pts[i + 1]);
@@ -1809,13 +1634,11 @@ public class RoadNetworkBuilder : MonoBehaviour
                 float t = nextDist - cumDist;
                 Vector3 pos = a + dir * t;
 
-                // Inward rotation: right sidewalk faces -90 deg right (toward road center),
-                // left sidewalk faces +90 deg left (toward road center).
+                // each sidewalk rotates inward toward the road center
                 float yaw = leftSide ? 90f : -90f;
                 Quaternion rot = Quaternion.LookRotation(dir, Vector3.up) * Quaternion.Euler(0f, yaw, 0f);
 
-                // Skip this position if another lamp is already within the minimum proximity
-                // (prevents lamps on opposite narrow-road sidewalks from touching each other).
+                // keeps lamps on opposite narrow-road sidewalks from touching
                 bool tooClose = false;
                 float minProxSq = lampMinProximity * lampMinProximity;
                 foreach (var existing in placedPositions)
@@ -1831,7 +1654,6 @@ public class RoadNetworkBuilder : MonoBehaviour
 
                 if (!tooClose)
                 {
-                    // Use the sign lamp prefab for the lamp closest to the block midpoint
                     bool isMidpointLamp = signPrefab != null
                         && Mathf.Abs(nextDist - totalLength * 0.5f) < lampSpacing * 0.5f;
                     GameObject lampPrefabToUse = isMidpointLamp ? signPrefab : prefab;
@@ -1859,7 +1681,6 @@ public class RoadNetworkBuilder : MonoBehaviour
         }
     }
 
-    /// <summary>Deletes lane arrow decal GameObjects (under the LaneDecals child of RoadNetworkRoot).</summary>
     public void DeleteLaneDecalObjects()
     {
         DestroyChildByName("LaneDecals");
@@ -1869,25 +1690,12 @@ public class RoadNetworkBuilder : MonoBehaviour
             DestroyImmediate(legacyRoot);
     }
 
-    /// <summary>
-    /// Places lane-direction arrow decals on the road surface before each junction approach,
-    /// using SUMO connection direction data to pick the correct material.
-    ///
-    /// Direction → material mapping:
-    ///   Straight only (s)         → throughDecalMaterial
-    ///   Left only (l/L)           → leftDecalMaterial
-    ///   Left + straight           → throughLeftDecalMaterial
-    ///   Right only (r/R)          → rightDecalMaterial
-    ///   Right + straight          → throughRightDecalMaterial
-    ///   Any other combination     → throughRightLeftDecalMaterial
-    /// </summary>
     public void GenerateLaneDecals()
     {
         EnsureDefaultReferences();
 
         if (_netFile == null) { Debug.LogError("Net file not loaded."); return; }
 
-        // Collect which materials are available; skip silently if none are assigned
         bool anyMaterial = throughDecalMaterial != null
                         || leftDecalMaterial != null
                         || throughLeftDecalMaterial != null
@@ -1900,7 +1708,6 @@ public class RoadNetworkBuilder : MonoBehaviour
             return;
         }
 
-        // Group connection directions by (fromEdge, fromLaneIndex)
         var laneDirections = new Dictionary<(string edge, int lane), HashSet<ConnectionTypeDir>>();
         foreach (ConnectionType conn in _netFile.Connection)
         {
@@ -1922,7 +1729,6 @@ public class RoadNetworkBuilder : MonoBehaviour
             return;
         }
 
-        // Parent decals under roadNetworkRoot so they're grouped with the rest of the road network
         DestroyChildByName("LaneDecals");
         GameObject decalsRoot = new GameObject("LaneDecals");
         decalsRoot.transform.SetParent(roadNetworkRoot.transform);
@@ -1936,7 +1742,6 @@ public class RoadNetworkBuilder : MonoBehaviour
 
             if (!edgeRecords.TryGetValue(edgeId, out RoadEdgeData edgeData)) continue;
 
-            // Find the specific lane by its index
             RoadLaneData lane = null;
             foreach (var l in edgeData.GetLaneDataList())
             {
@@ -1944,31 +1749,26 @@ public class RoadNetworkBuilder : MonoBehaviour
             }
             if (lane == null || lane.shapePoints == null || lane.shapePoints.Count < 2) continue;
 
-            // Pick decal material based on direction set
             Material mat = PickArrowMaterial(dirs);
             if (mat == null) continue;
 
-            // Compute endpoint and approach direction from the last two shape points
             int last = lane.shapePoints.Count - 1;
             Vector3 laneEnd = ToUnity(lane.shapePoints[last][0], lane.shapePoints[last][1]);
             Vector3 prevPt = ToUnity(lane.shapePoints[last - 1][0], lane.shapePoints[last - 1][1]);
             Vector3 approachDir = (laneEnd - prevPt).normalized;
 
-            // Center the arrow setback from the junction, at lane center height
             Vector3 decalPos = laneEnd - approachDir * arrowSetbackFromJunction;
             decalPos.y += DecalHeightOffset;
 
             float laneW = GetLaneWidth(lane);
 
-            // Arrow decal
             if (mat != null)
             {
                 GameObject decalObj = new GameObject($"ArrowDecal_{edgeId}_L{laneIdx}");
                 decalObj.transform.SetParent(decalsRoot.transform);
                 if (groundLayer >= 0) decalObj.layer = groundLayer;
                 decalObj.transform.position = decalPos;
-                // Euler(90, yaw, 0): X=90 pitches the projector to face downward (-Y world),
-                // Y=yaw aligns the texture with the road travel direction.
+                // Euler(90, yaw, 0): X=90 points the projector down, Y=yaw aligns with travel direction
                 float yaw = Mathf.Atan2(approachDir.x, approachDir.z) * Mathf.Rad2Deg;
                 decalObj.transform.rotation = Quaternion.Euler(90f, yaw, 0f);
 
@@ -1979,7 +1779,6 @@ public class RoadNetworkBuilder : MonoBehaviour
                 placedCount++;
             }
 
-            // Stop line decal: wide thin stripe across the lane, at the junction endpoint
             if (stopLineDecalMaterial != null)
             {
                 GameObject slDecalObj = new GameObject($"StopLineDecal_{edgeId}_L{laneIdx}");
@@ -2001,17 +1800,6 @@ public class RoadNetworkBuilder : MonoBehaviour
         Debug.Log($"[Sumo2Unity] Placed {placedCount} lane arrow decals under 'RoadNetworkRoot/LaneDecals'.");
     }
 
-    /// <summary>
-    /// Returns the appropriate arrow decal material for a set of SUMO connection directions.
-    ///
-    /// Material assignments (matching the project's decal textures):
-    ///   S only      → throughDecalMaterial       (forward only)
-    ///   L only      → leftDecalMaterial           (left only)
-    ///   L + S       → throughLeftDecalMaterial    (left + forward)
-    ///   R only      → rightDecalMaterial          (right only)
-    ///   R + S       → throughRightDecalMaterial   (right + forward)
-    ///   Everything else → throughRightLeftDecalMaterial (forward + left + right)
-    /// </summary>
     private Material PickArrowMaterial(HashSet<ConnectionTypeDir> dirs)
     {
         bool hasLeft = dirs.Contains(ConnectionTypeDir.L) || dirs.Contains(ConnectionTypeDir.L1);
@@ -2085,10 +1873,7 @@ public class RoadNetworkBuilder : MonoBehaviour
         mf.sharedMesh = polyMesh;
         mr.sharedMaterial = GetPolygonMaterial(polygonType);
 
-        // Physics collider so vehicles don't fall through.
-        // Large flat polygons can trigger a PhysX large-triangle warning with a MeshCollider
-        // if any two vertices are more than 500 units apart. Check the bounding diagonal
-        // (not just one axis) to catch roughly-square large polygons.
+        // PhysX warns on MeshCollider triangles with vertices over 500 units apart
         Bounds polyBounds = polyMesh.bounds;
         float polyDiag = Mathf.Sqrt(polyBounds.size.x * polyBounds.size.x + polyBounds.size.z * polyBounds.size.z);
         bool isLargePoly = polyDiag > LargePolygonDiagonalThreshold;

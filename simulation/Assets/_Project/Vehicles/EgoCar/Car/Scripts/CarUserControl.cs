@@ -38,7 +38,6 @@ namespace UnityStandardAssets.Vehicles.Car
         [Tooltip("Name of the action map containing driving actions.")]
         public string actionMapName = "Driving";
 
-        // Resolved actions (looked up by name from the asset)
         private InputAction _steerAction;
         private InputAction _accelAction;
         private InputAction _brakeAction;
@@ -51,40 +50,33 @@ namespace UnityStandardAssets.Vehicles.Car
         private InputAction _gearDriveAction;   // XR: right thumbstick up → Drive
         private InputAction _gearReverseAction; // XR: right thumbstick down → Reverse
 
-        // Whether the car is currently in reverse gear (toggled by GearChange action)
         private bool _isReverse;
 
-        // Gear change audio is routed through CarAudio.PlayGearChange() for consistency.
+        // routed through CarAudio.PlayGearChange for consistency
 
         // Instant mode latches the throttle: one press keeps the car cruising until the brake.
         private bool _cruising;
         private const float ThrottleDeadzone = 0.05f;
         private const float BrakeDeadzone = 0.01f;
 
-        // Cached input values (read in Update, used in FixedUpdate)
         private float _steerInput;
         private float _accelInput;
         private float _brakeInput;
         private float _handbrakeInput;
 
-        /// <summary>Whether the left turn signal is currently active.</summary>
         public bool IsLeftSignalOn => isLeftSignalOn;
-        /// <summary>Whether the right turn signal is currently active.</summary>
         public bool IsRightSignalOn => isRightSignalOn;
 
-        /// <summary>Whether the car is currently in reverse gear.</summary>
         public bool IsReverse => _isReverse;
 
         private void Awake()
         {
-            // Get the CarController and CarAudio components
             m_Car = GetComponent<CarController>();
             m_CarAudio = GetComponent<CarAudio>();
             m_FollowCurve = GetComponent<FollowCurve>();
             m_TiltSteering = GetComponent<TiltSteeringProvider>();
             _rb = GetComponent<Rigidbody>();
 
-            // Resolve actions from the asset by name
             if (inputActions != null)
             {
                 var map = inputActions.FindActionMap(actionMapName, false);
@@ -104,8 +96,7 @@ namespace UnityStandardAssets.Vehicles.Car
                 }
             }
 
-            // Dedicated audio source for gear-change sounds
-            // (sound is played through CarAudio.PlayGearChange)
+            // the sound itself is played through CarAudio.PlayGearChange
         }
 
         private void OnEnable()
@@ -141,7 +132,6 @@ namespace UnityStandardAssets.Vehicles.Car
 
         private void Update()
         {
-            // Read continuous axes every frame (consumed in FixedUpdate)
             // Combine tilt and action input — whichever has more authority wins
             float rawAction = _steerAction?.ReadValue<float>() ?? 0f;
             // Smooth keyboard input to mimic old Input.GetAxis ramp-up/down
@@ -151,7 +141,6 @@ namespace UnityStandardAssets.Vehicles.Car
             _brakeInput = _brakeAction?.ReadValue<float>() ?? 0f;
             _handbrakeInput = _handbrakeAction?.ReadValue<float>() ?? 0f;
 
-            // Turn signal button presses
             if (_leftSignalAction != null && _leftSignalAction.WasPressedThisFrame())
                 ActivateTurnSignal(true, false);
             else if (_rightSignalAction != null && _rightSignalAction.WasPressedThisFrame())
@@ -211,18 +200,14 @@ namespace UnityStandardAssets.Vehicles.Car
                 _cruising = false;
             }
 
-            // ── Steering Influence Blending ──
-            // If FollowCurve is attached and enabled, blend the player's raw
-            // steering with the spline-following autopilot.
+            // blend raw steering with the spline-following autopilot when FollowCurve is enabled
             float steeringInput = h;
             if (m_FollowCurve != null && m_FollowCurve.enabled)
             {
                 steeringInput = m_FollowCurve.GetBlendedSteering(h, m_Car.m_MaximumSteerAngle);
             }
 
-            // Determine the road-wheel steering angle based on blended input.
-            // With the physical controller wheel active, keep the visible steering wheel
-            // matched to the user's cradle rotation instead of the small road-wheel angle.
+            // with the physical wheel active, the visible wheel matches the cradle, not the small road-wheel angle
             float targetAngle = steeringInput * m_Car.m_MaximumSteerAngle;
             if (m_TiltSteering != null && m_TiltSteering.IsActive)
             {
@@ -230,19 +215,15 @@ namespace UnityStandardAssets.Vehicles.Car
             }
             else if (Mathf.Abs(steeringInput) > 0.01f)
             {
-                // Smoothly rotate the wheel towards the target angle for keyboard/gamepad input.
                 currentAngle = Mathf.LerpAngle(currentAngle, targetAngle, rotationSpeed * Time.deltaTime);
             }
             else
             {
-                // Smoothly return the wheel to the center for keyboard/gamepad input.
                 currentAngle = Mathf.LerpAngle(currentAngle, 0f, returnSpeed * Time.deltaTime);
             }
 
-            // Apply the rotation to the wheel around the Z-axis.
             m_Wheel.transform.localRotation = Quaternion.Euler(0f, 0f, -currentAngle);
 
-            // Pass accel and brake separately to CarController
             // CarController.Move clamps accel to [0,1] and footbrake to [-1,0]
             m_Car.Move(steeringInput, accel, -brake, handbrake, _isReverse);
 

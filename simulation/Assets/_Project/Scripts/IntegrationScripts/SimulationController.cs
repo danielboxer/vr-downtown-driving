@@ -23,16 +23,15 @@ public class SimulationController : MonoBehaviour
     private Rigidbody egoRigidbody;
     private float long_speed;
 
-    // Separate queue for SUMO messages avoids closure/delegate allocation per message.
+    // a separate queue avoids a closure allocation per message
     private readonly ConcurrentQueue<string> _sumoMessageQueue = new ConcurrentQueue<string>();
     private readonly ConcurrentQueue<Action> mainThreadActions = new ConcurrentQueue<Action>();
 
-    // Pre-allocated buffers for CollectVehicleData (avoids per-frame GC)
+    // pre-allocated to avoid per-frame GC
     private readonly Vehicle _egoVehicleBuffer = new Vehicle();
     private readonly double[] _egoPositionBuffer = new double[3];
     private readonly Vehicle[] _egoVehicleArray = new Vehicle[1];
 
-    // Cached component references
     private ScenarioManager _scenarioManager;
 
     [Header("Unity Step Length (seconds)")]
@@ -124,19 +123,11 @@ public class SimulationController : MonoBehaviour
     /// cache last seen state per junction
     private readonly Dictionary<string, string> _lastTlState = new Dictionary<string, string>();
 
-    /// <summary>
-    /// Returns the full traffic light state string for the given junction,
-    /// or null if no state has been received yet.
-    /// Each character is one signal head: 'G'/'g' = green, 'y'/'Y' = yellow, 'r'/'R' = red.
-    /// </summary>
     public string GetTrafficLightState(string junctionId)
     {
         return _lastTlState.TryGetValue(junctionId, out var state) ? state : null;
     }
 
-    /// <summary>
-    /// Cached replacement for VehicleController's old per-NPC junction/stop-line hierarchy scan.
-    /// </summary>
     public bool IsNpcWaitingAtRedOrYellowLight(Vector3 npcPos, Vector3 npcDriveDir, float maxDist)
     {
         if (stopLineCache.Count == 0 || _lastTlState.Count == 0)
@@ -199,8 +190,7 @@ public class SimulationController : MonoBehaviour
 
         _scenarioManager = GetComponent<ScenarioManager>();
 
-        // Live builds talk to SUMO over the network via ExchangeData; the WebGL build
-        // has no SUMO, so it replays a baked recording via SimulationReplayer instead.
+        // the WebGL build has no SUMO, so it replays a baked recording via SimulationReplayer
 #if UNITY_WEBGL
         if (GetComponent<SimulationReplayer>() == null)
             gameObject.AddComponent<SimulationReplayer>();
@@ -209,7 +199,6 @@ public class SimulationController : MonoBehaviour
             gameObject.AddComponent<ExchangeData>();
 #endif
 
-        // Auto-find the Junctions root if not assigned in the Inspector
         if (junctions == null)
         {
             var found = GameObject.Find("Junctions");
@@ -224,9 +213,6 @@ public class SimulationController : MonoBehaviour
         PrewarmVehiclePools();
     }
 
-    /// <summary>
-    /// Called by ScenarioManager to register a pre-placed ego vehicle from the scene.
-    /// </summary>
     public void RegisterEgoVehicle(GameObject ego)
     {
         egoVehicle = ego;
@@ -248,11 +234,9 @@ public class SimulationController : MonoBehaviour
                 vehicleDataJson = data;
             }
 
-            // Drain SUMO messages (no closure allocation per message)
             while (_sumoMessageQueue.TryDequeue(out string msg))
                 HandleMessage(msg);
 
-            // Drain any other main-thread actions
             while (mainThreadActions.TryDequeue(out var action))
                 action();
         }
@@ -266,8 +250,7 @@ public class SimulationController : MonoBehaviour
     {
         if (!vehicleObjects.ContainsKey(EgoVehicleId) || egoVehicle == null)
         {
-            // Return the last valid ego data so Python keeps calling moveToXY
-            // and SUMO does not remove f_0.0 from the simulation.
+            // returning the last valid ego data keeps SUMO from removing f_0.0
             return lastValidVehicleDataJson;
         }
 
@@ -316,10 +299,6 @@ public class SimulationController : MonoBehaviour
         mainThreadActions.Enqueue(action);
     }
 
-    /// <summary>
-    /// Removes all NPC vehicles from the scene (returns them to pool or destroys).
-    /// Does not touch the ego vehicle. Call on scenario change or simulation restart.
-    /// </summary>
     public void ClearAllNpcVehicles()
     {
         vehiclesToRemove.Clear();
@@ -335,7 +314,6 @@ public class SimulationController : MonoBehaviour
         vehiclesToRemove.Clear();
     }
 
-    // Constants for fast type detection without full JSON deserialization.
     // Python sends JSON with separators=(",",":") so the prefix is always {"type":"<type>"
     private const string TypeKeyVehicles = "\"type\":\"vehicles\"";
     private const string TypeKeyTrafficlights = "\"type\":\"trafficlights\"";
@@ -346,8 +324,7 @@ public class SimulationController : MonoBehaviour
     {
         if (string.IsNullOrEmpty(message)) return;
 
-        // Fast path: detect message type via string search (avoids a full JSON
-        // deserialization just to read the "type" field).
+        // string search avoids a full deserialization just to read the "type" field
         if (message.IndexOf(TypeKeyVehicles, StringComparison.Ordinal) >= 0)
         {
             HandleVehiclesMessage(message);

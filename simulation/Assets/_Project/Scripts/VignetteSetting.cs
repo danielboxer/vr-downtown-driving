@@ -1,6 +1,3 @@
-// Vignette strength, set from the options menu. Both vehicles carry their own
-// VrComfortVignette, so the level is held here rather than on either prefab and a
-// vehicle switch keeps whatever the participant chose.
 public enum VignetteLevel
 {
     Off,
@@ -10,7 +7,7 @@ public enum VignetteLevel
 
 public static class VignetteSetting
 {
-    // The XR display can take a few seconds to start running
+    // null defers the default until VrActive.IsActive is known
     private static VignetteLevel? _chosenLevel;
 
     public static VignetteLevel Level

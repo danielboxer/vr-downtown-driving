@@ -50,7 +50,6 @@ namespace UnityStandardAssets.Bike
         public float MaxSpeedMs { get { return m_SpeedType == BikeSpeedType.KPH ? m_Topspeed / 3.6f : m_Topspeed / 2.23693629f; } }
         public float AccelInput { get; private set; }
 
-        /// <summary>Sets the top speed from the options menu, which always works in km/h.</summary>
         public void SetTopSpeedKmh(float kmh)
         {
             m_SpeedType = BikeSpeedType.KPH;

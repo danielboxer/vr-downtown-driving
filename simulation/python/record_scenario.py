@@ -26,13 +26,6 @@ TL_INTERVAL = 1.0
 
 
 def _resolve_sumo() -> str:
-    """Find a SUMO install and return the `sumo` binary to launch.
-
-    Priority: the SUMO_HOME env var (desktop/local), then the pip `eclipse-sumo`
-    package (CI), then the default Windows install path. Adds SUMO_HOME/tools to
-    sys.path when present so a bundled traci is importable; a pip-installed traci
-    needs neither SUMO_HOME nor that path.
-    """
     homes = []
     env_home = os.environ.get("SUMO_HOME")
     if env_home:
@@ -118,9 +111,7 @@ def bake(scenario_dir: str, out_path: str, sumo_bin: str, start: float, duration
         with gzip.open(out_path, "wt", encoding="utf-8", newline="\n") as f:
             f.write(_dump({"t": 0.0, "type": "config", "scenario": scenario_name}) + "\n")
 
-            # Warm up silently to `start`, then record until `end` (or demand runs out).
-            # Each vehicle is subscribed once on departure so per-step reads come back
-            # in a single getAllSubscriptionResults call instead of ~5 round-trips each.
+            # each vehicle is subscribed once on departure, so a step is one getAllSubscriptionResults call
             while traci.simulation.getMinExpectedNumber() > 0:
                 traci.simulationStep()
                 for vid in traci.simulation.getDepartedIDList():
@@ -178,8 +169,7 @@ def bake(scenario_dir: str, out_path: str, sumo_bin: str, start: float, duration
 
 
 def _all_scenario_dirs(root: str) -> list:
-    # Skip calibration scenarios: they carry no ambient traffic, so a bake would
-    # replay an empty street.
+    # calibration scenarios carry no ambient traffic, a bake would replay an empty street
     return sorted(
         os.path.join(root, name)
         for name in os.listdir(root)
