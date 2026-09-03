@@ -118,7 +118,6 @@ public class MenuController : MonoBehaviour
         CacheControllerRenderers();
         SetControllerRenderersVisible(_controllersVisible);
 
-        // The menu is a screen-space canvas, so only the mouse can click it.
         SetMouseOwnedMenuPointer();
 
         // wait for the XR display subsystem, Quest 3 via SteamVR is not active yet when Start runs
@@ -347,7 +346,7 @@ public class MenuController : MonoBehaviour
 
     public void OnToggleControllerVisuals()
     {
-        // Always re-cache so the correct vehicle's renderers are used after a switch.
+        // re-cache so the renderers match the current vehicle
         CacheControllerRenderers();
 
         if (_controllerRenderers.Length == 0)
@@ -413,10 +412,20 @@ public class MenuController : MonoBehaviour
 
     public void OnCycleVignette()
     {
+#if UNITY_WEBGL
+        ShowFeedback("Vignette unavailable in web build");
+#else
+        if (!VrActive.IsActive)
+        {
+            ShowFeedback("Vignette unavailable without a headset");
+            return;
+        }
+
         int levelCount = Enum.GetValues(typeof(VignetteLevel)).Length;
         VignetteSetting.Level = (VignetteLevel)(((int)VignetteSetting.Level + 1) % levelCount);
         ShowFeedback($"Vignette: {VignetteSetting.Level}");
         RefreshVignetteLabel();
+#endif
     }
 
     private void RefreshVignetteLabel()
@@ -439,7 +448,7 @@ public class MenuController : MonoBehaviour
         SetPercentLabel(warningVolumeLabel, "Warning Volume", percent);
     }
 
-    // Re-finds a destroyed evaluator so the slider still reaches it after a scenario restart.
+    // a scenario restart destroys the evaluator
     private DrivingEvaluator ResolveDrivingEvaluator()
     {
         if (_drivingEvaluator == null)
@@ -453,7 +462,7 @@ public class MenuController : MonoBehaviour
             label.text = $"{name}: {percent:F0}%";
     }
 
-    // Set without notify, or the sliders would push their own values straight back out.
+    // without notify, or the sliders push their own values straight back out
     private void SyncSettingControls()
     {
         RefreshAccelerationLabel();
@@ -642,7 +651,6 @@ public class MenuController : MonoBehaviour
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern bool CloseHandle(IntPtr hObject);
 
-    // WAIT_TIMEOUT means the process is still running.
     [DllImport("kernel32.dll")]
     private static extern uint WaitForSingleObject(IntPtr hHandle, uint dwMilliseconds);
 

@@ -12,7 +12,7 @@ public static class VignetteSetting
 
     public static VignetteLevel Level
     {
-        get => _chosenLevel ?? (VrActive.IsActive ? VignetteLevel.High : VignetteLevel.Off);
+        get => _chosenLevel ?? (VrActive.IsActive ? VignetteLevel.Low : VignetteLevel.Off);
         set => _chosenLevel = value;
     }
 }
