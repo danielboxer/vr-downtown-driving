@@ -6,8 +6,8 @@ The exported FBX is located [here](../simulation/Assets/downtown/). The `.blend`
 
 |                                                             |                                                                    |                                                           |
 | ----------------------------------------------------------- | ------------------------------------------------------------------ | --------------------------------------------------------- |
-| ![Yonge Street east view](../img/simulation_yonge_east.png) | ![Sankofa Square](../img/simulation_sankofa_square.png)            | ![Student Learning Centre](../img/simulation_slc.png)     |
-| ![Yonge Street west](../img/simulation_yonge_west_1.png)    | ![Yonge Street west alternate](../img/simulation_yonge_west_2.png) | ![Full intersection overview](../img/simulation_full.png) |
+| ![Yonge Street east view](../img/simulation/yonge_east.png) | ![Sankofa Square](../img/simulation/sankofa_square.png)            | ![Student Learning Centre](../img/simulation/slc.png)     |
+| ![Yonge Street west](../img/simulation/yonge_west_1.png)    | ![Yonge Street west alternate](../img/simulation/yonge_west_2.png) | ![Full intersection overview](../img/simulation/full.png) |
 
 ## Modeling Pipeline
 
