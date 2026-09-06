@@ -2,6 +2,8 @@
 
 This is a dual-purpose steering wheel and handlebars controller for VR (Meta Quest 3). The 3D printed controller fits on an ipad stand for simulating rotating a driving wheel and handlebars.
 
+![Controller Model](../img/controller/controller_cad_model.png)
+
 | Front                                                      | Side                                                     | Back                                                     |
 | ---------------------------------------------------------- | -------------------------------------------------------- | -------------------------------------------------------- |
 | ![Dual controller front](../img/controller/dual_front.jpg) | ![Dual controller side](../img/controller/dual_side.jpg) | ![Dual controller back](../img/controller/dual_back.jpg) |
