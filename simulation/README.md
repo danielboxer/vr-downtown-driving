@@ -4,7 +4,7 @@ The simulation extends the Sumo2Unity project. See their documentation [here](ht
 
 |                                                                 |                                                                       |
 | --------------------------------------------------------------- | --------------------------------------------------------------------- |
-| ![Car driving at Yonge and Dundas](../img/simulation_car_1.png) | ![Bike approaching right turn](../img/simulation_bike_right_turn.png) |
+| ![Car driving at Yonge and Dundas](../img/simulation/car_1.png) | ![Bike approaching right turn](../img/simulation/bike_right_turn.png) |
 
 ## Building the Unity project
 
@@ -60,7 +60,7 @@ The right_turn_car uses a slightly modified [network](/simulation/Scenarios/righ
 
 | Right turn (car)                                                                       | Right turn (bike)                                                                        |
 | -------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| ![Top-down view of car right turn route](../img/simulation_topdown_right_turn_car.png) | ![Top-down view of bike right turn route](../img/simulation_topdown_right_turn_bike.png) |
+| ![Top-down view of car right turn route](../img/simulation/topdown_right_turn_car.png) | ![Top-down view of bike right turn route](../img/simulation/topdown_right_turn_bike.png) |
 
 ## Controls
 
