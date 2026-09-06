@@ -9,4 +9,4 @@ VR driving simulation set in downtown Toronto (Yonge and Dundas). Navigate downt
 
 - [Simulation](simulation/README.md)
 - [Controller](controller/README.md)
-- [Downtown Model](downtown/README.md)
+- [Downtown Model](downtown_model/README.md)
