@@ -1,6 +1,8 @@
 # Simulation
 
-The simulation extends the Sumo2Unity project. See their documentation [here](https://github.com/SimuTraffX-Lab/SUMO2Unity/blob/main/README.md).
+Unity VR driving simulation built on top of the SUMO2Unity project. See their documentation [here](https://github.com/SimuTraffX-Lab/SUMO2Unity/blob/main/README.md).
+
+SUMO2Unity connects the SUMO 2D traffic simulator to Unity, so the NPC cars are dynamic and will react to you while following traffic rules.
 
 |                                                                 |                                                                       |
 | --------------------------------------------------------------- | --------------------------------------------------------------------- |
@@ -45,7 +47,7 @@ To release a new version, update `MyAppVersion` at the top of `inno_setup_script
 
 ## Scenarios
 
-Six scenarios across two vehicle modes. Select one in the tool before starting Unity.
+There are 6 scenarios:
 
 | Folder           | Vehicle | Description                             |
 | ---------------- | ------- | --------------------------------------- |
@@ -56,11 +58,17 @@ Six scenarios across two vehicle modes. Select one in the tool before starting U
 | downtown_bike    | Bike    | Free ride                               |
 | right_turn_bike  | Bike    | Right turn at a signalized intersection |
 
+The two right turn scenarios are the same hazard seen from both sides. In the car one the ego car turns right while NPC cyclists go straight through the intersection, so you have to watch for cyclists before turning. In the bike one the ego bike goes straight while NPC cars turn right, so you have to watch for cars.
+
+To keep the scenario the same for every run, the Yonge and Dundas traffic light is held green so the NPC cars behave identically, and the ego vehicle is constrained to its route with a spline. The spline blends your steering with the path so the vehicle follows the route with only small deviations, which also helps novice drivers who can't hold a lane yet.
+
 The right_turn_car uses a slightly modified [network](/simulation/Scenarios/right_turn.net.xml) which removes priority for the starting roadway (one way road). This is so that traffic on Yonge doesn't stop for you when you're exiting. However for the right_turn_bike, the regular downtown.net file is used since removing priority causes cars to get stuck in the one way road.
 
 | Right turn (car)                                                                       | Right turn (bike)                                                                        |
 | -------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
 | ![Top-down view of car right turn route](../img/simulation/topdown_right_turn_car.png) | ![Top-down view of bike right turn route](../img/simulation/topdown_right_turn_bike.png) |
+
+The road network was generated from real OSM data of the Yonge and Dundas area with the SUMO OSM Web Wizard, then edited in netedit to allow right turns at Yonge and Dundas.
 
 ## Controls
 
@@ -98,10 +106,6 @@ Speed ramps up automatically after the first trigger press. Squeezing a trigger 
 1. Run `uv run main.py` from `simulation/python/`
 2. Select a scenario and press **Start simulation**
 3. Press Play in Unity
-
-## Driving Evaluation
-
-Scenarios run the driving evaluator, which checks stop-line compliance at red lights and turn signal use at the junction.
 
 ## Modifying the SUMO Network
 
