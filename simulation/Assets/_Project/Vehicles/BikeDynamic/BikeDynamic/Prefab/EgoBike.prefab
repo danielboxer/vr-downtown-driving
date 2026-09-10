@@ -965,6 +965,7 @@ GameObject:
   - component: {fileID: 3487285337310022582}
   - component: {fileID: 4797427589464226602}
   - component: {fileID: 1391480951019566633}
+  - component: {fileID: 8183164980916419263}
   m_Layer: 0
   m_Name: XR Origin (VR)
   m_TagString: Untagged
@@ -1019,6 +1020,20 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_ActionAssets:
   - {fileID: -944628639613478452, guid: c348712bda248c246b8c49b3db54643f, type: 3}
+--- !u!114 &8183164980916419263
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4181878413488772468}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 63b7cfb9c54314645a48f2eb6c509cf6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DesktopCameraOffset
+  positionOffset: {x: 0, y: 0, z: -0.25}
+  rotationOffset: {x: 10.6, y: 0, z: 0}
 --- !u!1 &4455947719990721696
 GameObject:
   m_ObjectHideFlags: 0
