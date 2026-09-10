@@ -67,10 +67,37 @@ public class ScenarioManager : MonoBehaviour
     public void StartScenario()
     {
 #if UNITY_WEBGL
-        ApplyScenarioImmediate(ScenarioId.downtown_car);
+        ScenarioId scenario = ScenarioId.downtown_car;
 #else
-        ApplyScenarioImmediate(defaultScenario);
+        ScenarioId scenario = defaultScenario;
 #endif
+        if (vrFadeMaterial != null)
+            _fadeCoroutine = StartCoroutine(FadeInScenario(scenario));
+        else
+            ApplyScenarioImmediate(scenario);
+    }
+
+    private IEnumerator FadeInScenario(ScenarioId scenario)
+    {
+        // the ego camera only exists once the scenario enables its vehicle
+        ApplyScenarioImmediate(scenario);
+
+        GameObject quadGO = null;
+        Renderer quadRenderer = null;
+        Camera cam = Camera.main;
+        if (cam != null)
+        {
+            quadGO = CreateFadeQuad(cam);
+            quadRenderer = quadGO.GetComponent<Renderer>();
+            quadRenderer.material = Instantiate(vrFadeMaterial);
+            _activeFadeQuad = quadGO;
+        }
+
+        yield return FadeOverlay(quadRenderer, 1f, 0f);
+
+        if (quadGO != null) Destroy(quadGO);
+        _activeFadeQuad = null;
+        _fadeCoroutine = null;
     }
 
     private void OnDestroy()
