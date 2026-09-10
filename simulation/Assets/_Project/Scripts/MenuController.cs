@@ -369,6 +369,7 @@ public class MenuController : MonoBehaviour
 
     private void OnScenarioChanged(ScenarioId scenario)
     {
+        RefreshMaxSpeedControl();
         if (_controllerVisibilitySyncCoroutine != null)
             StopCoroutine(_controllerVisibilitySyncCoroutine);
         _controllerVisibilitySyncCoroutine = StartCoroutine(SyncControllerVisibilityAfterScenarioChange());
@@ -400,14 +401,29 @@ public class MenuController : MonoBehaviour
 
     public void OnMaxSpeedChanged(float steps)
     {
-        MaxSpeedSetting.Kmh = steps * MaxSpeedSetting.StepKmh;
+        float kmh = steps * MaxSpeedSetting.StepKmh;
+        if (ActiveEgoIsBike)
+            MaxSpeedSetting.BikeKmh = kmh;
+        else
+            MaxSpeedSetting.CarKmh = kmh;
         RefreshMaxSpeedLabel();
     }
+
+    private bool ActiveEgoIsBike => _scenarioManager != null && _scenarioManager.ActiveEgoIsBike;
+
+    private float ActiveMaxSpeedKmh => ActiveEgoIsBike ? MaxSpeedSetting.BikeKmh : MaxSpeedSetting.CarKmh;
 
     private void RefreshMaxSpeedLabel()
     {
         if (maxSpeedLabel != null)
-            maxSpeedLabel.text = $"Max Speed: {MaxSpeedSetting.Kmh:F0} km/h";
+            maxSpeedLabel.text = $"Max Speed: {ActiveMaxSpeedKmh:F0} km/h";
+    }
+
+    private void RefreshMaxSpeedControl()
+    {
+        if (maxSpeedSlider != null)
+            maxSpeedSlider.SetValueWithoutNotify(ActiveMaxSpeedKmh / MaxSpeedSetting.StepKmh);
+        RefreshMaxSpeedLabel();
     }
 
     public void OnCycleVignette()
@@ -468,9 +484,7 @@ public class MenuController : MonoBehaviour
         RefreshAccelerationLabel();
         RefreshVignetteLabel();
 
-        if (maxSpeedSlider != null)
-            maxSpeedSlider.SetValueWithoutNotify(MaxSpeedSetting.Kmh / MaxSpeedSetting.StepKmh);
-        RefreshMaxSpeedLabel();
+        RefreshMaxSpeedControl();
 
         float masterPercent = AudioListener.volume * 100f;
         if (masterVolumeSlider != null)

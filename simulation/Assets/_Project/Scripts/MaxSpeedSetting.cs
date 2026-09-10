@@ -2,15 +2,24 @@ public static class MaxSpeedSetting
 {
     public const float StepKmh = 5f;
 
-    private const float VrDefaultKmh = 20f;
-    private const float DesktopDefaultKmh = 55f;
+    private const float CarVrDefaultKmh = 20f;
+    private const float CarDesktopDefaultKmh = 55f;
+    private const float BikeVrDefaultKmh = 10f;
+    private const float BikeDesktopDefaultKmh = 20f;
 
     // null defers the default until VrActive.IsActive is known
-    private static float? _chosenKmh;
+    private static float? _chosenCarKmh;
+    private static float? _chosenBikeKmh;
 
-    public static float Kmh
+    public static float CarKmh
     {
-        get => _chosenKmh ?? (VrActive.IsActive ? VrDefaultKmh : DesktopDefaultKmh);
-        set => _chosenKmh = value;
+        get => _chosenCarKmh ?? (VrActive.IsActive ? CarVrDefaultKmh : CarDesktopDefaultKmh);
+        set => _chosenCarKmh = value;
+    }
+
+    public static float BikeKmh
+    {
+        get => _chosenBikeKmh ?? (VrActive.IsActive ? BikeVrDefaultKmh : BikeDesktopDefaultKmh);
+        set => _chosenBikeKmh = value;
     }
 }

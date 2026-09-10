@@ -184,7 +184,7 @@ namespace UnityStandardAssets.Vehicles.Car
 
         private void FixedUpdate()
         {
-            m_Car.SetTopSpeedKmh(MaxSpeedSetting.Kmh);
+            m_Car.SetTopSpeedKmh(MaxSpeedSetting.CarKmh);
 
             float h = _steerInput;
             float accel = _accelInput;

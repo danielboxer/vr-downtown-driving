@@ -33,6 +33,12 @@ public class ScenarioManager : MonoBehaviour
 
     public event Action<ScenarioId> OnScenarioChanged;
     public ScenarioId ActiveScenario => _activeScenario;
+    public bool ActiveEgoIsBike => IsBikeScenario(_activeScenario);
+
+    public static bool IsBikeScenario(ScenarioId scenario) =>
+        scenario == ScenarioId.calibration_bike
+        || scenario == ScenarioId.downtown_bike
+        || scenario == ScenarioId.right_turn_bike;
 
     private SimulationController _simController;
     private DrivingEvaluator drivingEvaluator;

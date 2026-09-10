@@ -162,7 +162,7 @@ namespace UnityStandardAssets.Bike
 
         private void FixedUpdate()
         {
-            m_Bike.SetTopSpeedKmh(MaxSpeedSetting.Kmh);
+            m_Bike.SetTopSpeedKmh(MaxSpeedSetting.BikeKmh);
 
             float h = _steerInput;
             float accel = _accelInput;
