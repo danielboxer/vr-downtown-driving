@@ -4,6 +4,8 @@ VR can put non drivers or novice drivers in dangerous traffic situations at no r
 
 The secondary goal is to see if experiencing the same scenario from both perspectives of car and bike can be helpful. There are 6 traffic scenarios for car and bike perspectives.
 
+This was my undergraduate thesis project at Toronto Metropolitan University, supervised by Dr. Tim McInerney.
+
 ----------------------
 TODO: put render here
 ----------------------
