@@ -3,7 +3,7 @@ public static class MaxSpeedSetting
     public const float StepKmh = 5f;
 
     private const float VrDefaultKmh = 20f;
-    private const float DesktopDefaultKmh = 70f;
+    private const float DesktopDefaultKmh = 55f;
 
     // null defers the default until VrActive.IsActive is known
     private static float? _chosenKmh;
