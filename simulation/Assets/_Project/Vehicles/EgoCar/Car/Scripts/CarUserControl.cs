@@ -25,6 +25,9 @@ namespace UnityStandardAssets.Vehicles.Car
         [Tooltip("Smoothing speed for keyboard steering (higher = snappier).")]
         public float steerSmoothing = 5f; // Mimics old Input.GetAxis smoothing
 
+        [Tooltip("Rate the keyboard steering eases back to center after the key is released (lower = slower).")]
+        public float steerReturnSmoothing = 2f;
+
         private float currentAngle = 0f; // Current angle of the wheel
         private float _smoothedSteer; // Smoothed keyboard steering value
 
@@ -113,6 +116,7 @@ namespace UnityStandardAssets.Vehicles.Car
             _gearDriveAction?.Enable();
             _gearReverseAction?.Enable();
             _cruising = false;
+            _smoothedSteer = 0f;
         }
 
         private void OnDisable()
@@ -134,8 +138,8 @@ namespace UnityStandardAssets.Vehicles.Car
         {
             // Combine tilt and action input — whichever has more authority wins
             float rawAction = _steerAction?.ReadValue<float>() ?? 0f;
-            // Smooth keyboard input to mimic old Input.GetAxis ramp-up/down
-            _smoothedSteer = Mathf.MoveTowards(_smoothedSteer, rawAction, steerSmoothing * Time.deltaTime);
+            float steerRate = rawAction != 0f ? steerSmoothing : steerReturnSmoothing;
+            _smoothedSteer = Mathf.MoveTowards(_smoothedSteer, rawAction, steerRate * Time.deltaTime);
             _steerInput = TiltSteeringProvider.CombineSteer(m_TiltSteering, _smoothedSteer);
             _accelInput = _accelAction?.ReadValue<float>() ?? 0f;
             _brakeInput = _brakeAction?.ReadValue<float>() ?? 0f;

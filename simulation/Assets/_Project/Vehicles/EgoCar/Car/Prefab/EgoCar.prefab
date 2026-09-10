@@ -1207,7 +1207,8 @@ MonoBehaviour:
   m_Wheel: {fileID: 5421761259626824293}
   rotationSpeed: 5
   returnSpeed: 5
-  steerSmoothing: 5
+  steerSmoothing: 3
+  steerReturnSmoothing: 2
   inputActions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   actionMapName: Driving
 --- !u!114 &5757802278771181401

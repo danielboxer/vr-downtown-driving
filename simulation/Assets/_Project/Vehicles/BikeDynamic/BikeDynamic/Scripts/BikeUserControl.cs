@@ -42,6 +42,9 @@ namespace UnityStandardAssets.Bike
         [Tooltip("Smoothing speed for keyboard steering (higher = snappier).")]
         public float steerSmoothing = 5f; // Mimics old Input.GetAxis smoothing
 
+        [Tooltip("Rate the keyboard steering eases back to center after the key is released (lower = slower).")]
+        public float steerReturnSmoothing = 2f;
+
         [Header("Auto Speed")]
         [Tooltip("How fast (fraction of top speed per second) the allowed speed increases after activating. Lower = gentler ramp.")]
         public float autoAccelRamp = 0.1f;
@@ -94,6 +97,7 @@ namespace UnityStandardAssets.Bike
             _speedRamp = 0f;
             _accelInput = 0f;
             _brakeInput = 0f;
+            _smoothedSteer = 0f;
         }
 
         private void OnDisable()
@@ -108,8 +112,8 @@ namespace UnityStandardAssets.Bike
         {
             // Combine tilt and action input; whichever has more authority wins.
             float rawAction = _steerAction?.ReadValue<float>() ?? 0f;
-            // Smooth keyboard input to mimic old Input.GetAxis ramp-up/down
-            _smoothedSteer = Mathf.MoveTowards(_smoothedSteer, rawAction, steerSmoothing * Time.deltaTime);
+            float steerRate = rawAction != 0f ? steerSmoothing : steerReturnSmoothing;
+            _smoothedSteer = Mathf.MoveTowards(_smoothedSteer, rawAction, steerRate * Time.deltaTime);
             _steerInput = TiltSteeringProvider.CombineSteer(m_TiltSteering, _smoothedSteer);
             // Either trigger can wake auto-accel; once active, trigger amount slows/brakes.
             float rawTrigger = Mathf.Max(
