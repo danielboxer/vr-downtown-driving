@@ -29,7 +29,6 @@ namespace UnityStandardAssets.Vehicles.Car
         public float steerReturnSmoothing = 2f;
 
         private float currentAngle = 0f; // Current angle of the wheel
-        private float _smoothedSteer; // Smoothed keyboard steering value
 
         private bool isLeftSignalOn = false;
         private bool isRightSignalOn = false;
@@ -41,36 +40,19 @@ namespace UnityStandardAssets.Vehicles.Car
         [Tooltip("Name of the action map containing driving actions.")]
         public string actionMapName = "Driving";
 
-        private InputAction _steerAction;
-        private InputAction _accelAction;
-        private InputAction _brakeAction;
+        private DrivingInput _driving;
         private InputAction _handbrakeAction;
         private InputAction _leftSignalAction;
         private InputAction _rightSignalAction;
         private InputAction _cancelSignalAction;
         private InputAction _hornAction;
-        private InputAction _gearChangeAction;
-        private InputAction _gearDriveAction;   // XR: right thumbstick up → Drive
-        private InputAction _gearReverseAction; // XR: right thumbstick down → Reverse
 
-        private bool _isReverse;
-
-        // routed through CarAudio.PlayGearChange for consistency
-
-        // Instant mode latches the throttle: one press keeps the car cruising until the brake.
-        private bool _cruising;
-        private const float ThrottleDeadzone = 0.05f;
-        private const float BrakeDeadzone = 0.01f;
-
-        private float _steerInput;
-        private float _accelInput;
-        private float _brakeInput;
         private float _handbrakeInput;
 
         public bool IsLeftSignalOn => isLeftSignalOn;
         public bool IsRightSignalOn => isRightSignalOn;
 
-        public bool IsReverse => _isReverse;
+        public bool IsReverse => _driving.IsReverse;
 
         private void Awake()
         {
@@ -80,69 +62,42 @@ namespace UnityStandardAssets.Vehicles.Car
             m_TiltSteering = GetComponent<TiltSteeringProvider>();
             _rb = GetComponent<Rigidbody>();
 
-            if (inputActions != null)
-            {
-                var map = inputActions.FindActionMap(actionMapName, false);
-                if (map != null)
-                {
-                    _steerAction = map.FindAction("Steer", false);
-                    _accelAction = map.FindAction("Accelerate", false);
-                    _brakeAction = map.FindAction("Brake", false);
-                    _handbrakeAction = map.FindAction("HandBrake", false);
-                    _leftSignalAction = map.FindAction("LeftSignal", false);
-                    _rightSignalAction = map.FindAction("RightSignal", false);
-                    _cancelSignalAction = map.FindAction("CancelSignal", false);
-                    _hornAction = map.FindAction("Horn", false);
-                    _gearChangeAction = map.FindAction("GearChange", false);
-                    _gearDriveAction = map.FindAction("GearDrive", false);
-                    _gearReverseAction = map.FindAction("GearReverse", false);
-                }
-            }
+            _driving = new DrivingInput(inputActions, actionMapName);
 
-            // the sound itself is played through CarAudio.PlayGearChange
+            var map = inputActions?.FindActionMap(actionMapName, false);
+            if (map != null)
+            {
+                _handbrakeAction = map.FindAction("HandBrake", false);
+                _leftSignalAction = map.FindAction("LeftSignal", false);
+                _rightSignalAction = map.FindAction("RightSignal", false);
+                _cancelSignalAction = map.FindAction("CancelSignal", false);
+                _hornAction = map.FindAction("Horn", false);
+            }
         }
 
         private void OnEnable()
         {
-            _steerAction?.Enable();
-            _accelAction?.Enable();
-            _brakeAction?.Enable();
+            _driving.Enable();
             _handbrakeAction?.Enable();
             _leftSignalAction?.Enable();
             _rightSignalAction?.Enable();
             _cancelSignalAction?.Enable();
             _hornAction?.Enable();
-            _gearChangeAction?.Enable();
-            _gearDriveAction?.Enable();
-            _gearReverseAction?.Enable();
-            _cruising = false;
-            _smoothedSteer = 0f;
         }
 
         private void OnDisable()
         {
-            _steerAction?.Disable();
-            _accelAction?.Disable();
-            _brakeAction?.Disable();
+            _driving.Disable();
             _handbrakeAction?.Disable();
             _leftSignalAction?.Disable();
             _rightSignalAction?.Disable();
             _cancelSignalAction?.Disable();
             _hornAction?.Disable();
-            _gearChangeAction?.Disable();
-            _gearDriveAction?.Disable();
-            _gearReverseAction?.Disable();
         }
 
         private void Update()
         {
-            // Combine tilt and action input — whichever has more authority wins
-            float rawAction = _steerAction?.ReadValue<float>() ?? 0f;
-            float steerRate = rawAction != 0f ? steerSmoothing : steerReturnSmoothing;
-            _smoothedSteer = Mathf.MoveTowards(_smoothedSteer, rawAction, steerRate * Time.deltaTime);
-            _steerInput = TiltSteeringProvider.CombineSteer(m_TiltSteering, _smoothedSteer);
-            _accelInput = _accelAction?.ReadValue<float>() ?? 0f;
-            _brakeInput = _brakeAction?.ReadValue<float>() ?? 0f;
+            _driving.Update(m_TiltSteering, steerSmoothing, steerReturnSmoothing);
             _handbrakeInput = _handbrakeAction?.ReadValue<float>() ?? 0f;
 
             if (_leftSignalAction != null && _leftSignalAction.WasPressedThisFrame())
@@ -156,59 +111,19 @@ namespace UnityStandardAssets.Vehicles.Car
             if (_hornAction != null && _hornAction.WasPressedThisFrame())
                 m_CarAudio?.PlayHorn();
 
-            // G key = toggle drive/reverse gear
-            if (_gearChangeAction != null && _gearChangeAction.WasPressedThisFrame())
-            {
-                _isReverse = !_isReverse;
+            if (_driving.GearChangedThisFrame)
                 m_CarAudio?.PlayGearChange();
-            }
-
-            // Right thumbstick up/down = direct gear selection (XR)
-            if (_gearDriveAction != null && _gearDriveAction.WasPressedThisFrame())
-            {
-                if (_isReverse)
-                {
-                    _isReverse = false;
-                    m_CarAudio?.PlayGearChange();
-                }
-            }
-            if (_gearReverseAction != null && _gearReverseAction.WasPressedThisFrame())
-            {
-                if (!_isReverse)
-                {
-                    _isReverse = true;
-                    m_CarAudio?.PlayGearChange();
-                }
-            }
         }
 
         private void FixedUpdate()
         {
             m_Car.SetTopSpeedKmh(MaxSpeedSetting.CarKmh);
 
-            float h = _steerInput;
-            float accel = _accelInput;
-            float brake = _brakeInput;
-            float handbrake = _handbrakeInput;
-
-            // The ramp is short enough that holding accelerate does nothing, so one tap latches.
-            bool instant = AccelerationSetting.Mode == AccelerationMode.Instant;
-            if (instant)
-            {
-                if (brake > BrakeDeadzone) _cruising = false;
-                else if (accel > ThrottleDeadzone) _cruising = true;
-                accel = _cruising ? 1f : 0f;
-            }
-            else
-            {
-                _cruising = false;
-            }
-
             // blend raw steering with the spline-following autopilot when FollowCurve is enabled
-            float steeringInput = h;
+            float steeringInput = _driving.Steer;
             if (m_FollowCurve != null && m_FollowCurve.enabled)
             {
-                steeringInput = m_FollowCurve.GetBlendedSteering(h, m_Car.m_MaximumSteerAngle);
+                steeringInput = m_FollowCurve.GetBlendedSteering(steeringInput, m_Car.m_MaximumSteerAngle);
             }
 
             // with the physical wheel active, the visible wheel matches the cradle, not the small road-wheel angle
@@ -229,13 +144,9 @@ namespace UnityStandardAssets.Vehicles.Car
             m_Wheel.transform.localRotation = Quaternion.Euler(0f, 0f, -currentAngle);
 
             // CarController.Move clamps accel to [0,1] and footbrake to [-1,0]
-            m_Car.Move(steeringInput, accel, -brake, handbrake, _isReverse);
+            m_Car.Move(steeringInput, _driving.Throttle, -_driving.Brake, _handbrakeInput, _driving.IsReverse);
 
-            if (instant)
-            {
-                Vector3 forward = _isReverse ? -transform.forward : transform.forward;
-                VrFastSpeed.Apply(_rb, _cruising ? m_Car.MaxSpeedMs : 0f, m_Car.MaxSpeedMs, forward);
-            }
+            _driving.ApplyInstantSpeed(_rb, m_Car.MaxSpeedMs, transform.forward);
         }
 
         private void ActivateTurnSignal(bool left, bool right)
