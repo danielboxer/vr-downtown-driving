@@ -865,12 +865,6 @@ MonoBehaviour:
   actionMapName: Driving
   steerSmoothing: 3
   steerReturnSmoothing: 2
-  autoAccelRamp: 0.1
-  autoDecelRamp: 0.5
-  triggerDeadzone: 0.05
-  brakeStart: 0.65
-  fullBrakeThreshold: 0.95
-  stoppedSpeedThreshold: 0.5
 --- !u!114 &2483689335993353849
 MonoBehaviour:
   m_ObjectHideFlags: 0

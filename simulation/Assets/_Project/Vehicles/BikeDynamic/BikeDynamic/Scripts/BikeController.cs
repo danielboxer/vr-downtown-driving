@@ -150,6 +150,24 @@ namespace UnityStandardAssets.Bike
 
         private void ApplyDrive(float accel, float footbrake, bool reverse)
         {
+            if (reverse)
+            {
+                for (int i = 0; i < 4; i++)
+                {
+                    if (footbrake > 0)
+                    {
+                        m_WheelColliders[i].brakeTorque = m_BrakeTorque * (footbrake * footbrake);
+                        m_WheelColliders[i].motorTorque = 0f;
+                    }
+                    else
+                    {
+                        m_WheelColliders[i].brakeTorque = 0f;
+                        m_WheelColliders[i].motorTorque = -m_ReverseTorque * accel;
+                    }
+                }
+                return;
+            }
+
             float thrustTorque;
             switch (m_BikeDriveType)
             {
@@ -177,12 +195,6 @@ namespace UnityStandardAssets.Bike
                     // Square the input: full trigger stops much faster than half trigger
                     m_WheelColliders[i].brakeTorque = m_BrakeTorque * (footbrake * footbrake);
                     m_WheelColliders[i].motorTorque = 0f;
-                }
-                else if (reverse)
-                {
-                    // Reverse button held: drive backward, release all brake
-                    m_WheelColliders[i].brakeTorque = 0f;
-                    m_WheelColliders[i].motorTorque = -m_ReverseTorque;
                 }
                 else
                 {
