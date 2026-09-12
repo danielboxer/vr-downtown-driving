@@ -52,6 +52,8 @@ public class MenuController : MonoBehaviour
     public TextMeshProUGUI accelerationButtonLabel;
     [Tooltip("TMP label on the Vignette toggle button; set automatically to show the current level.")]
     public TextMeshProUGUI vignetteButtonLabel;
+    [Tooltip("TMP label on the Impatient Drivers toggle button; set automatically to show current state.")]
+    public TextMeshProUGUI honkingButtonLabel;
     [Tooltip("TMP label on the Max Speed row; set automatically to show the current value.")]
     public TextMeshProUGUI maxSpeedLabel;
     [Tooltip("TMP label on the Master Volume row; set automatically to show the current value.")]
@@ -450,6 +452,13 @@ public class MenuController : MonoBehaviour
             vignetteButtonLabel.text = $"Vignette: {VignetteSetting.Level}";
     }
 
+    public void OnToggleHonking()
+    {
+        HonkSetting.Enabled = !HonkSetting.Enabled;
+        ShowFeedback(HonkSetting.Enabled ? "Impatient Drivers: ON" : "Impatient Drivers: OFF");
+        SetToggleLabel(honkingButtonLabel, "Impatient Drivers", HonkSetting.Enabled);
+    }
+
     public void OnMasterVolumeChanged(float percent)
     {
         AudioListener.volume = percent / 100f;
@@ -483,6 +492,7 @@ public class MenuController : MonoBehaviour
     {
         RefreshAccelerationLabel();
         RefreshVignetteLabel();
+        SetToggleLabel(honkingButtonLabel, "Impatient Drivers", HonkSetting.Enabled);
 
         RefreshMaxSpeedControl();
 

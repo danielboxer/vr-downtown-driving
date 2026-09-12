@@ -278,6 +278,8 @@ public class VehicleController : MonoBehaviour
 
     private void CheckHorn()
     {
+        if (!HonkSetting.Enabled) return;
+
         // Bikes use bell clips when available; cars use horn clips.
         List<AudioClip> activeClips = (isBike && bellClips != null && bellClips.Count > 0) ? bellClips : hornClips;
         float activeVolume = (isBike && bellClips != null && bellClips.Count > 0) ? bellVolume : hornVolume;
