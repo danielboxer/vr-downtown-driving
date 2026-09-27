@@ -99,11 +99,12 @@ public class DrivingInput
     // instant mode skips the acceleration cue that causes sim sickness
     public void ApplyInstantSpeed(Rigidbody rigidbody, float maxSpeedMs, Vector3 forward)
     {
-        if (AccelerationSetting.Mode != AccelerationMode.Instant)
+        // braking is left to the wheel brakes
+        if (AccelerationSetting.Mode != AccelerationMode.Instant || !_throttleLatched)
             return;
 
         Vector3 heading = IsReverse ? -forward : forward;
-        VrFastSpeed.Apply(rigidbody, _throttleLatched ? maxSpeedMs : 0f, maxSpeedMs, heading);
+        VrFastSpeed.Apply(rigidbody, maxSpeedMs, heading);
     }
 
     private void UpdateGear()
