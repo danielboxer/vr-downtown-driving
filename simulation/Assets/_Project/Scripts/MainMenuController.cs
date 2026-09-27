@@ -43,6 +43,7 @@ public class MainMenuController : MonoBehaviour
     public GameObject[] hudToHide;
 
     private bool _started;
+    private InputAction _toggleMenuAction;
 
     // a headset user has no pointer for the screen space menu canvas
     private IDisposable _anyButtonPress;
@@ -67,6 +68,9 @@ public class MainMenuController : MonoBehaviour
         if (aboutBackButton != null) aboutBackButton.onClick.AddListener(ShowMainMenu);
         if (menuBackButton != null) menuBackButton.onClick.AddListener(ReturnToMainMenu);
         if (exitButton != null && menuController != null) exitButton.onClick.AddListener(menuController.OnExit);
+
+        if (menuController != null && menuController.inputActions != null)
+            _toggleMenuAction = menuController.inputActions.FindActionMap("Driving", false)?.FindAction("ToggleMenu", false);
     }
 
     private void Start()
@@ -79,6 +83,7 @@ public class MainMenuController : MonoBehaviour
     private void OnEnable()
     {
         _anyButtonPress = InputSystem.onAnyButtonPress.Call(OnAnyButtonPressed);
+        if (_toggleMenuAction != null) _toggleMenuAction.performed += OnToggleMenuPerformed;
     }
 
     private void OnDisable()
@@ -88,6 +93,13 @@ public class MainMenuController : MonoBehaviour
             _anyButtonPress.Dispose();
             _anyButtonPress = null;
         }
+        if (_toggleMenuAction != null) _toggleMenuAction.performed -= OnToggleMenuPerformed;
+    }
+
+    private void OnToggleMenuPerformed(InputAction.CallbackContext context)
+    {
+        bool subPanelOpen = (controlsPanel != null && controlsPanel.activeSelf) || (aboutPanel != null && aboutPanel.activeSelf);
+        if (subPanelOpen) ShowMainMenu();
     }
 
     // without the panel check, a trigger pull aimed at Options would start the drive
