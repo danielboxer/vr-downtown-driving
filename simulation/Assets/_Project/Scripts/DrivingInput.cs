@@ -17,6 +17,7 @@ public class DrivingInput
 
     private float _smoothedSteer;
     private bool _throttleLatched;
+    private bool _ignoreThrottleUntilReleased;
 
     public float Steer { get; private set; }
     public float Throttle { get; private set; }
@@ -51,6 +52,7 @@ public class DrivingInput
 
         _smoothedSteer = 0f;
         _throttleLatched = false;
+        _ignoreThrottleUntilReleased = true;
         Steer = 0f;
         Throttle = 0f;
         Brake = 0f;
@@ -79,6 +81,9 @@ public class DrivingInput
 
         Brake = _brakeAction?.ReadValue<float>() ?? 0f;
         float throttle = _accelerateAction?.ReadValue<float>() ?? 0f;
+        // the trigger pull that started the drive from the main menu is still held
+        if (throttle <= ThrottleDeadzone) _ignoreThrottleUntilReleased = false;
+        if (_ignoreThrottleUntilReleased) throttle = 0f;
 
         if (AccelerationSetting.Mode == AccelerationMode.Instant)
         {

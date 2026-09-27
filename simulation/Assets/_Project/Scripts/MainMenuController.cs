@@ -97,7 +97,8 @@ public class MainMenuController : MonoBehaviour
         if (mainMenuPanel == null || !mainMenuPanel.activeSelf) return;
         if (!VrActive.IsActive) return;
         if (!(control.device is UnityEngine.InputSystem.XR.XRController)) return;
-        if (Array.IndexOf(StartControlNames, control.name) < 0) return;
+        // the Quest controllers report their control names in lowercase
+        if (!Array.Exists(StartControlNames, name => string.Equals(name, control.name, StringComparison.OrdinalIgnoreCase))) return;
         Play();
     }
 
