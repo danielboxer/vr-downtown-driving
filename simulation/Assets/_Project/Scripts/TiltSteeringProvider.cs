@@ -112,6 +112,7 @@ public class TiltSteeringProvider : MonoBehaviour
     private const float MinProjectedVectorSqrMagnitude = 0.0001f;
 
     private InputAction _keyboardSteerAction;
+    private InputAction _calibrateAction;
     private bool _headsetConnected;
     private bool _simulatorActive;
     // reused to avoid a GC allocation on every headset state refresh
@@ -122,6 +123,7 @@ public class TiltSteeringProvider : MonoBehaviour
     private float _lastWrappedAngle;
     private bool _hasLastWrappedAngle;
     private bool _calibrated;
+    private bool _controllerRotationsWereTracked;
     private float _smoothedSteerValue;
     private Quaternion _leftCenterRotation = Quaternion.identity;
     private Quaternion _rightCenterRotation = Quaternion.identity;
@@ -148,6 +150,7 @@ public class TiltSteeringProvider : MonoBehaviour
         {
             var map = inputActions.FindActionMap(actionMapName, false);
             _keyboardSteerAction = map?.FindAction("Steer", false);
+            _calibrateAction = map?.FindAction("CalibrateSteering", false);
         }
     }
 
@@ -159,10 +162,12 @@ public class TiltSteeringProvider : MonoBehaviour
         // The simulator presence doesn't change at runtime, so one check suffices.
         _simulatorActive = FindFirstObjectByType<XRInteractionSimulator>() != null;
         _calibrated = false;
+        _controllerRotationsWereTracked = false;
         _currentUnwrappedAngle = 0f;
         _centerAngle = 0f;
         ClearSteeringState(true);
         _keyboardSteerAction?.Enable();
+        _calibrateAction?.Enable();
     }
 
     private void OnDisable()
@@ -171,6 +176,7 @@ public class TiltSteeringProvider : MonoBehaviour
         InputDevices.deviceDisconnected -= OnXRDeviceChanged;
         ClearSteeringState(false);
         _keyboardSteerAction?.Disable();
+        _calibrateAction?.Disable();
     }
 
     private void OnXRDeviceChanged(UnityEngine.XR.InputDevice device)
@@ -195,6 +201,9 @@ public class TiltSteeringProvider : MonoBehaviour
             ClearSteeringState(false);
             return;
         }
+
+        if (_calibrateAction != null && _calibrateAction.WasPressedThisFrame())
+            Calibrate();
 
         if (controllerTrackingMode == ControllerTrackingMode.RotationOnly)
             UpdateFromControllerRotations();
@@ -243,7 +252,13 @@ public class TiltSteeringProvider : MonoBehaviour
 
     private void UpdateFromControllerRotations()
     {
-        if (!TryReadControllerRotations(out Quaternion leftRotation, out Quaternion rightRotation))
+        bool rotationsTracked = AreControllerRotationsTracked();
+        // the pose drivers can move the controller transforms a frame after tracking starts
+        bool rotationsTrackedLastFrame = _controllerRotationsWereTracked;
+        _controllerRotationsWereTracked = rotationsTracked;
+
+        if (!rotationsTracked || !rotationsTrackedLastFrame ||
+            !TryReadControllerRotations(out Quaternion leftRotation, out Quaternion rightRotation))
         {
             ClearSteeringState(true);
             // no controller rotations, but the keyboard may still steer
@@ -281,7 +296,8 @@ public class TiltSteeringProvider : MonoBehaviour
     {
         if (controllerTrackingMode == ControllerTrackingMode.RotationOnly)
         {
-            if (!TryReadControllerRotations(out Quaternion leftRotation, out Quaternion rightRotation))
+            if (!AreControllerRotationsTracked() ||
+                !TryReadControllerRotations(out Quaternion leftRotation, out Quaternion rightRotation))
                 return false;
 
             SetRotationCenter(leftRotation, rightRotation);
@@ -473,6 +489,21 @@ public class TiltSteeringProvider : MonoBehaviour
 
         ConvertControllerRotationsToSteeringReferenceSpace(ref leftRotation, ref rightRotation);
         return IsUsableRotation(leftRotation) && IsUsableRotation(rightRotation);
+    }
+
+    // an untracked controller still reports its default rotation
+    private static bool AreControllerRotationsTracked()
+    {
+        return IsRotationTracked(XRController.leftHand) && IsRotationTracked(XRController.rightHand);
+    }
+
+    private static bool IsRotationTracked(XRController controller)
+    {
+        if (controller == null || controller.trackingState == null)
+            return false;
+
+        var trackingState = (InputTrackingState)controller.trackingState.ReadValue();
+        return (trackingState & InputTrackingState.Rotation) != 0;
     }
 
     private void ConvertControllerRotationsToSteeringReferenceSpace(ref Quaternion leftRotation, ref Quaternion rightRotation)

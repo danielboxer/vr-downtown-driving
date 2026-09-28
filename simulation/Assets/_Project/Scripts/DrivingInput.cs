@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.XR;
 
 public class DrivingInput
 {
@@ -12,8 +13,10 @@ public class DrivingInput
     private readonly InputAction _gearChangeAction;
     private readonly InputAction _gearDriveAction;   // XR: right thumbstick up
     private readonly InputAction _gearReverseAction; // XR: right thumbstick down
+    private readonly InputAction _holdToReverseAction;
 
     private readonly bool _accelerateUnlatches;
+    private readonly bool _xrTriggersAreBrakeLevers;
 
     private float _smoothedSteer;
     private bool _throttleLatched;
@@ -23,11 +26,13 @@ public class DrivingInput
     public float Throttle { get; private set; }
     public float Brake { get; private set; }
     public bool IsReverse { get; private set; }
+    public float BrakeLeverPull { get; private set; }
     public bool GearChangedThisFrame { get; private set; }
 
-    public DrivingInput(InputActionAsset inputActions, string actionMapName, bool accelerateUnlatches = false)
+    public DrivingInput(InputActionAsset inputActions, string actionMapName, bool accelerateUnlatches = false, bool xrTriggersAreBrakeLevers = false, bool holdToReverse = false)
     {
         _accelerateUnlatches = accelerateUnlatches;
+        _xrTriggersAreBrakeLevers = xrTriggersAreBrakeLevers;
 
         var map = inputActions?.FindActionMap(actionMapName, false);
         if (map == null)
@@ -36,6 +41,12 @@ public class DrivingInput
         _steerAction = map.FindAction("Steer", false);
         _accelerateAction = map.FindAction("Accelerate", false);
         _brakeAction = map.FindAction("Brake", false);
+        if (holdToReverse)
+        {
+            _holdToReverseAction = map.FindAction("BikeReverse", false);
+            return;
+        }
+
         _gearChangeAction = map.FindAction("GearChange", false);
         _gearDriveAction = map.FindAction("GearDrive", false);
         _gearReverseAction = map.FindAction("GearReverse", false);
@@ -49,6 +60,7 @@ public class DrivingInput
         _gearChangeAction?.Enable();
         _gearDriveAction?.Enable();
         _gearReverseAction?.Enable();
+        _holdToReverseAction?.Enable();
 
         _smoothedSteer = 0f;
         _throttleLatched = false;
@@ -57,6 +69,7 @@ public class DrivingInput
         Throttle = 0f;
         Brake = 0f;
         IsReverse = false;
+        BrakeLeverPull = 0f;
         GearChangedThisFrame = false;
     }
 
@@ -68,6 +81,7 @@ public class DrivingInput
         _gearChangeAction?.Disable();
         _gearDriveAction?.Disable();
         _gearReverseAction?.Disable();
+        _holdToReverseAction?.Disable();
     }
 
     public void Update(TiltSteeringProvider tiltSteering, float steerSmoothing, float steerReturnSmoothing)
@@ -79,15 +93,19 @@ public class DrivingInput
 
         UpdateGear();
 
-        Brake = _brakeAction?.ReadValue<float>() ?? 0f;
-        float throttle = _accelerateAction?.ReadValue<float>() ?? 0f;
+        Brake = ReadPedal(_brakeAction);
+        float throttle = ReadPedal(_accelerateAction);
+        BrakeLeverPull = _xrTriggersAreBrakeLevers
+            ? Mathf.Max(ReadControls(_accelerateAction, fromXRController: true), ReadControls(_brakeAction, fromXRController: true))
+            : 0f;
         // the trigger pull that started the drive from the main menu is still held
         if (throttle <= ThrottleDeadzone) _ignoreThrottleUntilReleased = false;
         if (_ignoreThrottleUntilReleased) throttle = 0f;
 
         if (AccelerationSetting.Mode == AccelerationMode.Instant)
         {
-            bool acceleratePressed = _accelerateAction != null && _accelerateAction.WasPressedThisFrame();
+            bool acceleratePressed = _accelerateAction != null && _accelerateAction.WasPressedThisFrame() &&
+                !(_xrTriggersAreBrakeLevers && _accelerateAction.activeControl?.device is XRController);
             if (Brake > BrakeDeadzone) _throttleLatched = false;
             else if (_accelerateUnlatches && acceleratePressed) _throttleLatched = !_throttleLatched;
             else if (throttle > ThrottleDeadzone) _throttleLatched = true;
@@ -112,11 +130,35 @@ public class DrivingInput
         VrFastSpeed.Apply(rigidbody, maxSpeedMs, heading);
     }
 
+    private float ReadPedal(InputAction action)
+    {
+        if (_xrTriggersAreBrakeLevers)
+            return ReadControls(action, fromXRController: false);
+        return action?.ReadValue<float>() ?? 0f;
+    }
+
+    private static float ReadControls(InputAction action, bool fromXRController)
+    {
+        if (action == null)
+            return 0f;
+
+        float value = 0f;
+        foreach (var control in action.controls)
+        {
+            bool isXRController = control.device is XRController;
+            if (isXRController == fromXRController && control is InputControl<float> floatControl)
+                value = Mathf.Max(value, floatControl.ReadValue());
+        }
+        return value;
+    }
+
     private void UpdateGear()
     {
         GearChangedThisFrame = false;
 
         bool reverse = IsReverse;
+        if (_holdToReverseAction != null)
+            reverse = _holdToReverseAction.IsPressed();
         if (_gearChangeAction != null && _gearChangeAction.WasPressedThisFrame())
             reverse = !reverse;
         if (_gearDriveAction != null && _gearDriveAction.WasPressedThisFrame())
