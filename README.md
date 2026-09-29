@@ -6,12 +6,14 @@ The secondary goal is to see if experiencing the same scenario from both perspec
 
 This was my undergraduate thesis project at Toronto Metropolitan University, supervised by Dr. Tim McInerney.
 
-----------------------
-TODO: put render here
-----------------------
+![The Tenor and Sankofa Square](img/downtown_model/renders/tenor_and_square.jpg)
 
 This project has 3 components:
 
 - [Downtown Model](downtown_model/README.md): A geographically accurate and photorealistic 3D model of downtown Toronto
 - [Controller](controller/README.md): A 3D printable steering wheel and bike handlebars controller for the VR simulation
 - [Simulation](simulation/README.md): The Unity VR driving simulation with dynamic SUMO simulated traffic
+
+| [Downtown Model](downtown_model/README.md)                                  | [Controller](controller/README.md)                          | [Simulation](simulation/README.md)                               |
+| --------------------------------------------------------------------------- | ----------------------------------------------------------- | ---------------------------------------------------------------- |
+| ![Dave's Chicken](img/downtown_model/renders/dave_chicken.jpg)          | ![Controller front](img/controller/dual_front.jpg)     | ![Driving Simulation](img/simulation/car_1.png)     |

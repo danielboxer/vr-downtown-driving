@@ -2,15 +2,24 @@
 
 Geographically accurate 3D model of the Yonge and Dundas intersection in downtown Toronto. It was modeled in Blender using real photos I took as the textures. The layout is done using OpenStreetMap data so it's accurate.
 
-TODO
-<!-- TODO: render of the whole downtown model -->
+![Downtown bird's eye view](../img/downtown_model/renders/birds_eye.jpg)
+
+The GLTF model in this folder is one with 24 atlases instead of 5. See [`simulation/Assets/downtown/`](../simulation/Assets/downtown/) for the FBX used in the unity simulation.
 
 The modeled area is the bounding box between latitudes 43.6548N and 43.6600N and longitudes 79.3839W and 79.3777W. Two blocks of Yonge and one block of Dundas are photorealistic and built with the pipeline below. The remaining blocks use 7 simple PBR facade textures. Some billboard ads were also modeled to make it more realistic.
 
-Full photogrammetry is expensive and hard to do in an area as busy as Yonge and Dundas, and hand modeling a building out of PBR textures takes a long time. This pipeline is a compromise which uses real photos to get realistic lighting and detail, and low poly geometry which is good in a game engine.
+Full photogrammetry is expensive and hard to do in an area as busy as Yonge and Dundas, and hand modeling a building out of PBR textures takes a long time. This is a compromise which uses real photos to get realistic lighting and detail, and low poly geometry which is good in a game engine.
 
-TODO
-<!-- TODO: more renders -->
+|                                                                        |                                                                    |                                                               |
+| ---------------------------------------------------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------- |
+| ![The Tenor on Yonge Street](../img/downtown_model/renders/tenor.jpg) | ![Sankofa Square](../img/downtown_model/renders/square.jpg)        | ![Student Learning Centre](../img/downtown_model/renders/slc.jpg) |
+
+|                                                                                  |                                                                        |
+| -------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| ![Side of the Tenor](../img/downtown_model/renders/tenor_side.jpg)               | ![Foot Locker storefront](../img/downtown_model/renders/foot_locker.jpg) |
+| ![Jollibee to Ohyo storefronts](../img/downtown_model/renders/jolibee_to_ohyo.jpg) | ![Eaton Centre](../img/downtown_model/renders/eaton_centre.jpg)        |
+
+![Dave's Chicken](../img/downtown_model/renders/dave_chicken.jpg)
 
 ## Photos
 
@@ -26,7 +35,7 @@ I used Stable Diffusion 1.5 (Serenity) and SDXL (RealVisXL) for inpainting. This
 
 | Original                                                    | Cropped                                                            | Inpainted                                                          |
 | ------------------------------------------------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| ![Original phone photo](../img/downtown_model/photo_raw.jpg) | ![Cropped and rotated](../img/downtown_model/photo_cropped.jpg)    | ![People and cars removed](../img/downtown_model/photo_inpainted.jpg) |
+| ![Original phone photo](../img/downtown_model/process/original.jpg) | ![Cropped and rotated](../img/downtown_model/process/cropped.jpg)    | ![People and cars removed](../img/downtown_model/process/removed.jpg) |
 
 ## Buildings from OSM
 
@@ -36,7 +45,7 @@ Some of the OSM data is old or wrong, mostly building heights. To fix that I imp
 
 | Blosm extrusions                                                     | Google 3D tiles reference                                             |
 | ---------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| ![Buildings generated from OSM data](../img/downtown_model/osm_extrusions.jpg) | ![Height calibration against Google 3D tiles](../img/downtown_model/google_3d_tiles.jpg) |
+| ![Buildings generated from OSM data](../img/downtown_model/process/blosm.jpg) | ![Height calibration against Google 3D tiles](../img/downtown_model/process/google_3d_tiles.jpg) |
 
 ## Texturing and detail
 
@@ -51,13 +60,13 @@ Extruding this way is fast but leaves artifacts like overlapping faces and bad t
 
 | Projected on a cube                                            | Extruded detail                                                       | Final building                                                   |
 | ---------------------------------------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------ |
-| ![Image projected on a cube](../img/downtown_model/projection.jpg) | ![Extrusions adding depth](../img/downtown_model/detail_extrusions.jpg) | ![The final 3D building](../img/downtown_model/building_final.jpg) |
+| ![Image projected on a cube](../img/downtown_model/process/cube_projection.jpg) | ![Extrusions adding depth](../img/downtown_model/process/extrusions.jpg) | ![The final 3D building](../img/downtown_model/process/final_building.jpg) |
 
 ## Texture atlases
 
 Building images are packed into atlases to reduce draw calls. The atlas below is the Tenor on Yonge Street and textures a whole street block.
 
-![Texture atlas](../img/downtown_model/texture_atlas.jpg)
+![Texture atlas](../img/downtown_model/process/atlas_no_uvs.jpg)
 
 ## In Unity
 
@@ -72,6 +81,8 @@ After importing the FBX:
 
 - Model tab: enable **Generate Lightmap UVs**, Min Lightmap Resolution 4
 - Materials tab: **Extract Materials**
+- Remap materials renamed in Blender in the Materials tab
+- Put `downtown` in `Scenes/Downtown.unity` at (312.4163, 0, 288.7486), rotation Y 162.273
 - Add MeshCollider to all buildings
 - Mark as **Static**
 - Bake lightmap (Window > Rendering > Lighting > Generate Lighting)
@@ -81,6 +92,7 @@ Material setup
 
 - Setup the mask maps for all PBR textures, adjust Smoothness slider based on the material, 0.98 looks good for windows, 0.2 for others, 0.9 for billboards
 - For all PBR textures (with normal maps), press "Fix Now" on the normal maps
+- Atlas window materials: Base Color `B5BCC5`
 
 Texture setup:
 
@@ -92,7 +104,8 @@ Select all downtown textures and apply:
 - Aniso Level: 4
 
 Atlas textures (hero buildings):
-- Max size 8192
+- Max size 8192, WebGL override 4096
+- Alpha Source: None
 - Wrap mode: Clamp
 - Compression: High Quality
 
