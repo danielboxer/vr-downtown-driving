@@ -736,7 +736,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1.5, y: 1.5, z: 1.5}
+  m_LocalScale: {x: 1.3, y: 1.3, z: 1.3}
   m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 1275486790224548027}
@@ -865,6 +865,12 @@ MonoBehaviour:
   actionMapName: Driving
   steerSmoothing: 1.5
   steerReturnSmoothing: 2
+  autoAccelRamp: 0.1
+  autoDecelRamp: 0.5
+  triggerDeadzone: 0.05
+  brakeStart: 0.65
+  fullBrakeThreshold: 0.95
+  stoppedSpeedThreshold: 0.5
 --- !u!114 &2483689335993353849
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -976,8 +982,8 @@ Transform:
   m_GameObject: {fileID: 4181878413488772468}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 1.253, z: -0.844}
-  m_LocalScale: {x: 0.6666667, y: 0.6666667, z: 0.6666667}
+  m_LocalPosition: {x: 0, y: 1.17, z: -0.689}
+  m_LocalScale: {x: 0.7692308, y: 0.7692308, z: 0.7692308}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 3286640790324234950}
