@@ -4,9 +4,11 @@ Geographically accurate 3D model of the Yonge and Dundas intersection in downtow
 
 ![Downtown bird's eye view](../img/downtown_model/renders/birds_eye.jpg)
 
+View the model in 3D on [Sketchfab](https://sketchfab.com/3d-models/downtown-toronto-yonge-and-dundas-a867077e68b8443297d682bf4a21a1af).
+
 The GLTF model in this folder is one with 24 atlases instead of 5. See [`simulation/Assets/downtown/`](../simulation/Assets/downtown/) for the FBX used in the unity simulation.
 
-The modeled area is the bounding box between latitudes 43.6548N and 43.6600N and longitudes 79.3839W and 79.3777W. Two blocks of Yonge and one block of Dundas are photorealistic and built with the pipeline below. The remaining blocks use 7 simple PBR facade textures. Some billboard ads were also modeled to make it more realistic.
+The modeled area is the bounding box between latitudes 43.6548N and 43.6600N and longitudes 79.3839W and 79.3777W. Three blocks of Yonge and one block of Dundas are photorealistic and built with the pipeline below. The remaining blocks use 7 simple PBR facade textures. Some billboard ads were also modeled to make it more realistic.
 
 Full photogrammetry is expensive and hard to do in an area as busy as Yonge and Dundas, and hand modeling a building out of PBR textures takes a long time. This is a compromise which uses real photos to get realistic lighting and detail, and low poly geometry which is good in a game engine.
 
@@ -29,7 +31,7 @@ All photos were taken in person with my phone camera. I was originally going to 
 
 1. Crop the photo to maximize texture space
 2. Rotate it to remove the slant from the original photo
-3. Remove people, cars and trees with AI inpainting in Krita, using the [Krita AI Diffusion](https://github.com/Acly/krita-ai-diffusion) plugin
+3. Remove people, cars and trees with AI inpainting in Krita, using the clone brush and the [Krita AI Diffusion](https://github.com/Acly/krita-ai-diffusion) plugin
 
 I used Stable Diffusion 1.5 (Serenity) and SDXL (RealVisXL) for inpainting. This works well in most cases but has trouble when the thing being removed sits in front of text or a logo, which the models reconstruct badly.
 
@@ -62,11 +64,23 @@ Extruding this way is fast but leaves artifacts like overlapping faces and bad t
 | ---------------------------------------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------ |
 | ![Image projected on a cube](../img/downtown_model/process/cube_projection.jpg) | ![Extrusions adding depth](../img/downtown_model/process/extrusions.jpg) | ![The final 3D building](../img/downtown_model/process/final_building.jpg) |
 
+The geometry is very low poly and the texture does most of the work:
+
+| Without textures                                                                   | With textures                                                                 |
+| ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| ![Building geometry without textures](../img/downtown_model/process/before.jpg)    | ![The same buildings with textures](../img/downtown_model/process/after.jpg)  |
+
+All building geometry from above:
+
+![All building geometry from above](../img/downtown_model/process/birds_eye.jpg)
+
 ## Texture atlases
 
 Building images are packed into atlases to reduce draw calls. The atlas below is the Tenor on Yonge Street and textures a whole street block.
 
-![Texture atlas](../img/downtown_model/process/atlas_no_uvs.jpg)
+| Atlas                                                            | With UVs overlaid                                               |
+| ---------------------------------------------------------------- | --------------------------------------------------------------- |
+| ![Texture atlas](../img/downtown_model/process/atlas_no_uvs.jpg) | ![Texture atlas with UVs](../img/downtown_model/process/atlas.jpg) |
 
 ## In Unity
 
@@ -111,3 +125,7 @@ Atlas textures (hero buildings):
 
 Mask maps:
 - Uncheck sRGB
+
+## Credits
+
+The cars, trees, traffic lights, street lamps, and sign assets are from the [SUMO2Unity project](https://github.com/SimuTraffX-Lab/SUMO2Unity).

@@ -4,6 +4,10 @@ Unity VR driving simulation built on top of the SUMO2Unity project. See their do
 
 SUMO2Unity connects the SUMO 2D traffic simulator to Unity, so the NPC cars are dynamic and will react to you while following traffic rules.
 
+Play the web demo on [itch.io](https://j03e.itch.io/downtown-driving).
+
+On a laptop with an RTX 3060 it runs at 72 Hz on a Meta Quest 3 and around 200 FPS in desktop mode. The web build runs at around 60 FPS.
+
 |                                                                 |                                                                       |
 | --------------------------------------------------------------- | --------------------------------------------------------------------- |
 | ![Car driving at Yonge and Dundas](../img/simulation/car_1.png) | ![Bike approaching right turn](../img/simulation/bike_right_turn.png) |
@@ -14,10 +18,10 @@ First install IL2CPP module
 
 1. Open Unity Hub
 2. Go to Installs
-4. Click the Manage button next to your Unity version
-5. Click Add modules
-6. Check Windows Build Support (IL2CPP)
-7. Click Install
+3. Click the Manage button next to your Unity version
+4. Click Add modules
+5. Check Windows Build Support (IL2CPP)
+6. Click Install
 
 Download Inno Setup which is used for packaging the Unity build into a single file: https://jrsoftware.org/isinfo.php
 
@@ -25,7 +29,7 @@ Download Inno Setup which is used for packaging the Unity build into a single fi
 
 After installing Inno Setup, use `build-installer.ps1` to package a release:
 
-1. In Unity: **File → Build** and set the output folder to `simulation/build/StandaloneWindows64/`
+1. In Unity: **File > Build Profiles** and build Windows to `simulation/build/StandaloneWindows64/`
    *(The script expects the Unity build at that exact path.)*
 2. In a PowerShell terminal from `simulation/`:
 
@@ -42,7 +46,10 @@ To skip the PyInstaller step (when only the Unity build changed):
 .\build-installer.ps1 -SkipPyInstaller
 ```
 
-To release a new version, update `MyAppVersion` at the top of `inno_setup_script.iss` before running the script.
+
+### Web build
+
+SUMO can't run in a browser, so the WebGL build replays SUMO traffic recorded ahead of time. The NPC cars follow the recording and are not dynamic.
 
 
 ## Scenarios

@@ -1,6 +1,6 @@
 # Tangible Controller
 
-This is a dual-purpose steering wheel and handlebars controller for VR (Meta Quest 3). The 3D printed controller fits on an ipad stand for simulating rotating a driving wheel and handlebars.
+This is a dual-purpose steering wheel and handlebars controller for VR (Meta Quest 3). The 3D printed controller fits on an iPad stand for simulating rotating a driving wheel and handlebars.
 
 ![Controller Model](../img/controller/controller_cad_model.png)
 
@@ -22,12 +22,14 @@ This is a dual-purpose steering wheel and handlebars controller for VR (Meta Que
 
 ## Printing
 
-- Print all pieces separately and oriented to avoid needing supports when possible:
-    -  Handlebars: print vertically
-    -  Wheel cradle: needs supports, print in normal orientation
-    -  Handlebar bracket: print on its side and not vertically
-    -  Baseplate: print in regular orientation
-    -  Handlebar cradle: needs supports, print upside down
+The STL files are in this folder, and `Controller.f3z` is the Fusion 360 file. Print each piece separately, oriented to avoid supports where possible:
+
+- `Handlebar.stl`: print vertically (auto orient in the slicer)
+- `Steering Wheel.stl`: needs supports, print in normal orientation (auto orient)
+- `Handlebar Bracket.stl`: print on its side, not vertically
+- `Baseplate.stl`: print in normal orientation
+- `Bicycle Cradle.stl`: needs supports, print upside down
+- `Middle Cylinder.stl`: print upside down (auto orient)
 
 This was printed on a Bambu A1 and an Anycubic Vyper with settings optimized for speed and strength and PLA material.
 
@@ -36,7 +38,7 @@ For Bambu Studio:
 - 20% sparse infill density
 - Tree supports when needed
 
-For AnyCubic (Use Ultimaker Cura slicer):
+For Anycubic (Ultimaker Cura slicer):
 - Extra fast profile
 - Adhesion type: skirt
 - Line width: 0.48
@@ -52,11 +54,40 @@ For AnyCubic (Use Ultimaker Cura slicer):
 - Support bottom interface off, bottom height 0.8
 - Support tree top rate: 10
 
+Filament used, about 626 g of PLA in total:
+
+- Steering wheel: 180 g
+- Baseplate: 137 g
+- Middle cylinder: 44 g
+- Both bicycle cradles: 151 g
+- Both handlebar brackets: 55 g
+- Both handlebars: 59 g
+
 ## Assembly
 
-- Sand the pieces that need it
-- Get 13 1/4 inch nuts and bolts
-- (Optional): Get a pair of bike grips from amazon to put on the handlebars
+- Sand the support remains off the cradles
+- Get 13 nuts and bolts, 1/4 inch:
+  - 3 bolts 3 inch long for the middle cylinder
+  - 4 bolts 3/4 inch long for the handlebars
+  - 4 bolts 1 1/2 inch long and 2 bolts 2 inch long for the handlebar brackets and cradle
+- The nuts go in the captive nut pockets in the printed parts
+- Clamp the iPad stand onto the controller. Tighten the stand to make turning stiffer, and tilt it to switch between car and bike mode
+- The Quest 3 controllers friction fit into the cradles
+- (Optional): Put bike grips on the handlebars
+
+## Parts from Amazon
+
+- [iPad stand](https://www.amazon.ca/dp/B0937HSDD4) (SHUOSUO Tablet Stand)
+- [Bike grips](https://www.amazon.ca/dp/B072KCZMPZ) (LYCAON Bike Handlebar Grips), optional
+
+## Cost
+
+In CAD, about $68 in total, or $79 with the bike grips:
+
+- iPad stand: $44
+- Nuts and bolts: $8
+- PLA filament: $15.6
+- Bike grips: $11.3
 
 ## Sources
 
